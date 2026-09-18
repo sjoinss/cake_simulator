@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 테마 변수 세트. data-theme 속성으로 전체 세트를 스위칭한다.
+   Phase 1은 pink 하나만 채우고, 나머지(blue/sky/red/yellow/orange/purple)는 Phase 2에서 추가한다. */
+:root,
+:root[data-theme="pink"] {
+  --theme-primary: #f7a8c4;
+  --theme-secondary: #fbd1e0;
+  --theme-background: #fff6fa;
+  --theme-accent: #f58fb0;
+  --theme-text: #4a3b3f;
+
+  --background: var(--theme-background);
+  --foreground: var(--theme-text);
 }
 
 @theme inline {
@@ -12,15 +21,38 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 모바일 세로 모드 안내. game-root(매장/제작 화면)는 숨기고 회전 안내만 보여준다. */
+.game-root {
+  display: flex;
+}
+
+.rotate-notice {
+  display: none;
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+  .game-root {
+    display: none;
+  }
+
+  .rotate-notice {
+    display: flex;
+  }
 }
