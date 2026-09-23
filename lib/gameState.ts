@@ -74,6 +74,8 @@ export type ActiveOrder = {
   orderId: string;
   customerId: string; // Customer.id 참조
   stage: CraftingStage;
+  createdAt: number; // 제작 시작 시각(ms). 결과 화면 "속도" 점수 계산용
+  completedAt: number | null; // 데코레이션 "완성"을 누른 시각. 완성 전엔 null
   cake: {
     base: string | null;
     baking: {

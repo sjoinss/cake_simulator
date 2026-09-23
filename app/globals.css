@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 /* 테마 변수 세트. data-theme 속성으로 전체 세트를 스위칭한다.
-   Phase 1은 pink 하나만 채우고, 나머지(blue/sky/red/yellow/orange/purple)는 Phase 2에서 추가한다. */
+   Phase 1은 pink 하나만 채우고, 나머지(blue/sky/red/yellow/orange/purple)는 Phase 2에서 추가한다.
+   pink 테마는 비비드한 핑크 대신 코랄에 가까운 파스텔톤으로 채운다. */
 :root,
 :root[data-theme="pink"] {
-  --theme-primary: #f7a8c4;
-  --theme-secondary: #fbd1e0;
-  --theme-background: #fff6fa;
-  --theme-accent: #f58fb0;
-  --theme-text: #4a3b3f;
+  --theme-primary: #f0a093;
+  --theme-secondary: #f8d7cf;
+  --theme-background: #fdf6f2;
+  --theme-accent: #ec8672;
+  --theme-text: #4a3733;
 
   --background: var(--theme-background);
   --foreground: var(--theme-text);
@@ -38,6 +39,73 @@ body {
   }
 }
 
+/* 빈 테이블에 손님이 배정될 때 아래→위로 슬라이드업하며 등장하는 애니메이션. */
+@keyframes customer-enter {
+  from {
+    opacity: 0;
+    transform: translateY(50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-customer-enter {
+  animation: customer-enter 0.45s ease-out;
+}
+
+/* 서빙 후 다 먹은 손님이 아래로 내려가며 사라지는 퇴장 애니메이션 (등장의 역방향). */
+@keyframes customer-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(50%);
+  }
+}
+
+.animate-customer-leave {
+  animation: customer-leave 0.45s ease-in forwards;
+}
+
+/* 계산대 위 완성 케이크: "잡아서 옮길 수 있다"는 걸 알려주는 살짝 흔들리는 강조 (11장). */
+@keyframes cake-wiggle {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  80% {
+    transform: rotate(-6deg);
+  }
+  90% {
+    transform: rotate(6deg);
+  }
+}
+
+.animate-cake-wiggle {
+  animation: cake-wiggle 1.6s ease-in-out infinite;
+}
+
+/* 서빙 결과 카드가 톡 튀어나오는 등장 연출. */
+@keyframes result-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-result-pop {
+  animation: result-pop 0.25s ease-out;
+}
+
 /* 모바일 세로 모드 안내. game-root(매장/제작 화면)는 숨기고 회전 안내만 보여준다. */
 .game-root {
   display: flex;
@@ -54,5 +122,29 @@ body {
 
   .rotate-notice {
     display: flex;
+  }
+}
+
+/* PC(넓은 화면)에서는 화면 전체를 쓰지 않고, 폰 가로 비율(20:9) 프레임을 중앙에 띄워
+   플래시 게임 창처럼 보이게 한다. 프레임 밖은 어둡게 덮는다. */
+@media (min-width: 901px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    background: radial-gradient(120% 120% at 50% 45%, #1a1620 0%, #0d0b10 60%);
+  }
+
+  .game-root {
+    width: min(1300px, 80vw, calc((100dvh - 6rem) * 20 / 9));
+    aspect-ratio: 20 / 9;
+    height: auto;
+    border-radius: 1.25rem;
+    /* 사방에 고르게 은은한 그림자 + 테마색 글로우 (한쪽으로 쏠리지 않도록 오프셋 없이 blur만 사용) */
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 10px 40px -12px rgba(0, 0, 0, 0.5),
+      0 0 110px 0px color-mix(in srgb, var(--theme-accent) 20%, transparent);
   }
 }

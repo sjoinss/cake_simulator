@@ -1,4 +1,4 @@
-import { ShopScreen } from "@/components/shop/ShopScreen";
+import { GameRoot } from "@/components/game/GameRoot";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
         </span>
         <p className="text-base font-semibold">화면을 가로로 돌려주세요</p>
       </div>
-      <ShopScreen />
+      <GameRoot />
     </>
   );
 }
