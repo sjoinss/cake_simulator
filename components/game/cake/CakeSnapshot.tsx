@@ -43,6 +43,7 @@ export function CakeSnapshot({ cake, materials, size, label }: CakeSnapshotProps
               left: `${text.x}%`,
               top: `${text.y}%`,
               color: text.color,
+              fontFamily: text.font,
               transform: `translate(-50%, -50%) rotate(${text.rotation}deg) scale(${text.scale})`,
             }}
             aria-hidden

@@ -14,8 +14,6 @@ type BaseSelectStageProps = {
 // 나중에 재료가 늘어나도 그대로 쓸 수 있도록 선택 UI 구조를 갖춰둔다.
 export function BaseSelectStage({ order, materials, rank, onSelectBase, onNext }: BaseSelectStageProps) {
   const options = getUnlockedMaterials(materials, "base", rank);
-  // 오븐에 넣은 뒤에는 시트를 바꿀 수 없다 (이미 구워진 케이크의 재료가 바뀌면 굽기 판정이 어긋남)
-  const isBaked = order.cake.baking.startTime !== null;
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
@@ -29,9 +27,8 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onNext }
               key={material.id}
               type="button"
               onClick={() => onSelectBase(material.id)}
-              disabled={isBaked}
               aria-pressed={isSelected}
-              className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-3 shadow-sm transition-transform active:scale-95 disabled:opacity-60 disabled:active:scale-100 ${
+              className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-3 shadow-sm transition-transform active:scale-95 ${
                 isSelected ? "border-[var(--theme-accent)] bg-white" : "border-transparent bg-white/70"
               }`}
             >
@@ -43,8 +40,6 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onNext }
           );
         })}
       </div>
-
-      {isBaked && <p className="text-sm text-[var(--theme-text)]/70">이미 오븐에 넣어서 시트를 바꿀 수 없어요</p>}
 
       {order.cake.base && (
         <button

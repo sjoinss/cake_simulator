@@ -50,13 +50,12 @@
 - `lib/gameLogic.ts` — 오븐 타이밍 판정(`OVEN_DURATION_MS`=6초, 70~90% 구간이 만점, `scoreBaking`)과 크림 판정(`scoreFrostingCoverage`/`scoreFrostingEvenness`) 순수 함수. ⑤ 결과 화면 채점에 재사용 가능
 - `components/game/cake/CakeRenderer.tsx` — 시트/크림/토핑을 `cake` 데이터만 보고 다시 그리는 선언적 렌더러(16장 원칙). 텍스트/자유 그림은 데코 단계 전용 오버레이가 따로 담당(중복 방지)
 - `components/game/cake/DrawingCanvas.tsx` — pointer 이벤트 자유 그림, 좌표는 캔버스 크기 대비 %로 저장(토핑/텍스트와 좌표계 통일), `cake.drawings`에서 항상 다시 그림
-- `components/game/cake/TextOverlay.tsx` — 드래그 가능한 DOM 텍스트 오버레이(Canvas 아님, 16장 원칙). 텍스트 입력은 Phase 1 단순화로 `window.prompt()` 사용
-  - ⚠️ 브라우저 자동화/테스트 시 네이티브 `prompt()`는 세션을 블로킹하니 자동 클릭하지 말 것 (사람이 직접 입력해야 함)
+- `components/game/cake/TextOverlay.tsx` — 드래그 가능한 DOM 텍스트 오버레이(Canvas 아님, 16장 원칙). (처음엔 `window.prompt()`로 입력받았으나 후속 다듬기에서 인라인 입력창으로 교체)
 - `components/game/stages/BaseSelectStage.tsx` — 재료 1개뿐이라 사실상 확인 단계지만, 재료가 늘어나도 그대로 쓸 구조
 - `components/game/stages/OvenStage.tsx` — `baking.startTime`(절대 시각) 기준 실시간 진행률. 다른 화면 갔다 와도 `Date.now()`로 정확히 재계산됨을 실제로 확인함
 - `components/game/stages/FrostingStage.tsx` — 6x6 그리드 드래그 페인팅(19장 4번 "터치 포인트 샘플링 근사치" 원칙), 완료 시 `cake.filling`에 크림 재료 id 자동 지정 + `cake.frosting`에 coverage/evenness 저장
 - `components/game/stages/ToppingStage.tsx` — 6x6 스냅 그리드에 탭으로 토핑 추가/제거(1장 5번 "그리드/스냅" 원칙)
-- `components/game/stages/DecorationStage.tsx` — 진입 시 `rotateX(55deg)→rotateX(0deg)` 카메라 전환 연출(4장, 생략 불가), 색상 스와치 + 자유 그림 + 텍스트 추가/이동 + "완성" 버튼(누르면 `stage:'ready'`로 바꾸고 매장 화면으로 자동 복귀)
+- `components/game/stages/DecorationStage.tsx` — 진입 시 `rotateX(55deg)→rotateX(0deg)` 카메라 전환 연출(4장, 생략 불가), 그림/텍스트 도구(후속 다듬기에서 확장) + "완성" 버튼(누르면 `stage:'ready'`로 바꾸고 매장 화면으로 자동 복귀)
 - `hooks/useGameState.ts` — 여러 전용 setter 대신 범용 `updateOrder(orderId, updater)` 하나로 각 단계의 `cake` 필드를 갱신
 - `components/game/CraftingScreen.tsx`에서 위 5단계를 `order.stage`에 따라 조립. 브라우저로 시트→오븐→크림→토핑→데코 전체 플로우를 실제로 클릭해서 확인함
   - (⑤에서 해결됨) 예전 한계: "완성"된 주문(`stage:'ready'`)도 매장 화면에서 여전히 "이어 만들기" 버튼으로 보임(재진입하면 "완성된 케이크입니다" 안내만 뜸) — 서빙/결과 화면이 없어서 자연스러운 종료 지점이 아직 없음
@@ -78,14 +77,27 @@
 - 브라우저에서 실제 마우스 드래그로 확인: 잘못된 테이블 드롭 → 스냅백, 올바른 테이블 → 결과 카드 + HUD 금액 증가, 먹기 → 퇴장 → 새 손님 등장까지 확인. 콘솔 에러 없음
 
 ### [x] 후속 다듬기
-- 제작 단계 잠금: `lib/gameLogic.ts`의 `isStageUnlocked(cake, stage)` — 시트 선택 → 오븐(굽기 완료) → 크림(바르기 완료) → 토핑(1개 이상) 순으로 다음 단계가 열린다. 잠긴 하단 탭은 `disabled` + 🔒 아이콘. 지나온 단계는 다시 볼 수 있지만 오븐에 넣은 뒤엔 시트 변경 불가, 토핑 0개면 "다음 단계로" 비활성
+- 제작 단계는 **앞으로만** 진행 (1장 2번 "이전 단계로 자유롭게 되돌아가지 않고 순서대로"). 하단 바는 버튼이 아니라 진행 표시(✅ 완료 / 현재 / 🔒 잠김)이고, 단계 이동은 각 단계의 "다음 단계로" 버튼으로만 한다. 각 단계의 "다음" 버튼이 완료 조건을 건다(시트 선택, 굽기 완료, 크림 완료, 토핑 1개 이상)
+  - 한때 탭으로 지나온 단계를 다시 볼 수 있게 했다가(`isStageUnlocked`) 1장 2번과 어긋나서 제거함
 - `components/game/cake/CakeSnapshot.tsx` — 완성 케이크 읽기 전용 렌더러. 제작 화면 크기(224px)로 그린 뒤 `scale()`로 축소, 자유 그림은 같은 % 좌표계의 SVG polyline으로 다시 그림. 결과 카드(점수표 옆, 96px)와 먹는 중인 테이블 위(52px, `scale-y-[0.6]`으로 눕힘)에 사용. 결과 카드용 케이크는 `ServeResultCard` 데이터에 같이 복사해 둔다
-- 브라우저로 잠금 전이, 결과 카드의 실제 케이크 모습(토핑+그림) 확인. 테이블 위 스냅샷은 DOM으로만 확인(스크린샷 타이밍을 못 맞춤)
+- 브라우저로 결과 카드의 실제 케이크 모습(토핑+그림) 확인. 테이블 위 스냅샷은 DOM으로만 확인(스크린샷 타이밍을 못 맞춤)
+- 데코레이션 도구 (5장/6장): `DecorationStage`를 케이크(왼쪽) + 도구 패널(오른쪽) 가로 배치로 바꿈 (가로 폰의 좁은 세로 공간 대응). "✏️ 그리기 / 🔤 글자" 모드 전환
+  - 그리기: 펜 색상 5개, 펜 크기 3단계, 지우개, 그림 전체 지우기
+  - 지우개는 픽셀을 긁지 않고 **닿은 획을 통째로 삭제** (`lib/decoration.ts`의 `eraseStrokesAt`, 선분 거리 판정) — 그림 데이터가 항상 획 목록으로 남아 `CakeSnapshot`에서 그대로 다시 그려진다
+  - 글자: `window.prompt()` 대신 인라인 입력창 + "추가". 글자를 눌러 선택 → 크기(A−/A+), 회전(15° 단위), 색상, 글꼴(고딕/명조/손글씨) 버튼, 삭제. 드래그 또는 방향키로 이동하며 `clampToCake`로 케이크 원 안(반경 42%)에 가둔다
+  - 실행 취소/다시 실행: `DecorationStage` 로컬 히스토리(`{drawings, text}` 스냅샷). 드래그·지우개처럼 연속 조작은 시작 시 1번만 쌓는다. 제작 화면을 나갔다 오면 히스토리만 초기화됨
+  - 그리기 모드에선 글자가, 글자 모드에선 캔버스가 포인터를 받지 않도록 서로 끈다
+  - `CraftingScreen`의 그림/텍스트 전용 핸들러 4개를 `onChange({drawings, text})` 하나로 합침
+  - ⚠️ 이 작업은 브라우저 실동작 확인을 못 함 (아래 참고). tsc/eslint 통과 + `lib/decoration.ts` 함수만 Node로 검증
 - 참고: 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
+- ⚠️ 브라우저 자동화 주의: Chrome 창이 오래 가려져 있으면(탭 hidden) 타이머가 분 단위로 몰아서 실행돼 `setTimeout` 기반 대기와 게임 타이머가 멈춘 것처럼 보이고 CDP 호출도 타임아웃난다. 이럴 땐 사용자에게 Chrome 창을 앞으로 가져와 달라고 요청할 것
 
 ## 다음 할 일
-Phase 1 MVP(19장 ①~⑤)는 전부 구현됨. 이후 후보 (우선순위는 사용자와 상의):
+Phase 1 MVP(19장 ①~⑤)와 기획서 1장/5장/6장 누락분까지 구현됨. 이후 후보 (우선순위는 사용자와 상의):
+- **데코 도구 브라우저 실동작 확인** (최우선): 그리기/지우개/펜 크기/실행 취소·다시 실행, 글자 추가·선택·크기·회전·색·글꼴·삭제·드래그·방향키 이동, 결과 카드 스냅샷에 글꼴/회전 반영 여부. Chrome 창을 앞에 둔 상태에서 테스트할 것
+- 테이블 위 먹는 중 케이크 스냅샷 위치/크기 육안 확인
 - 실제 플레이 밸런스 조정 (오븐 6초, 속도 기준 60/180초, 케이크 가격 $30 등 전부 임시값)
-- DAY 진행(하루 종료 조건)은 기획서 Phase 1 범위에 명시가 없어 미구현
+- DAY 진행(하루 종료 조건)은 기획서 Phase 1 범위에 명시가 없어 미구현 — 규칙을 사용자에게 받아야 함
+- 손님 인내심 게이지(1장 6번)는 17장 Phase 1 목록에 없어서 미구현 (`Customer.patience` 필드만 있음)
 
 **Phase 1 범위 상기**: 섹션 17 참고. 손님 다양화/커스텀 재료 UI/테마 선택 UI/캐릭터 커스터마이징/재료 해금/장비 업그레이드/팁 시스템/랭크업 연출 등은 Phase 1에서 제외.

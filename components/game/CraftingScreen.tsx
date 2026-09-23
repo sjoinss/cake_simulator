@@ -1,12 +1,12 @@
 import type { useGameState } from "@/hooks/useGameState";
-import type { CakeDrawing, CraftingStage } from "@/lib/gameState";
-import { OVEN_DURATION_MS, isStageUnlocked } from "@/lib/gameLogic";
+import type { CraftingStage } from "@/lib/gameState";
+import { OVEN_DURATION_MS } from "@/lib/gameLogic";
 import { initialMaterials } from "@/lib/materials";
 import { BaseSelectStage } from "./stages/BaseSelectStage";
 import { OvenStage } from "./stages/OvenStage";
 import { FrostingStage } from "./stages/FrostingStage";
 import { ToppingStage } from "./stages/ToppingStage";
-import { DecorationStage } from "./stages/DecorationStage";
+import { DecorationStage, type DecorationData } from "./stages/DecorationStage";
 import { OrderTicket } from "./OrderTicket";
 
 type CraftingScreenProps = {
@@ -21,15 +21,15 @@ const STAGE_TABS: { stage: CraftingStage; emoji: string; label: string }[] = [
   { stage: "decoration", emoji: "🎂", label: "데코" },
 ];
 
-// ③ 제작 화면 진입/이탈 + Papa's 시리즈 스타일 하단 단계 탭.
+// ③ 제작 화면 진입/이탈 + Papa's 시리즈 스타일 하단 단계 진행 표시.
 // ④ 실제 제작 단계(시트→오븐→크림→토핑→데코레이션) 미니게임을 여기서 조립한다.
 export function CraftingScreen({ gameState }: CraftingScreenProps) {
   const { state, exitCrafting, setOrderStage, updateOrder, completeOrder } = gameState;
   const order = state.activeOrders.find((activeOrder) => activeOrder.orderId === state.craftingOrderId);
   const customer = order ? (state.tables.find((table) => table?.id === order.customerId) ?? null) : null;
 
-  const goToStage = (stage: CraftingStage) =>
-    order && isStageUnlocked(order.cake, stage) && setOrderStage(order.orderId, stage);
+  // 단계는 각 단계의 "다음 단계로" 버튼으로만 앞으로 진행한다. 이전 단계로 되돌아가지 않는다 (1장 2번).
+  const goToStage = (stage: CraftingStage) => order && setOrderStage(order.orderId, stage);
 
   const handleSelectBase = (materialId: string) =>
     order && updateOrder(order.orderId, (o) => ({ ...o, cake: { ...o.cake, base: materialId } }));
@@ -70,28 +70,8 @@ export function CraftingScreen({ gameState }: CraftingScreenProps) {
     });
   };
 
-  const handleAddDrawing = (drawing: CakeDrawing) =>
-    order && updateOrder(order.orderId, (o) => ({ ...o, cake: { ...o.cake, drawings: [...o.cake.drawings, drawing] } }));
-
-  const handleClearDrawings = () =>
-    order && updateOrder(order.orderId, (o) => ({ ...o, cake: { ...o.cake, drawings: [] } }));
-
-  const handleAddText = (content: string) =>
-    order &&
-    updateOrder(order.orderId, (o) => ({
-      ...o,
-      cake: {
-        ...o.cake,
-        text: [...o.cake.text, { content, x: 50, y: 50, rotation: 0, scale: 1, color: "#4a3733", font: "sans-serif" }],
-      },
-    }));
-
-  const handleMoveText = (index: number, x: number, y: number) =>
-    order &&
-    updateOrder(order.orderId, (o) => ({
-      ...o,
-      cake: { ...o.cake, text: o.cake.text.map((text, i) => (i === index ? { ...text, x, y } : text)) },
-    }));
+  const handleDecorationChange = (decoration: DecorationData) =>
+    order && updateOrder(order.orderId, (o) => ({ ...o, cake: { ...o.cake, ...decoration } }));
 
   const handleFinishDecoration = () => order && completeOrder(order.orderId);
 
@@ -149,10 +129,7 @@ export function CraftingScreen({ gameState }: CraftingScreenProps) {
             <DecorationStage
               order={order}
               materials={initialMaterials}
-              onAddDrawing={handleAddDrawing}
-              onClearDrawings={handleClearDrawings}
-              onAddText={handleAddText}
-              onMoveText={handleMoveText}
+              onChange={handleDecorationChange}
               onFinish={handleFinishDecoration}
             />
           )}
@@ -164,35 +141,35 @@ export function CraftingScreen({ gameState }: CraftingScreenProps) {
         </>
       )}
 
-      {/* 하단 단계 탭: Papa's 시리즈의 스테이션 전환 UI 참고. */}
+      {/* 하단 단계 진행 표시: Papa's 시리즈의 스테이션 표시 참고. 순서대로만 진행하므로 버튼이 아니라 진행 상황만 보여준다.
+          색만으로 구분하지 않도록 완료 ✓ / 현재 / 잠김 🔒 아이콘을 함께 쓴다 (18장). */}
       {order && order.stage !== "ready" && (
-        <nav
-          aria-label="제작 단계"
-          className="flex shrink-0 items-stretch justify-around gap-1 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-2"
-        >
-          {STAGE_TABS.map((tab) => {
-            const isActive = tab.stage === order.stage;
-            // 앞 단계를 아직 끝내지 않은 탭은 잠근다. 색만으로 구분하지 않도록 🔒 아이콘을 함께 보여준다 (18장).
-            const isLocked = !isStageUnlocked(order.cake, tab.stage);
-            return (
-              <button
-                key={tab.stage}
-                type="button"
-                onClick={() => goToStage(tab.stage)}
-                disabled={isLocked}
-                aria-current={isActive}
-                aria-label={isLocked ? `${tab.label} (앞 단계를 먼저 끝내세요)` : undefined}
-                className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-xs font-bold transition-transform active:scale-95 disabled:opacity-45 disabled:active:scale-100 ${
-                  isActive ? "bg-[var(--theme-accent)] text-white shadow-sm" : "bg-white/60 text-[var(--theme-text)]"
-                }`}
-              >
-                <span className="text-xl leading-none" aria-hidden>
-                  {isLocked ? "🔒" : tab.emoji}
-                </span>
-                {tab.label}
-              </button>
-            );
-          })}
+        <nav aria-label="제작 단계" className="shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-2">
+          <ol className="flex items-stretch justify-around gap-1">
+            {STAGE_TABS.map((tab, index) => {
+              const currentIndex = STAGE_TABS.findIndex((t) => t.stage === order.stage);
+              const status = index < currentIndex ? "done" : index === currentIndex ? "current" : "locked";
+              return (
+                <li
+                  key={tab.stage}
+                  aria-current={status === "current" ? "step" : undefined}
+                  className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-xs font-bold ${
+                    status === "current"
+                      ? "bg-[var(--theme-accent)] text-white shadow-sm"
+                      : status === "done"
+                        ? "bg-white/60 text-[var(--theme-text)]"
+                        : "bg-white/30 text-[var(--theme-text)]/50"
+                  }`}
+                >
+                  <span className="text-xl leading-none" aria-hidden>
+                    {status === "done" ? "✅" : status === "locked" ? "🔒" : tab.emoji}
+                  </span>
+                  {tab.label}
+                  <span className="sr-only">{status === "done" ? " 완료" : status === "locked" ? " 잠김" : " 진행 중"}</span>
+                </li>
+              );
+            })}
+          </ol>
         </nav>
       )}
     </div>
