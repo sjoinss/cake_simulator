@@ -1,4 +1,4 @@
-import type { ActiveOrder, Customer } from './gameState';
+import type { ActiveOrder, CraftingStage, Customer } from './gameState';
 
 // 제작 단계 관련 순수 로직 (cake-tycoon-prompt.md 2장, 19장 4번 "터치 포인트 샘플링 기반 근사치" 원칙).
 // Phase 1: 판정 자체는 단순하게 유지한다. 서빙 결과 채점은 파일 하단 scoreServedCake 참고.
@@ -38,6 +38,25 @@ export function scoreFrostingEvenness(quadrantCounts: number[], quadrantSize: nu
   const max = Math.max(...ratios);
   const min = Math.min(...ratios);
   return Math.round((1 - (max - min)) * 100);
+}
+
+// ---- 제작 단계 잠금 ----
+// 앞 단계를 끝내야 다음 단계로 갈 수 있다 (2장 기준 루프: 시트 → 오븐 → 크림 → 토핑 → 데코).
+// 이미 지나온 단계는 다시 볼 수 있지만, 되돌릴 수 없는 조작(오븐 이후 시트 교체 등)은 각 단계 컴포넌트가 막는다.
+export function isStageUnlocked(cake: ActiveOrder['cake'], stage: CraftingStage): boolean {
+  switch (stage) {
+    case 'base':
+      return true;
+    case 'oven':
+      return cake.base !== null;
+    case 'frosting':
+      return cake.baking.doneness > 0;
+    case 'topping':
+      return cake.frosting.coverage > 0;
+    case 'decoration':
+    case 'ready':
+      return cake.frosting.coverage > 0 && cake.toppings.length > 0;
+  }
 }
 
 // ---- ⑤ 서빙 결과 채점 (cake-tycoon-prompt.md 12장) ----

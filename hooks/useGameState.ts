@@ -24,8 +24,8 @@ const ENTER_ANIMATION_MS = 600;
 const EATING_DURATION_MS = 3000;
 const LEAVE_ANIMATION_MS = 450;
 
-// 결과 카드에 보여줄 정보. 손님은 곧 퇴장하므로 이름을 여기에 복사해둔다.
-export type ServeResultCard = ServeResult & { customerName: string };
+// 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 주문도 정리되므로 이름/케이크를 여기에 복사해둔다.
+export type ServeResultCard = ServeResult & { customerName: string; cake: ActiveOrder["cake"] };
 
 export function useGameState() {
   const [state, setState] = useState<GameState>(createInitialGameState);
@@ -234,7 +234,7 @@ export function useGameState() {
         };
       });
       setServedCakes((prev) => ({ ...prev, [customer.id]: order.cake }));
-      setServeResult({ ...result, customerName: customer.name });
+      setServeResult({ ...result, customerName: customer.name, cake: order.cake });
 
       schedule(() => {
         setLeavingIds((prev) => new Set(prev).add(customer.id));

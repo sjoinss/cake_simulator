@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import type { Customer } from "@/lib/gameState";
+import type { ActiveOrder, Customer } from "@/lib/gameState";
+import { initialMaterials } from "@/lib/materials";
+import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { SpeechBubble } from "./SpeechBubble";
 
 type CustomerTableProps = {
@@ -11,7 +13,7 @@ type CustomerTableProps = {
   makeButtonLabel: string | null;
   onMakeClick: (() => void) | undefined;
   isAwaitingServe: boolean; // 이 손님 케이크가 완성되어 계산대에서 서빙을 기다리는 중
-  isEating: boolean; // 서빙 완료 후 테이블 위 케이크를 먹는 중
+  servedCake: ActiveOrder["cake"] | null; // 서빙 완료 후 먹는 중인 케이크 (테이블 위에 표시)
   isLeaving: boolean; // 먹고 나서 퇴장 애니메이션 재생 중
   dropState: "target" | "hover" | null; // 드래그 중: target = 이 손님 케이크를 들고 있음, hover = 지금 이 테이블 위에 있음
 };
@@ -25,7 +27,7 @@ export function CustomerTable({
   makeButtonLabel,
   onMakeClick,
   isAwaitingServe,
-  isEating,
+  servedCake,
   isLeaving,
   dropState,
 }: CustomerTableProps) {
@@ -53,7 +55,7 @@ export function CustomerTable({
             aria-label={`${customer.name} 주문 확인`}
             className="cursor-pointer border-0 bg-transparent p-0 text-5xl leading-none transition-transform active:scale-90"
           >
-            {isEating ? "😋" : "🧑"}
+            {servedCake ? "😋" : "🧑"}
           </button>
           {/* 발밑 그림자 */}
           <div className="h-2 w-10 rounded-full bg-black/10 blur-[1px]" aria-hidden />
@@ -89,11 +91,11 @@ export function CustomerTable({
           dropState ? "outline-3 outline-offset-2 outline-dashed outline-[var(--theme-accent)]" : ""
         }`}
       >
-        {/* 서빙된 케이크: 먹는 동안 테이블 위에 놓여 있다 */}
-        {isEating && (
-          <span aria-label="서빙된 케이크" role="img" className="absolute -top-5 left-1/2 -translate-x-1/2 text-3xl leading-none">
-            🎂
-          </span>
+        {/* 서빙된 케이크: 먹는 동안 테이블 위에 놓여 있다. 위에서 본 케이크를 세로로 눌러서 테이블 위에 비스듬히 놓인 느낌을 준다 */}
+        {servedCake && (
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 scale-y-[0.6]">
+            <CakeSnapshot cake={servedCake} materials={initialMaterials} size={52} label="서빙된 케이크" />
+          </div>
         )}
       </div>
     </div>

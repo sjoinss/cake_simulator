@@ -1,6 +1,6 @@
 import type { useGameState } from "@/hooks/useGameState";
 import type { CakeDrawing, CraftingStage } from "@/lib/gameState";
-import { OVEN_DURATION_MS } from "@/lib/gameLogic";
+import { OVEN_DURATION_MS, isStageUnlocked } from "@/lib/gameLogic";
 import { initialMaterials } from "@/lib/materials";
 import { BaseSelectStage } from "./stages/BaseSelectStage";
 import { OvenStage } from "./stages/OvenStage";
@@ -28,7 +28,8 @@ export function CraftingScreen({ gameState }: CraftingScreenProps) {
   const order = state.activeOrders.find((activeOrder) => activeOrder.orderId === state.craftingOrderId);
   const customer = order ? (state.tables.find((table) => table?.id === order.customerId) ?? null) : null;
 
-  const goToStage = (stage: CraftingStage) => order && setOrderStage(order.orderId, stage);
+  const goToStage = (stage: CraftingStage) =>
+    order && isStageUnlocked(order.cake, stage) && setOrderStage(order.orderId, stage);
 
   const handleSelectBase = (materialId: string) =>
     order && updateOrder(order.orderId, (o) => ({ ...o, cake: { ...o.cake, base: materialId } }));
@@ -171,18 +172,22 @@ export function CraftingScreen({ gameState }: CraftingScreenProps) {
         >
           {STAGE_TABS.map((tab) => {
             const isActive = tab.stage === order.stage;
+            // 앞 단계를 아직 끝내지 않은 탭은 잠근다. 색만으로 구분하지 않도록 🔒 아이콘을 함께 보여준다 (18장).
+            const isLocked = !isStageUnlocked(order.cake, tab.stage);
             return (
               <button
                 key={tab.stage}
                 type="button"
                 onClick={() => goToStage(tab.stage)}
+                disabled={isLocked}
                 aria-current={isActive}
-                className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-xs font-bold transition-transform active:scale-95 ${
+                aria-label={isLocked ? `${tab.label} (앞 단계를 먼저 끝내세요)` : undefined}
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-xs font-bold transition-transform active:scale-95 disabled:opacity-45 disabled:active:scale-100 ${
                   isActive ? "bg-[var(--theme-accent)] text-white shadow-sm" : "bg-white/60 text-[var(--theme-text)]"
                 }`}
               >
                 <span className="text-xl leading-none" aria-hidden>
-                  {tab.emoji}
+                  {isLocked ? "🔒" : tab.emoji}
                 </span>
                 {tab.label}
               </button>

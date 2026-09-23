@@ -1,4 +1,6 @@
 import type { ServeResultCard as ServeResultCardData } from "@/hooks/useGameState";
+import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
+import { initialMaterials } from "@/lib/materials";
 
 type ServeResultCardProps = {
   result: ServeResultCardData;
@@ -21,7 +23,7 @@ export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="serve-result-title"
-        className="animate-result-pop flex w-72 max-w-full flex-col gap-3 rounded-2xl bg-white p-5 text-[var(--theme-text)] shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
+        className="animate-result-pop flex w-96 max-w-full flex-col gap-3 rounded-2xl bg-white p-5 text-[var(--theme-text)] shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
       >
         <div className="text-center">
           <h2 id="serve-result-title" className="text-xl font-extrabold tracking-wide">
@@ -30,18 +32,27 @@ export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
           <p className="text-sm opacity-70">{result.customerName}님의 케이크</p>
         </div>
 
-        <dl className="flex flex-col gap-1.5 text-base">
-          {SCORE_ROWS.map((row) => (
-            <div key={row.key} className="flex items-center justify-between gap-4">
-              <dt>{row.label}</dt>
-              <dd className="font-bold tabular-nums">{result[row.key]}%</dd>
+        {/* 가로 모드 폰은 세로 공간이 좁아서 케이크를 점수표 옆에 둔다 */}
+        <div className="flex items-center gap-4">
+          <CakeSnapshot
+            cake={result.cake}
+            materials={initialMaterials}
+            size={96}
+            label={`${result.customerName}님에게 서빙한 케이크`}
+          />
+          <dl className="flex flex-1 flex-col gap-1.5 text-base">
+            {SCORE_ROWS.map((row) => (
+              <div key={row.key} className="flex items-center justify-between gap-4">
+                <dt>{row.label}</dt>
+                <dd className="font-bold tabular-nums">{result[row.key]}%</dd>
+              </div>
+            ))}
+            <div className="mt-1 flex items-center justify-between gap-4 border-t border-black/10 pt-2 text-lg">
+              <dt className="font-extrabold">TOTAL</dt>
+              <dd className="font-extrabold tabular-nums">{result.total}%</dd>
             </div>
-          ))}
-          <div className="mt-1 flex items-center justify-between gap-4 border-t border-black/10 pt-2 text-lg">
-            <dt className="font-extrabold">TOTAL</dt>
-            <dd className="font-extrabold tabular-nums">{result.total}%</dd>
-          </div>
-        </dl>
+          </dl>
+        </div>
 
         <p className="text-center text-2xl font-extrabold text-[var(--theme-accent)]">+ ${result.money}</p>
 

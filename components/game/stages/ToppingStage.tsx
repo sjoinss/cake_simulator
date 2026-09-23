@@ -57,10 +57,12 @@ export function ToppingStage({ order, materials, rank, onToggleTopping, onNext }
         </p>
       )}
 
+      {/* 주문에는 항상 토핑이 있으므로 최소 1개는 올려야 데코 단계로 넘어갈 수 있다 (lib/gameLogic.ts isStageUnlocked) */}
       <button
         type="button"
         onClick={onNext}
-        className="rounded-full bg-[var(--theme-accent)] px-6 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95"
+        disabled={order.cake.toppings.length === 0}
+        className="rounded-full bg-[var(--theme-accent)] px-6 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-40"
       >
         다음 단계로 →
       </button>

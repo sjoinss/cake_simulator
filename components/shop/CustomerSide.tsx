@@ -56,7 +56,7 @@ export function CustomerSide({
             makeButtonLabel={canMake ? (activeOrder ? "이어 만들기" : "만들기") : null}
             onMakeClick={customer ? () => onStartOrResumeOrder(customer.id) : undefined}
             isAwaitingServe={isAwaitingServe}
-            isEating={!!customer && customer.id in servedCakes}
+            servedCake={customer ? (servedCakes[customer.id] ?? null) : null}
             isLeaving={!!customer && leavingIds.has(customer.id)}
             dropState={dropState}
           />
