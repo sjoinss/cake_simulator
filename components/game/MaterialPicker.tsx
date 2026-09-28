@@ -7,14 +7,23 @@ type MaterialPickerProps = {
   selectedId: string | null;
   label: string; // 스크린리더용 그룹 이름 (예: "시트 재료")
   container: MaterialContainer; // 그림이 없을 때 그릴 모양: 잼 병 / 짤주머니 / 그릇
-  locked?: boolean; // 이미 넣기 시작해서 재료를 바꿀 수 없는 상태
+  locked?: boolean; // 이미 넣기 시작해서 재료를 바꿀 수 없는 상태 (고르지 않은 재료는 흐리게)
+  inactive?: boolean; // 작업할 케이크가 없는 상태 — 선반은 그대로 보여주되 누를 수만 없게 한다
   onSelect: (materialId: string) => void;
 };
 
 // 벽에 붙은 재료 선반. 모든 재료는 나중에 늘어난다는 전제라 개수와 상관없이 "먼저 고르고 → 넣는" 흐름을 쓴다 (8장).
 // 내부적으로는 단일 선택(radiogroup)이지만, 고른 재료는 선반에서 살짝 떠오르는 것으로만 보여준다 (체크 표시·테두리 없음).
 // 재료에 image가 있으면 그 그림을, 없으면 CSS로 그린 병/짤주머니/그릇 + 이모지를 올려둔다.
-export function MaterialPicker({ materials, selectedId, label, container, locked, onSelect }: MaterialPickerProps) {
+export function MaterialPicker({
+  materials,
+  selectedId,
+  label,
+  container,
+  locked,
+  inactive,
+  onSelect,
+}: MaterialPickerProps) {
   return (
     <div className="relative flex shrink-0 flex-col items-center">
       <div
@@ -33,8 +42,10 @@ export function MaterialPicker({ materials, selectedId, label, container, locked
               aria-label={material.name}
               title={material.name}
               onClick={() => onSelect(material.id)}
-              disabled={locked && !isSelected}
-              className="group relative flex h-16 w-14 items-end justify-center border-0 bg-transparent p-0 disabled:opacity-40 short:h-12 short:w-10"
+              disabled={inactive || (locked && !isSelected)}
+              className={`group relative flex h-16 w-14 items-end justify-center border-0 bg-transparent p-0 short:h-12 short:w-10 ${
+                locked && !isSelected ? "opacity-40" : ""
+              }`}
             >
               {/* 선반 위 그림자: 떠오르면 작고 옅어진다 */}
               <span

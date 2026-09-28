@@ -41,6 +41,7 @@ export function createCustomer(tableIndex: number): Customer {
     basePatienceMultiplier: 1.0, // Phase 1 고정, Phase 3에서 손님별 성격치로 확장
     status: 'waiting',
     orderNumber: null,
+    orderedAt: null,
     starCount: 0,
     order: { ...template.order, creamAmount: CREAM_AMOUNTS[Math.floor(Math.random() * CREAM_AMOUNTS.length)] },
   };

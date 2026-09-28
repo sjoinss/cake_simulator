@@ -1,8 +1,8 @@
-import type { ActiveOrder, MaterialRegistry } from "@/lib/gameState";
+import type { CakeData, MaterialRegistry } from "@/lib/gameState";
 import { Cake3D } from "./CakeRenderer";
 
 type CakeSnapshotProps = {
-  cake: ActiveOrder["cake"];
+  cake: CakeData;
   materials: MaterialRegistry;
   size: number; // 케이크 가로 폭(px). 높이는 케이크 모양(반죽 양)에 따라 정해진다
   label: string;

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ActiveOrder, Customer } from "@/lib/gameState";
+import type { CakeData, Customer } from "@/lib/gameState";
 import { initialMaterials } from "@/lib/materials";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { SpeechBubble } from "./SpeechBubble";
@@ -11,10 +11,9 @@ type CustomerTableProps = {
   shouldAnimateEntrance: boolean;
   onTap: () => void;
   orderTag: string | null; // 머리 위에 띄우는 주문 번호 ("#1")
-  isAwaitingServe: boolean; // 이 손님 케이크가 완성되어 계산대에서 서빙을 기다리는 중
-  servedCake: ActiveOrder["cake"] | null; // 서빙 완료 후 먹는 중인 케이크 (테이블 위에 표시)
+  servedCake: CakeData | null; // 서빙 완료 후 먹는 중인 케이크 (테이블 위에 표시)
   isLeaving: boolean; // 먹고 나서 퇴장 애니메이션 재생 중
-  dropState: "target" | "hover" | null; // 드래그 중: target = 이 손님 케이크를 들고 있음, hover = 지금 이 테이블 위에 있음
+  dropState: "available" | "hover" | null; // 케이크를 끄는 중: available = 줄 수 있는 손님, hover = 지금 이 테이블 위에 있음
 };
 
 export function CustomerTable({
@@ -24,16 +23,13 @@ export function CustomerTable({
   shouldAnimateEntrance,
   onTap,
   orderTag,
-  isAwaitingServe,
   servedCake,
   isLeaving,
   dropState,
 }: CustomerTableProps) {
   return (
     <div
-      aria-label={
-        customer ? `테이블 ${tableIndex + 1}, ${customer.name}` : `테이블 ${tableIndex + 1}, 빈 테이블`
-      }
+      aria-label={customer ? `테이블 ${tableIndex + 1}, ${customer.name}` : `테이블 ${tableIndex + 1}, 빈 테이블`}
       data-table-index={tableIndex} // 드래그 서빙 시 드롭 대상 판별용 (ShopScreen)
       className="relative flex flex-1 basis-0 flex-col items-center justify-end gap-1"
     >
@@ -48,11 +44,7 @@ export function CustomerTable({
         >
           {bubble && <SpeechBubble>{bubble}</SpeechBubble>}
           {orderTag && (
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-sm font-extrabold shadow-sm ${
-                isAwaitingServe ? "bg-[var(--theme-accent)] text-white" : "bg-white/90 text-[var(--theme-text)]"
-              }`}
-            >
+            <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-sm font-extrabold text-[var(--theme-text)] shadow-sm">
               {orderTag}
             </span>
           )}
@@ -66,17 +58,12 @@ export function CustomerTable({
           </button>
           {/* 발밑 그림자 */}
           <div className="h-2 w-10 rounded-full bg-black/10 blur-[1px]" aria-hidden />
-
         </div>
       )}
       {/* 드래그 중 드롭 안내: 색만으로 구분하지 않도록 텍스트 라벨을 함께 보여준다 (18장) */}
-      {dropState && (
-        <span
-          className={`pointer-events-none absolute bottom-16 z-10 rounded-full px-3 py-1 text-sm font-bold shadow-sm ${
-            dropState === "target" ? "bg-[var(--theme-accent)] text-white" : "bg-white text-[var(--theme-text)]"
-          }`}
-        >
-          {dropState === "target" ? "여기에 놓기 ⬇" : "이 손님 케이크가 아니에요"}
+      {dropState === "hover" && (
+        <span className="pointer-events-none absolute bottom-16 z-10 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-sm font-bold whitespace-nowrap text-white shadow-sm">
+          이 손님에게 주기 ⬇
         </span>
       )}
       {/* 각자의 영역(칸) 가로를 꽉 채우는 개별 테이블. 플레이어 쪽 계산대와 높이가 완전히 같으면 어색해서 살짝 낮게 둔다. */}

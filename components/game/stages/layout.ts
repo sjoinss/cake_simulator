@@ -3,10 +3,13 @@
 // 세로가 짧은 화면(short)에서는 간격과 버튼을 줄이고 안내 문구는 숨긴다.
 export const STAGE_ROOT =
   "flex min-h-0 flex-1 flex-col items-center gap-2 px-4 pt-2 pb-3 short:gap-1 short:pt-2.5 short:pb-1.5";
-export const WORK_ROW = "flex min-h-0 w-full flex-1 items-center justify-center gap-5 pb-[4%] short:gap-2.5";
+// items-end: 틀/케이크, 게이지, 버튼의 바닥선을 맞춰 모두 조리대 위에 놓인 것처럼 보이게 한다
+export const WORK_ROW = "flex min-h-0 w-full flex-1 items-end justify-center gap-5 pb-[4%] short:gap-2.5";
 export const SIDE_COLUMN =
   "flex w-40 shrink-0 flex-col gap-2 text-sm text-[var(--theme-text)]/80 short:w-28 short:gap-1.5 short:text-xs";
 export const HINT = "rounded-xl bg-white/60 px-2.5 py-1.5 short:hidden";
+// 작업할 케이크가 없을 때 안내 (짧은 화면에서도 보인다)
+export const IDLE_NOTE = "rounded-xl bg-white/70 px-2.5 py-1.5 font-bold text-[var(--theme-text)]/70";
 export const BUTTON_SECONDARY =
   "rounded-full bg-white/85 px-3 py-1.5 text-sm font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95 disabled:opacity-40 short:py-1 short:text-xs";
 export const BUTTON_PRIMARY =

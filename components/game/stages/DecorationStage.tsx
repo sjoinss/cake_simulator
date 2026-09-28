@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import type { ActiveOrder, CakeDrawing, CakeText, MaterialRegistry } from "@/lib/gameState";
+import type { CakeJob, CakeDrawing, CakeText, MaterialRegistry } from "@/lib/gameState";
 import { eraseStrokesAt } from "@/lib/decoration";
 import { CakeTopView } from "../cake/CakeRenderer";
 import { DrawingCanvas, type DrawingTool } from "../cake/DrawingCanvas";
@@ -11,7 +11,7 @@ import { FitBox, Scaled } from "../FitBox";
 export type DecorationData = { drawings: CakeDrawing[]; text: CakeText[] };
 
 type DecorationStageProps = {
-  order: ActiveOrder;
+  job: CakeJob;
   materials: MaterialRegistry;
   onChange: (decoration: DecorationData) => void;
   onFinish: () => void;
@@ -40,7 +40,7 @@ const TEXT_ROTATION_STEP = 15;
 // 연출이 핵심 차별화 요소라 반드시 구현한다 (cake-tycoon-prompt.md 4장 — 생략 대상 아님).
 // 도구: 자유 그림(펜 색상/크기, 지우개, 전체 지우기, 실행 취소/다시 실행 — 5장) +
 // 텍스트(추가, 드래그 이동, 크기/회전/색상/폰트 버튼 — 6장 "Phase 1은 버튼 방식").
-export function DecorationStage({ order, materials, onChange, onFinish }: DecorationStageProps) {
+export function DecorationStage({ job, materials, onChange, onFinish }: DecorationStageProps) {
   const [isTopView, setIsTopView] = useState(false);
   const [mode, setMode] = useState<Mode>("draw");
   const [color, setColor] = useState(COLORS[0]);
@@ -57,8 +57,8 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
     return () => clearTimeout(timer);
   }, []);
 
-  const current: DecorationData = { drawings: order.cake.drawings, text: order.cake.text };
-  const selectedText = selectedTextIndex !== null ? order.cake.text[selectedTextIndex] : undefined;
+  const current: DecorationData = { drawings: job.cake.drawings, text: job.cake.text };
+  const selectedText = selectedTextIndex !== null ? job.cake.text[selectedTextIndex] : undefined;
 
   // 지금 상태를 실행 취소 지점으로 저장한다. 드래그/지우개처럼 연속으로 바뀌는 조작은 시작할 때 한 번만 호출한다.
   const pushHistory = () => {
@@ -131,9 +131,9 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
                 className="relative h-56 w-56 max-w-full transition-transform duration-700 ease-out"
                 style={{ transform: isTopView ? "rotateX(0deg) scale(1.05)" : "rotateX(55deg) scale(0.9)" }}
               >
-                <CakeTopView cake={order.cake} materials={materials} />
+                <CakeTopView cake={job.cake} materials={materials} />
                 <DrawingCanvas
-                  drawings={order.cake.drawings}
+                  drawings={job.cake.drawings}
                   color={color}
                   size={penSize}
                   tool={tool}
@@ -141,12 +141,12 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
                   onStrokeComplete={(stroke) => commit({ ...current, drawings: [...current.drawings, stroke] })}
                   onEraseStart={pushHistory}
                   onEraseAt={(point) => {
-                    const remaining = eraseStrokesAt(order.cake.drawings, point, ERASER_RADIUS);
-                    if (remaining.length !== order.cake.drawings.length) onChange({ ...current, drawings: remaining });
+                    const remaining = eraseStrokesAt(job.cake.drawings, point, ERASER_RADIUS);
+                    if (remaining.length !== job.cake.drawings.length) onChange({ ...current, drawings: remaining });
                   }}
                 />
                 <TextOverlay
-                  texts={order.cake.text}
+                  texts={job.cake.text}
                   enabled={mode === "text"}
                   selectedIndex={selectedTextIndex}
                   onSelect={setSelectedTextIndex}
@@ -304,7 +304,7 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
           </>
         )}
 
-        {mode === "text" && !selectedText && order.cake.text.length > 0 && (
+        {mode === "text" && !selectedText && job.cake.text.length > 0 && (
           <p className="text-xs text-[var(--theme-text)]/70">
             케이크 위 글자를 눌러 선택하면 크기·회전·색·글꼴을 바꿀 수 있어요
           </p>
@@ -317,7 +317,7 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
           <ToolButton label="다시 실행" disabled={redoStack.length === 0} onClick={redo}>
             ↷
           </ToolButton>
-          <ToolButton disabled={order.cake.drawings.length === 0} onClick={() => commit({ ...current, drawings: [] })}>
+          <ToolButton disabled={job.cake.drawings.length === 0} onClick={() => commit({ ...current, drawings: [] })}>
             그림 전체 지우기
           </ToolButton>
         </div>

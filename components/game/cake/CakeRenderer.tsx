@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
-import type { ActiveOrder, MaterialRegistry } from "@/lib/gameState";
+import type { CakeData, MaterialRegistry } from "@/lib/gameState";
 import { findMaterial } from "@/lib/materials";
 import { BATTER_TARGET, getBakedColor, getBakedRatio } from "@/lib/gameLogic";
 import { FROSTING_GRID, ON_CAKE_CELLS, SIDE_SEGMENTS, sideThickness } from "@/lib/frosting";
@@ -11,7 +11,6 @@ import { FROSTING_GRID, ON_CAKE_CELLS, SIDE_SEGMENTS, sideThickness } from "@/li
 // - CakeInsideView: 시트를 가로로 갈라 필링을 바르는 아랫단 단면.
 // - Cake3D: 윗면(타원) + 옆면이 보이는 입체 케이크. 데코 단계를 뺀 나머지 화면은 모두 이걸로 그린다.
 
-type CakeData = ActiveOrder["cake"];
 
 export const TOP_VIEW_PX = 224; // 평면 케이크 기준 크기. 자유 그림/텍스트 좌표계(%)와 크기 비율의 기준 (DrawingCanvas와 동일)
 const ELLIPSE_RATIO = 0.42; // 입체 케이크 윗면 타원의 세로/가로 비율 (비스듬히 내려다보는 각도)

@@ -1,13 +1,8 @@
 "use client";
 
 import type { GameState, Station } from "@/lib/gameState";
-import {
-  getBakingElapsedRatio,
-  OVEN_BURNT_RATIO,
-  OVEN_IDEAL_END_RATIO,
-  OVEN_IDEAL_START_RATIO,
-} from "@/lib/gameLogic";
-import { getOrdersAtStage, getOvenQueue, STATIONS } from "@/lib/station";
+import { getBakingElapsedRatio, OVEN_BURNT_RATIO, OVEN_IDEAL_END_RATIO, OVEN_IDEAL_START_RATIO } from "@/lib/gameLogic";
+import { getCakesAtStage, getOvenQueue, STATIONS } from "@/lib/station";
 import { useNow } from "@/hooks/useNow";
 
 type StationNavProps = {
@@ -19,10 +14,10 @@ type StationNavProps = {
 // 각 탭에 "할 일" 개수 배지를 달고, 오븐 탭은 칸별 진행 바 + 꺼낼 때(초록)/타기 시작할 때(빨강) 깜빡여서
 // 다른 스테이션에서 일하다가도 오븐을 챙길 수 있게 한다.
 export function StationNav({ state, onSelect }: StationNavProps) {
-  const bakingOrders = state.ovenSlots.map((id) => state.activeOrders.find((order) => order.orderId === id) ?? null);
-  const now = useNow(bakingOrders.some(Boolean));
-  const ovenRatios = bakingOrders.map((order) =>
-    order?.cake.baking.startTime ? getBakingElapsedRatio(order.cake.baking.startTime, order.cake.baking.duration, now) : null
+  const bakingCakes = state.ovenSlots.map((id) => state.cakes.find((job) => job.jobId === id) ?? null);
+  const now = useNow(bakingCakes.some(Boolean));
+  const ovenRatios = bakingCakes.map((job) =>
+    job?.cake.baking.startTime ? getBakingElapsedRatio(job.cake.baking.startTime, job.cake.baking.duration, now) : null,
   );
   const ovenAlert = ovenRatios.some((ratio) => ratio !== null && ratio > OVEN_IDEAL_END_RATIO)
     ? "over"
@@ -33,16 +28,18 @@ export function StationNav({ state, onSelect }: StationNavProps) {
   const counts: Record<Station, number> = {
     // 주문 받을 손님 + 서빙할 케이크
     order:
-      state.tables.filter((customer) => customer?.status === "waiting").length +
-      getOrdersAtStage(state, "ready").length,
-    base: getOrdersAtStage(state, "base").length,
+      state.tables.filter((customer) => customer?.status === "waiting").length + getCakesAtStage(state, "ready").length,
+    base: 0, // 시트 스테이션엔 항상 빈 틀이 놓여 있어서 "할 일" 배지를 달지 않는다
     oven: getOvenQueue(state).length,
-    cream: getOrdersAtStage(state, "cream").length,
-    decorate: getOrdersAtStage(state, "decorate").length,
+    cream: getCakesAtStage(state, "cream").length,
+    decorate: getCakesAtStage(state, "decorate").length,
   };
 
   return (
-    <nav aria-label="스테이션" className="relative z-20 shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-1.5 short:py-1">
+    <nav
+      aria-label="스테이션"
+      className="relative z-20 shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-1.5 short:py-1"
+    >
       <ul className="flex items-stretch gap-1.5">
         {STATIONS.map(({ station, emoji, label }) => {
           const isCurrent = state.station === station;

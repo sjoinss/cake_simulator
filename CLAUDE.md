@@ -14,7 +14,7 @@
 ## 진행 상황 (Phase 1 MVP, cake-tycoon-prompt.md 19장 순서 기준)
 
 ### [x] 기반 구조 + 전체 UI 톤
-- `lib/gameState.ts` — `Material`, `MaterialRegistry`, `Customer`, `ActiveOrder`, `GameState` 등 전체 타입 + `createInitialGameState()`
+- `lib/gameState.ts` — `Material`, `MaterialRegistry`, `Customer`, `CakeData`, `CakeJob`, `GameState` 등 전체 타입 + `createInitialGameState()`
 - `lib/materials.ts` — Phase 1 재료 레지스트리 (카테고리별 1개, decoration은 빈 배열)
 - `lib/customer.ts` — 손님 2명 하드코딩 풀 + `createCustomer()`
 - 테마: `app/globals.css`의 `--theme-*` 변수, pink 테마 하나만 채움. 실제 색상은 비비드 핑크가 아니라 채도를 낮춘 파스텔 코랄톤 (`data-theme="pink"`라는 이름은 기획서 7장 테마 목록을 그대로 쓴 것 — 새 테마를 만든 게 아님)
@@ -42,25 +42,28 @@
 
 ### [x] ③~⑤ 제작 + 서빙 (최초 구현 후 "스테이션 구조"로 전면 개편됨 — 아래 참고)
 - 최초엔 손님별 "만들기" 버튼 → 제작 화면에서 한 케이크를 끝까지 진행하는 구조였으나, 사용자 피드백("Papa's처럼 주문 받다가도 토핑하러 가고, 굽다가도 새로 만들러 가야 한다")으로 스테이션 구조로 바꿈
-- 서빙(⑤)은 그대로 유지: `ShopScreen`에서 계산대 케이크 pointerdown → `setPointerCapture` → 손가락을 따라다니는 `fixed` 케이크 → pointerup 지점을 `document.elementsFromPoint`로 검사해 `data-table-index` 테이블 판별. 주문한 손님이면 서빙, 아니면 0.25초 스냅백(감점 없음). 계산대에는 완성 케이크 1개만(`+N` 대기 표시). Enter/Space 키보드 서빙(`click`의 `detail === 0`, 18장)
-- `serveOrder`: 채점 → 돈 지급 → 결과 카드(`ServeResultCard`, Papa's "CAKE COMPLETE!") → 3초 먹기(`servedCakes`) → 퇴장(`leavingIds`) → 1초 후 `assignCustomer()`로 새 손님
-- 채점 `lib/gameLogic.ts` `scoreServedCake()`: 정확도(시트/필링/크림/토핑 재료 + 문구) · 품질(반죽 양, 굽기, 필링 평균, 크림 평균) · 데코(40 + 그림 30 + 텍스트 30) · 속도(주문 확정부터, 150초 만점 / 360초 40점)의 단순 평균. 금액 `30 × 총점/100`, tip `총점/20`(누적만)
+- 서빙(⑤)은 그대로 유지: `ShopScreen`에서 계산대 케이크 pointerdown → `setPointerCapture` → 손가락을 따라다니는 `fixed` 케이크 → pointerup 지점을 `document.elementsFromPoint`로 검사해 `data-table-index` 테이블 판별. 주문을 받은(order_confirmed) 손님이면 **누구에게든** 서빙, 아니면 0.25초 스냅백(감점 없음). 끄는 동안 받을 수 있는 테이블엔 점선, 올려둔 테이블엔 "이 손님에게 주기". 계산대에는 완성 케이크 1개만(`+N` 대기 표시) + 🗑️ 버리기(줄 손님이 없으면 버린다). Enter/Space 키보드 서빙은 가장 먼저 주문한 손님에게(`click`의 `detail === 0`, 18장)
+- `serveCake(jobId, tableIndex)`: 채점 → 돈 지급 → 결과 카드(`ServeResultCard`, Papa's "CAKE COMPLETE!") → 3초 먹기(`servedCakes`) → 퇴장(`leavingIds`) → 1초 후 `assignCustomer()`로 새 손님
+- 채점 `lib/scoring.ts` `scoreServedCake()` — **서빙받은 손님의 주문 기준으로 서빙 순간에 계산**: 정확도(시트/필링/크림/토핑 재료 + 문구) · 품질(반죽 양, 굽기, 필링 범위·균일도·양, 크림 범위·균일도·양 — 크림 양은 그 손님 creamAmount 기준) · 데코(40 + 그림 30 + 텍스트 30) · 속도(`Customer.orderedAt` 주문 확정 ~ 서빙, 150초 만점 / 360초 40점)의 단순 평균. 금액 `30 × 총점/100`, tip `총점/20`(누적만)
 
 ### [x] 스테이션 구조 (Papa's 방식, 사용자와 설계 합의 후 구현)
 - 하단 `components/game/StationNav.tsx`: `🧾 주문 | 🥣 시트 | 🔥 오븐 | 🍦 필링·크림 | 🎨 토핑·데코` — **매장 포함 어느 화면에서든 항상 보이고 언제든 이동**. 탭마다 할 일 개수 배지, 오븐 탭은 칸별 진행 바 + 적정 구간(초록)/과열(빨강) 깜빡임
-- 상단 `components/game/TopBar.tsx`(모든 화면 공통)는 DAY / 돈만. 주문서는 바 **아래 오른쪽** `components/game/OrderClipRail.tsx` — 식당 주방처럼 금속 봉에 집게로 집어 둔 작은 주문서(`#1` 번호만, 최대 3장). 누르면 아래로 영수증 모양 큰 주문서(재료 목록만, 진행 단계는 안 적음)가 펼쳐지고, 그 케이크가 있는 스테이션의 작업 대상으로도 선택됨 (`GameRoot.handleBillTap`)
+- 상단 `components/game/TopBar.tsx`(모든 화면 공통)는 DAY / 돈만. 주문서는 바 **아래 오른쪽** `components/game/OrderClipRail.tsx` — 식당 주방처럼 금속 봉에 집게로 집어 둔 작은 주문서(`#1` 번호만, 최대 3장). 누르면 아래로 영수증 모양 큰 주문서(재료 목록만, 진행 단계는 안 적음)가 펼쳐진다. 주문서 = 주문을 받고 아직 케이크를 못 받은 손님(`status === "order_confirmed"`)
 - **지금 어느 주문 케이크를 작업 중인지 화면에 적지 않는다** (사용자 요청: 알려주면 너무 쉬워짐). 스테이션 좌상단엔 버리기 버튼만
 - 주문은 손님 이름 대신 **번호(`#1`)**로 부른다. `GameState.nextOrderNumber` — 하루가 시작될 때 1로 리셋할 예정(DAY 진행 미구현). 번호는 `Customer.orderNumber`에도 저장해서 손님 머리 위에 떠날 때까지(먹는 중 포함) **항상** 띄운다. 확정 후엔 말풍선도 안 띄움
-- 상태: `GameState.station`(현재 화면), `selectedOrderIds`(스테이션별 작업 중 주문), `ovenSlots`(2칸). `ActiveOrder.stage`는 케이크가 있는 스테이션(`base → oven → cream → decorate → ready`, **앞으로만**, 1장 2번). `lib/station.ts`의 `getSelectedOrder`는 고른 주문이 이미 넘어갔으면 대기열 첫 주문을 돌려줌
-- 주문 확정 순간 `ActiveOrder`가 생성되어 시트 스테이션에 올라감 (`createdAt`도 이때부터 = 속도 점수 기준)
+- **케이크는 주문과 묶여 있지 않다** (사용자 결정: "미리 만들어 놨는데 필요 없으면 버릴 수밖에. 카운터까지 갔는데 주문한 사람이 없으면 버리는 거지"). `GameState.cakes: CakeJob[]` — 주방에서 만드는 중인 케이크. 주문은 손님 쪽(`Customer.orderNumber`/`orderedAt`/`order`)에만 있다
+  - 시트 스테이션엔 **항상 빈 틀이 하나** 놓여 있다(`lib/cake.ts` `withBaseCake`) — 주문 없이도 미리 만들 수 있다. 오븐으로 보내거나 버리면 새 틀이 놓인다. 주방 케이크 수 상한 `MAX_KITCHEN_CAKES`(5)에 차면 안 놓임
+  - 필링/크림 점수는 저장하지 않고 서빙 때 계산. 크림 게이지는 목표 하나 대신 조금/보통/듬뿍 **눈금 셋**(`AmountGauge`의 `marks`) — 주문서를 보고 맞춘다
+  - 한 스테이션에 케이크가 여러 개면 왼쪽 아래(버리기 옆)에 작은 케이크 목록이 떠서 눌러 바꾼다(`selectCake`). 번호 없이 모양으로만 구분
+- 상태: `GameState.station`(현재 화면), `selectedCakeIds`(스테이션별 작업 중 케이크), `ovenSlots`(2칸, jobId). `CakeJob.stage`는 케이크가 있는 스테이션(`base → oven → cream → decorate → ready`, **앞으로만**, 1장 2번). `lib/station.ts`의 `getSelectedCake`는 고른 케이크가 이미 넘어갔으면 대기 중 첫 케이크를 돌려줌
 - ⚠️ 버그 수정 기록: `handleCustomerTap`이 `setState` 업데이터 **안에서** 타이머를 걸어서, 개발 모드 StrictMode의 업데이터 이중 실행 때문에 주문이 2개씩 생겼음. 부수 효과는 업데이터 밖으로, 업데이터는 상태 확인 후 멱등하게
-- 케이크 버리기 `discardOrder` (`components/game/DiscardButton.tsx`, 인라인 "버리고 처음부터? 버리기/취소" 확인): 번호·주문 시각은 유지, 케이크만 초기화 후 시트 단계로. `ActiveOrder.attempt`를 올려 단계 컴포넌트 key를 바꿔 로컬 상태까지 초기화
+- 케이크 버리기 `discardCake` (`components/game/DiscardButton.tsx`, 인라인 확인): 케이크를 주방에서 없앤다(오븐 칸도 비움). 스테이션 작업 중, 오븐 칸, 계산대에서 버릴 수 있다
 - 모든 재료는 **먼저 고르고 → 넣는다** (재료가 늘어난다는 전제, 8장). `components/game/MaterialPicker.tsx`는 내부적으로 radiogroup이지만 잼 병(jar)/짤주머니(bag)/그릇(bowl) 모양으로 보여줌. 넣기 시작하면 재료 고정("다시 붓기/바르기"로 비워야 변경)
 - 프레스&홀드(1장 4번) 공용 `hooks/useHoldLoop.ts`(rAF), 양 게이지 공용 `components/game/AmountGauge.tsx`(적정량 ±10% 초록 띠)
 
 #### 스테이션별
 - 시트 `stages/BaseSelectStage.tsx`: 반죽 재료 선택 → 틀을 누르고 있으면 반죽이 차오름(`BATTER_TARGET`=100, 초당 25). 반죽 양은 채점 + 입체 케이크 높이에 반영
-- 오븐 `stages/OvenStage.tsx`: 대기 트레이 → 빈 칸에 넣기. `OVEN_DURATION_MS`=50초, 80~95%(40~47.5초) 만점, 120%부터 탐. 시트 색이 `getBakeFilter`로 실시간 변함(창백 → 노릇 → 까맘). 칸별 버리기 버튼
+- 오븐 `stages/OvenStage.tsx`: 위쪽(벽)에 오븐 칸, 아래 조리대 위에 반죽을 부은 틀(`cake/BatterTin.tsx`, 반죽 재료 색 + 부은 양만큼 차 있음)이 **가로로 늘어서 있고**(패널 없음, 폭이 모자라면 가로 스크롤 — 틀은 `touch-action: pan-x`라 옆으로 밀면 스크롤, 위로 끌면 드래그), **빈 오븐 칸으로 끌어다 넣는다** (계산대 서빙과 같은 pointer capture + `elementsFromPoint`로 `data-oven-slot` 판별, 빈 칸 점선 표시, 잘못 놓으면 0.25초 스냅백, 키보드 Enter/Space는 첫 빈 칸). 오븐 칸 라벨엔 주문 번호를 적지 않는다(사용자 요청). `OVEN_DURATION_MS`=50초, 80~95%(40~47.5초) 만점, 120%부터 탐. 시트 색이 `getBakeFilter`로 실시간 변함(창백 → 노릇 → 까맘). 칸별 버리기 버튼
 - 필링·크림 `stages/CreamStation.tsx`: 왼쪽 탭(`stages/StepTabsLayout.tsx`) 필링 → 크림, **필링을 끝내야 크림 탭이 열림**. 공용 `stages/SpreadStage.tsx`
   - 필링: 갈라진 시트 단면(`CakeInsideView`)에 짜서 바름, 목표 두께 고정(`FILLING_TARGET_THICKNESS`)
   - 크림: 입체 케이크 윗면 + **옆면(회전판)**. 옆면은 누르고 있으면 회전판이 돌며 정면 조각에 발림 — 딱 한 바퀴(3.5초)가 "보통" 양(`lib/frosting.ts` `SIDE_SEGMENTS`=24). 주문의 `creamAmount`(조금/보통/듬뿍, 손님 생성 시 무작위)가 목표. 크림 완료 시 케이크가 토핑·데코로 넘어감
@@ -81,7 +84,8 @@
 ### [x] 폰 가로 화면 대응 + 작업 공간 분위기 (사용자 결정: 폰 가로가 주 타깃, "작은 화면 전용 배치" 방식)
 - `app/globals.css`의 `@custom-variant short (@media (max-height: 480px))` — `short:` 접두사로 상단 바(h-9)/하단 탭(h-8)/주문서 레일/선반/버튼/결과 카드를 촘촘하게. CSS로 안 되는 px 값(오븐·결과 카드 속 케이크 크기)은 `hooks/useIsShort.ts`
 - 케이크 크기는 고정 224px이 아니라 남은 공간을 재서 정한다: `components/game/FitBox.tsx`(ResizeObserver, 기본 아래 정렬 — 조리대 위에 놓인 느낌) + `Scaled`(224px로 디자인된 반죽 틀/필링 단면/데코 케이크를 비율 축소. 포인터는 getBoundingClientRect 기준이라 그대로 맞음). ⚠️ FitBox는 `self-stretch`가 없으면 가로 줄 안에서 자기 내용 높이로 줄어 케이크가 작게 굳는다
-- 스테이션 공통 배치 `components/game/stages/layout.ts`: 위쪽 벽에 재료 선반, 아래 줄에 [작업 대상 | 게이지 | 버튼]. 짧은 화면에선 안내 문구 숨김. 버리기 버튼은 왼쪽 아래 구석(세로 공간 절약)
+- 스테이션 공통 배치 `components/game/stages/layout.ts`: 위쪽 벽에 재료 선반, 아래 줄에 [작업 대상 | 게이지 | 버튼] — 줄은 `items-end`로 바닥선을 맞춰 모두 조리대 위에 놓인 것처럼.
+- **작업할 케이크가 없는 스테이션**도 빈 안내 문구 대신 세팅된 작업대를 보여준다 (`stages/IdleStation.tsx`): 각 단계 컴포넌트의 `idle` 모드 + `lib/cake.ts`의 `createPlaceholderOrder()`. 선반은 흐리게 하지 않고(`MaterialPicker`의 `inactive`) 조작만 막고, 케이크 자리엔 빈 케이크 받침(`cake/CakeBoard.tsx`) 짧은 화면에선 안내 문구 숨김. 버리기 버튼은 왼쪽 아래 구석(세로 공간 절약)
 - 재료 선반 `MaterialPicker`: 나무 선반 판자 위에 병/짤주머니/그릇이 놓이고, 고른 재료는 **선반에서 떠오르고 그림자가 작아지는** 것으로만 표시 (선택 테두리 없음, 사용자 요청). 이름표는 선반 아래(짧은 화면에선 숨김, title/aria-label은 유지)
 - 작업 공간 배경 `components/game/StationBackdrop.tsx`: 파스텔 타일 벽 + 매장 계산대와 같은 톤의 나무 조리대
 - **이미지 자리**: `lib/assets.ts`의 `STATION_BACKGROUNDS`(스테이션별 배경 경로, null이면 CSS 배경), `Material.image`(재료 그림 경로, 없으면 CSS 병/그릇 + 이모지). 파일은 `public/images/...`
@@ -98,7 +102,6 @@
 
 ## 다음 할 일
 - 실제 폰(터치)에서 조작감 확인: 누르고 있기(붓기/짜기), 드래그 서빙, 선반 탭. 매장 화면의 요리사 이모지(🧑‍🍳)가 Windows에서 결합이 안 돼 얼굴+프라이팬으로 보임 — 이미지 에셋으로 바꿀 때 해결
-- 오븐 칸 라벨의 "#1" 표시를 뺄지 (작업 중 주문을 숨기는 방향과 맞출지) 사용자 결정 대기
 - 데코 도구 브라우저 실동작 확인 (그리기/지우개/글자 조작/실행 취소)
 - 실제 플레이 밸런스 조정 (반죽 속도, 오븐 50초, 크림 흐름 16/초, 회전판 3.5초, 속도 기준 150/360초, 가격 $30 등 전부 임시값). 한 케이크에 단계가 6개라 플레이가 길어졌을 수 있음
 - DAY 진행(하루 종료 조건)은 미구현 — 규칙을 사용자에게 받아야 함 (주문 번호 리셋도 여기에 연결)

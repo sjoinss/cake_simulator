@@ -8,7 +8,6 @@ import { ServeResultCard } from "./ServeResultCard";
 import type { CakeDragHandlers } from "./CakeCounter";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { initialMaterials } from "@/lib/materials";
-import { formatOrderNumber } from "@/lib/station";
 
 type ShopScreenProps = {
   gameState: ReturnType<typeof useGameState>;
@@ -16,7 +15,7 @@ type ShopScreenProps = {
 
 // 계산대 케이크 드래그 상태. origin은 스냅백 시 되돌아갈 위치(받침대 위 케이크 중심).
 type DragState = {
-  orderId: string;
+  jobId: string;
   x: number;
   y: number;
   originX: number;
@@ -45,18 +44,22 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
     leavingIds,
     serveResult,
     handleCustomerTap,
-    serveOrder,
+    serveCake,
+    discardCake,
     dismissServeResult,
   } = gameState;
 
   const [drag, setDrag] = useState<DragState | null>(null);
   const [hoverTableIndex, setHoverTableIndex] = useState<number | null>(null);
 
-  // 계산대에는 완성 케이크를 1개만 올린다 (17장 "계산대에 케이크 2개 이상 동시 보관" 제외). 먼저 완성된 것부터.
-  const readyOrders = state.activeOrders
-    .filter((order) => order.stage === "ready")
+  // 계산대 받침대에는 완성 케이크를 1개만 올린다 (17장 "계산대에 케이크 2개 이상 동시 보관" 제외). 먼저 완성된 것부터.
+  const readyCakes = state.cakes
+    .filter((job) => job.stage === "ready")
     .sort((a, b) => (a.completedAt ?? 0) - (b.completedAt ?? 0));
-  const counterOrder = readyOrders[0] ?? null;
+  const counterCake = readyCakes[0] ?? null;
+  // 케이크를 받을 수 있는 손님: 주문을 받고 아직 케이크를 못 받은 손님 (누구에게든 줄 수 있다)
+  const canReceive = (tableIndex: number | null) =>
+    tableIndex !== null && state.tables[tableIndex]?.status === "order_confirmed";
 
   // 잘못된 곳에 놓으면 받침대 위치로 부드럽게 되돌아간 뒤 드래그 상태를 정리한다.
   useEffect(() => {
@@ -72,11 +75,11 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
 
   const dragHandlers: CakeDragHandlers = {
     onPointerDown: (event) => {
-      if (!counterOrder || drag) return;
+      if (!counterCake || drag) return;
       event.currentTarget.setPointerCapture(event.pointerId);
       const rect = event.currentTarget.getBoundingClientRect();
       setDrag({
-        orderId: counterOrder.orderId,
+        jobId: counterCake.jobId,
         x: event.clientX,
         y: event.clientY,
         originX: rect.left + rect.width / 2,
@@ -90,16 +93,15 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
       setHoverTableIndex(findTableIndexAt(event.clientX, event.clientY));
     },
     onPointerUp: (event) => {
-      if (!drag || drag.isReturning || !counterOrder) return;
+      if (!drag || drag.isReturning || !counterCake) return;
       const tableIndex = findTableIndexAt(event.clientX, event.clientY);
-      const target = tableIndex !== null ? state.tables[tableIndex] : null;
-      if (target && target.id === counterOrder.customerId) {
+      if (tableIndex !== null && canReceive(tableIndex)) {
         setHoverTableIndex(null);
         setDrag(null);
-        serveOrder(drag.orderId);
+        serveCake(drag.jobId, tableIndex);
         return;
       }
-      // Phase 1: 잘못된 테이블(또는 빈 곳)에 놓으면 감점 없이 스냅백만 한다 (3장 "서빙").
+      // 빈 테이블이나 주문 안 한 손님, 빈 곳에 놓으면 감점 없이 스냅백만 한다 (3장 "서빙").
       snapBack();
     },
     onPointerCancel: snapBack,
@@ -112,12 +114,19 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
       <div className="relative flex flex-1 min-h-0">
         <PlayerSide
           counter={{
-            cake: counterOrder,
-            orderLabel: counterOrder ? formatOrderNumber(counterOrder) : null,
-            queuedCount: Math.max(0, readyOrders.length - 1),
+            cake: counterCake,
+            queuedCount: Math.max(0, readyCakes.length - 1),
             isDragging: !!drag,
             dragHandlers,
-            onKeyboardServe: () => counterOrder && serveOrder(counterOrder.orderId),
+            // 키보드로는 가장 먼저 주문한(오래 기다린) 손님에게 준다
+            onKeyboardServe: () => {
+              const waiting = state.tables
+                .map((customer, index) => ({ customer, index }))
+                .filter(({ customer }) => customer?.status === "order_confirmed")
+                .sort((a, b) => (a.customer?.orderNumber ?? 0) - (b.customer?.orderNumber ?? 0))[0];
+              if (counterCake && waiting) serveCake(counterCake.jobId, waiting.index);
+            },
+            onDiscard: () => counterCake && discardCake(counterCake.jobId),
           }}
         />
         {/* 좌/우 공간을 나누는 은은한 홈(seam). 예전엔 네온 라인 느낌이라 촌스러워서 부드러운 그림자로 교체. */}
@@ -127,13 +136,12 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
         />
         <CustomerSide
           tables={state.tables}
-          activeOrders={state.activeOrders}
           orderingCustomerId={orderingCustomerId}
           orderingStepIndex={orderingStepIndex}
           justArrivedIds={justArrivedIds}
           servedCakes={servedCakes}
           leavingIds={leavingIds}
-          draggingCustomerId={isDraggingActive ? (counterOrder?.customerId ?? null) : null}
+          isDraggingCake={isDraggingActive}
           hoverTableIndex={isDraggingActive ? hoverTableIndex : null}
           onCustomerTap={handleCustomerTap}
         />
@@ -150,8 +158,8 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
             transition: drag.isReturning ? `left ${SNAP_BACK_MS}ms ease-out, top ${SNAP_BACK_MS}ms ease-out` : "none",
           }}
         >
-          {counterOrder && (
-            <CakeSnapshot cake={counterOrder.cake} materials={initialMaterials} size={72} label="들고 있는 케이크" />
+          {counterCake && (
+            <CakeSnapshot cake={counterCake.cake} materials={initialMaterials} size={72} label="들고 있는 케이크" />
           )}
         </div>
       )}

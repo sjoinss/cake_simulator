@@ -4,21 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createInitialGameState,
   TABLE_COUNT,
-  type ActiveOrder,
+  type CakeData,
+  type CakeJob,
   type CraftingStage,
   type GameState,
   type Station,
   type WorkStation,
 } from "@/lib/gameState";
 import { createCustomer } from "@/lib/customer";
-import { createEmptySpreadLayer } from "@/lib/frosting";
-import {
-  getBakingElapsedRatio,
-  OVEN_DURATION_MS,
-  scoreBaking,
-  scoreServedCake,
-  type ServeResult,
-} from "@/lib/gameLogic";
+import { withBaseCake } from "@/lib/cake";
+import { getBakingElapsedRatio, OVEN_DURATION_MS, scoreBaking } from "@/lib/gameLogic";
+import { scoreServedCake, type ServeResult } from "@/lib/scoring";
 import { initialMaterials } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
 import { playBellSound } from "@/lib/sound";
@@ -33,47 +29,26 @@ const ENTER_ANIMATION_MS = 600;
 const EATING_DURATION_MS = 3000;
 const LEAVE_ANIMATION_MS = 450;
 
-// 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 주문도 정리되므로 이름/케이크를 여기에 복사해둔다.
-export type ServeResultCard = ServeResult & { customerName: string; cake: ActiveOrder["cake"] };
+// 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 케이크도 정리되므로 이름/케이크를 여기에 복사해둔다.
+export type ServeResultCard = ServeResult & { customerName: string; cake: CakeData };
 
-// 주문이 확정되는 순간 만들어지는 빈 케이크. createdAt(속도 점수 기준)도 이때부터 잰다 — Papa's처럼 손님이 기다린 시간.
-function createOrder(customerId: string, orderNumber: number): ActiveOrder {
-  return {
-    orderId: `order_${Date.now()}_${customerId}`,
-    customerId,
-    stage: "base",
-    orderNumber,
-    attempt: 0,
-    createdAt: Date.now(),
-    completedAt: null,
-    cake: createEmptyCake(),
-  };
-}
+// 케이크 한 개를 바꾸는 헬퍼
+const mapCake = (state: GameState, jobId: string, updater: (job: CakeJob) => CakeJob): GameState => ({
+  ...state,
+  cakes: state.cakes.map((job) => (job.jobId === jobId ? updater(job) : job)),
+});
 
-function createEmptyCake(): ActiveOrder["cake"] {
-  return {
-    base: null,
-    batter: { amount: 0, score: 0 },
-    baking: { startTime: null, endTime: null, duration: OVEN_DURATION_MS, doneness: 0 },
-    filling: createEmptySpreadLayer(),
-    frosting: createEmptySpreadLayer(true),
-    toppingsDone: false,
-    toppings: [],
-    decorations: [],
-    text: [],
-    drawings: [],
-  };
-}
-
+// 케이크는 주문과 묶여 있지 않다: 시트 스테이션에는 항상 빈 틀이 놓여 있어 주문 없이도 미리 만들 수 있고,
+// 완성된 케이크는 어느 손님에게든 서빙할 수 있다 (받은 손님 주문 기준으로 채점). 줄 사람이 없으면 버려야 한다.
 export function useGameState() {
-  const [state, setState] = useState<GameState>(createInitialGameState);
+  const [state, setState] = useState<GameState>(() => withBaseCake(createInitialGameState()));
   const [orderingCustomerId, setOrderingCustomerId] = useState<string | null>(null);
   const [orderingStepIndex, setOrderingStepIndex] = useState(0);
   // 방금 배정되어 슬라이드업 애니메이션을 재생해야 하는 손님 id들. 매장 화면이 (제작 화면 왕복 등으로)
   // 다시 마운트돼도 이미 있던 손님까지 매번 애니메이션이 재생되지 않도록, DOM 마운트가 아니라 이 상태로 판단한다.
   const [justArrivedIds, setJustArrivedIds] = useState<ReadonlySet<string>>(() => new Set());
-  // 서빙 완료 후 먹는 중인 손님의 케이크(테이블 위에 표시). 주문은 activeOrders에서 정리되므로 따로 보관한다.
-  const [servedCakes, setServedCakes] = useState<Readonly<Record<string, ActiveOrder["cake"]>>>({});
+  // 서빙 완료 후 먹는 중인 손님의 케이크(테이블 위에 표시). 케이크는 주방 목록에서 빠지므로 따로 보관한다.
+  const [servedCakes, setServedCakes] = useState<Readonly<Record<string, CakeData>>>({});
   const [leavingIds, setLeavingIds] = useState<ReadonlySet<string>>(() => new Set());
   const [serveResult, setServeResult] = useState<ServeResultCard | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -110,7 +85,7 @@ export function useGameState() {
         });
       }, ENTER_ANIMATION_MS);
     },
-    [schedule]
+    [schedule],
   );
 
   // 마운트 시 (모두 빈 상태인) 테이블에 순서대로 손님을 배정한다.
@@ -145,18 +120,18 @@ export function useGameState() {
       schedule(() => {
         setOrderingCustomerId(null);
         if (!isInitial) return; // 재생(replay)은 상태를 바꾸지 않는다
-        // 주문이 확정되면 주문서가 바로 시트 스테이션에 올라간다 (Papa's의 티켓 레일).
+        // 주문이 확정되면 번호를 붙이고 주문서가 레일에 걸린다. 속도 점수는 이때부터 잰다 (손님이 기다린 시간).
         setState((current) => {
           const target = current.tables[tableIndex];
           if (target?.id !== customer.id || target.status !== "ordering") return current;
           const tables = [...current.tables];
-          tables[tableIndex] = { ...target, status: "order_confirmed", orderNumber: current.nextOrderNumber };
-          return {
-            ...current,
-            tables,
-            activeOrders: [...current.activeOrders, createOrder(target.id, current.nextOrderNumber)],
-            nextOrderNumber: current.nextOrderNumber + 1,
+          tables[tableIndex] = {
+            ...target,
+            status: "order_confirmed",
+            orderNumber: current.nextOrderNumber,
+            orderedAt: Date.now(),
           };
+          return { ...current, tables, nextOrderNumber: current.nextOrderNumber + 1 };
         });
       }, steps.length * ORDER_STEP_DURATION_MS);
 
@@ -169,121 +144,97 @@ export function useGameState() {
         return { ...prev, tables };
       });
     },
-    [orderingCustomerId, state.tables, schedule]
+    [orderingCustomerId, state.tables, schedule],
   );
 
-  // 하단 스테이션 탭: 어느 스테이션이든 언제든 이동할 수 있다. 케이크 진행 상태는 주문(activeOrders)에 남아 있다.
+  // 하단 스테이션 탭: 어느 스테이션이든 언제든 이동할 수 있다. 케이크 진행 상태는 cakes에 남아 있다.
   const setStation = useCallback((station: Station) => {
     setState((prev) => (prev.station === station ? prev : { ...prev, station }));
   }, []);
 
-  // 스테이션 상단 티켓 레일에서 작업할 주문을 고른다.
-  const selectOrder = useCallback((station: WorkStation, orderId: string) => {
-    setState((prev) => ({ ...prev, selectedOrderIds: { ...prev.selectedOrderIds, [station]: orderId } }));
+  // 한 스테이션에 케이크가 여러 개 와 있을 때 작업할 케이크를 고른다.
+  const selectCake = useCallback((station: WorkStation, jobId: string) => {
+    setState((prev) => ({ ...prev, selectedCakeIds: { ...prev.selectedCakeIds, [station]: jobId } }));
   }, []);
 
   // 각 스테이션에서 케이크 데이터를 갱신할 때 쓰는 범용 업데이터. 필요한 필드만 골라 바꾸도록 updater 함수를 넘겨받는다.
-  const updateOrder = useCallback((orderId: string, updater: (order: ActiveOrder) => ActiveOrder) => {
-    setState((prev) => ({
-      ...prev,
-      activeOrders: prev.activeOrders.map((order) => (order.orderId === orderId ? updater(order) : order)),
-    }));
+  const updateCake = useCallback((jobId: string, updater: (job: CakeJob) => CakeJob) => {
+    setState((prev) => mapCake(prev, jobId, updater));
   }, []);
 
   // 케이크를 다음 스테이션 대기열로 보낸다. 되돌아가는 이동은 없다 (1장 2번).
-  const sendOrderTo = useCallback(
-    (orderId: string, stage: CraftingStage) => {
-      updateOrder(orderId, (order) => ({ ...order, stage }));
-    },
-    [updateOrder]
-  );
+  // 시트 스테이션에서 떠나면 그 자리에 새 빈 틀이 놓인다 (주방 케이크 수 상한까지).
+  const sendCakeTo = useCallback((jobId: string, stage: CraftingStage) => {
+    setState((prev) => withBaseCake(mapCake(prev, jobId, (job) => ({ ...job, stage }))));
+  }, []);
 
   // 오븐 대기 중인 케이크를 빈 오븐 칸에 넣는다. 타이머는 절대 시각이라 다른 스테이션에 가 있어도 계속 흐른다.
-  const putInOven = useCallback((orderId: string) => {
+  // slot을 주면(끌어다 놓은 칸) 그 칸이 비어 있을 때만 넣고, 안 주면(키보드 조작) 첫 빈 칸에 넣는다.
+  const putInOven = useCallback((jobId: string, slot?: number) => {
     setState((prev) => {
-      const slotIndex = prev.ovenSlots.indexOf(null);
-      const order = prev.activeOrders.find((o) => o.orderId === orderId);
-      if (slotIndex < 0 || !order || order.stage !== "oven" || order.cake.baking.startTime !== null) return prev;
+      const slotIndex = slot === undefined ? prev.ovenSlots.indexOf(null) : prev.ovenSlots[slot] === null ? slot : -1;
+      const job = prev.cakes.find((cake) => cake.jobId === jobId);
+      if (slotIndex < 0 || !job || job.stage !== "oven" || job.cake.baking.startTime !== null) return prev;
       const ovenSlots = [...prev.ovenSlots];
-      ovenSlots[slotIndex] = orderId;
-      return {
-        ...prev,
-        ovenSlots,
-        activeOrders: prev.activeOrders.map((o) =>
-          o.orderId === orderId
-            ? {
-                ...o,
-                cake: {
-                  ...o.cake,
-                  baking: { startTime: Date.now(), endTime: null, duration: OVEN_DURATION_MS, doneness: 0 },
-                },
-              }
-            : o
-        ),
-      };
+      ovenSlots[slotIndex] = jobId;
+      return mapCake({ ...prev, ovenSlots }, jobId, (j) => ({
+        ...j,
+        cake: { ...j.cake, baking: { startTime: Date.now(), endTime: null, duration: OVEN_DURATION_MS, doneness: 0 } },
+      }));
     });
   }, []);
 
   // 오븐에서 꺼내면 그 순간의 경과 비율로 굽기 점수를 매기고, 필링·크림 스테이션 대기열로 넘긴다.
   const takeOutOfOven = useCallback((slotIndex: number) => {
     setState((prev) => {
-      const orderId = prev.ovenSlots[slotIndex];
-      if (!orderId) return prev;
+      const jobId = prev.ovenSlots[slotIndex];
+      if (!jobId) return prev;
       const ovenSlots = [...prev.ovenSlots];
       ovenSlots[slotIndex] = null;
       const now = Date.now();
-      return {
-        ...prev,
-        ovenSlots,
-        activeOrders: prev.activeOrders.map((o) => {
-          if (o.orderId !== orderId || o.cake.baking.startTime === null) return o;
-          const ratio = getBakingElapsedRatio(o.cake.baking.startTime, o.cake.baking.duration, now);
-          return {
-            ...o,
-            stage: "cream",
-            cake: { ...o.cake, baking: { ...o.cake.baking, endTime: now, doneness: scoreBaking(ratio) } },
-          };
-        }),
-      };
+      return mapCake({ ...prev, ovenSlots }, jobId, (job) => {
+        if (job.cake.baking.startTime === null) return job;
+        const ratio = getBakingElapsedRatio(job.cake.baking.startTime, job.cake.baking.duration, now);
+        return {
+          ...job,
+          stage: "cream",
+          cake: { ...job.cake, baking: { ...job.cake.baking, endTime: now, doneness: scoreBaking(ratio) } },
+        };
+      });
     });
   }, []);
 
-  // 타거나 실수한 케이크를 버리고 처음(시트)부터 다시 만든다. 주문 번호와 주문 시각(속도 점수)은 그대로다.
-  const discardOrder = useCallback((orderId: string) => {
-    setState((prev) => ({
-      ...prev,
-      ovenSlots: prev.ovenSlots.map((id) => (id === orderId ? null : id)),
-      activeOrders: prev.activeOrders.map((order) =>
-        order.orderId === orderId
-          ? { ...order, stage: "base", attempt: order.attempt + 1, completedAt: null, cake: createEmptyCake() }
-          : order
-      ),
-    }));
+  // 타거나 실수했거나, 줄 손님이 없는 케이크를 버린다. 시트 스테이션에서 버리면 새 빈 틀이 다시 놓인다.
+  const discardCake = useCallback((jobId: string) => {
+    setState((prev) =>
+      withBaseCake({
+        ...prev,
+        ovenSlots: prev.ovenSlots.map((id) => (id === jobId ? null : id)),
+        cakes: prev.cakes.filter((job) => job.jobId !== jobId),
+      }),
+    );
   }, []);
 
-  // 데코레이션 "완성": 주문을 ready로 바꾸고 매장으로 이동한다. 케이크는 계산대 위에 표시된다.
-  const completeOrder = useCallback((orderId: string) => {
+  // 데코레이션 "완성": 케이크를 ready로 바꾸고 매장으로 이동한다. 케이크는 계산대 위에 표시된다.
+  const completeCake = useCallback((jobId: string) => {
     setState((prev) => ({
-      ...prev,
+      ...mapCake(prev, jobId, (job) => ({ ...job, stage: "ready", completedAt: Date.now() })),
       station: "order",
-      activeOrders: prev.activeOrders.map((order) =>
-        order.orderId === orderId ? { ...order, stage: "ready", completedAt: Date.now() } : order
-      ),
     }));
   }, []);
 
-  // 계산대의 완성 케이크를 주문한 손님 테이블에 드롭했을 때 호출. 드롭 대상이 맞는지는 호출하는 쪽(ShopScreen)이
-  // 판단하지만, 여기서도 한 번 더 확인해서 엉뚱한 서빙은 무시한다 (cake-tycoon-prompt.md 3장 "서빙").
+  // 계산대의 완성 케이크를 손님 테이블에 드롭했을 때 호출. 주문을 받은 손님이면 누구에게든 줄 수 있고,
+  // 그 손님의 주문 기준으로 채점한다 (cake-tycoon-prompt.md 3장 "서빙", 12장).
   // 채점 → 돈 지급 → 결과 카드 → 먹는 연출 → 퇴장 → 테이블 비움 → 다음 손님 순서로 진행한다.
-  const serveOrder = useCallback(
-    (orderId: string) => {
-      const order = state.activeOrders.find((activeOrder) => activeOrder.orderId === orderId);
-      if (!order || order.stage !== "ready") return;
-      const tableIndex = state.tables.findIndex((table) => table?.id === order.customerId);
+  const serveCake = useCallback(
+    (jobId: string, tableIndex: number) => {
+      const job = state.cakes.find((cake) => cake.jobId === jobId);
+      if (!job || job.stage !== "ready") return;
       const customer = state.tables[tableIndex];
       if (!customer || customer.status !== "order_confirmed") return;
 
-      const result = scoreServedCake(order.cake, customer.order, order.createdAt, order.completedAt);
+      const servedAt = Date.now();
+      const result = scoreServedCake(job.cake, customer.order, customer.orderedAt ?? servedAt, servedAt);
 
       setState((prev) => {
         const tables = [...prev.tables];
@@ -292,7 +243,7 @@ export function useGameState() {
         return {
           ...prev,
           tables,
-          activeOrders: prev.activeOrders.filter((activeOrder) => activeOrder.orderId !== orderId),
+          cakes: prev.cakes.filter((cake) => cake.jobId !== jobId),
           player: {
             ...prev.player,
             money: prev.player.money + result.money,
@@ -300,8 +251,8 @@ export function useGameState() {
           },
         };
       });
-      setServedCakes((prev) => ({ ...prev, [customer.id]: order.cake }));
-      setServeResult({ ...result, customerName: customer.name, cake: order.cake });
+      setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
+      setServeResult({ ...result, customerName: customer.name, cake: job.cake });
 
       schedule(() => {
         setLeavingIds((prev) => new Set(prev).add(customer.id));
@@ -326,7 +277,7 @@ export function useGameState() {
         }, LEAVE_ANIMATION_MS);
       }, EATING_DURATION_MS);
     },
-    [state.activeOrders, state.tables, schedule, assignCustomer]
+    [state.cakes, state.tables, schedule, assignCustomer],
   );
 
   const dismissServeResult = useCallback(() => setServeResult(null), []);
@@ -341,14 +292,14 @@ export function useGameState() {
     serveResult,
     handleCustomerTap,
     setStation,
-    selectOrder,
-    updateOrder,
-    sendOrderTo,
+    selectCake,
+    updateCake,
+    sendCakeTo,
     putInOven,
     takeOutOfOven,
-    discardOrder,
-    completeOrder,
-    serveOrder,
+    discardCake,
+    completeCake,
+    serveCake,
     dismissServeResult,
   };
 }

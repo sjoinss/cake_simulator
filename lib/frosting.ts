@@ -68,9 +68,6 @@ export const createEmptySpreadLayer = (withSide = false): SpreadLayer => ({
   cells: createEmptyFrosting(),
   side: withSide ? createEmptySide() : [],
   done: false,
-  coverage: 0,
-  evenness: 0,
-  amount: 0,
 });
 
 const cellCenter = (index: number) => ({

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ActiveOrder, Customer } from "@/lib/gameState";
+import type { CakeData, Customer } from "@/lib/gameState";
 import { initialMaterials } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
@@ -7,26 +7,24 @@ import { CustomerTable } from "./CustomerTable";
 
 type CustomerSideProps = {
   tables: (Customer | null)[];
-  activeOrders: ActiveOrder[];
   orderingCustomerId: string | null;
   orderingStepIndex: number;
   justArrivedIds: ReadonlySet<string>;
-  servedCakes: Readonly<Record<string, ActiveOrder["cake"]>>;
+  servedCakes: Readonly<Record<string, CakeData>>;
   leavingIds: ReadonlySet<string>;
-  draggingCustomerId: string | null; // 지금 드래그 중인 케이크의 주인
+  isDraggingCake: boolean; // 계산대 케이크를 끌고 있는 중
   hoverTableIndex: number | null; // 드래그 중인 케이크가 올라가 있는 테이블
   onCustomerTap: (tableIndex: number) => void;
 };
 
 export function CustomerSide({
   tables,
-  activeOrders,
   orderingCustomerId,
   orderingStepIndex,
   justArrivedIds,
   servedCakes,
   leavingIds,
-  draggingCustomerId,
+  isDraggingCake,
   hoverTableIndex,
   onCustomerTap,
 }: CustomerSideProps) {
@@ -37,9 +35,9 @@ export function CustomerSide({
     >
       {tables.map((customer, index) => {
         // 주문이 확정된 손님 머리 위에는 주문 번호를 항상 띄운다(먹는 동안까지). 주문 내용은 주문서 레일에서 언제든 볼 수 있다.
-        const activeOrder = customer ? activeOrders.find((order) => order.customerId === customer.id) : undefined;
-        const isDragTarget = !!customer && customer.id === draggingCustomerId;
-        const dropState = isDragTarget ? "target" : customer && hoverTableIndex === index ? "hover" : null;
+        // 케이크는 주문과 묶여 있지 않아서, 주문을 받고 아직 케이크를 못 받은 손님이면 누구에게든 줄 수 있다.
+        const canReceive = customer?.status === "order_confirmed";
+        const dropState = isDraggingCake && canReceive ? (hoverTableIndex === index ? "hover" : "available") : null;
 
         return (
           <CustomerTable
@@ -49,8 +47,7 @@ export function CustomerSide({
             bubble={getBubbleContent(customer, orderingCustomerId, orderingStepIndex)}
             shouldAnimateEntrance={!!customer && justArrivedIds.has(customer.id)}
             onTap={() => onCustomerTap(index)}
-            orderTag={customer?.orderNumber != null ? formatOrderNumber({ orderNumber: customer.orderNumber }) : null}
-            isAwaitingServe={activeOrder?.stage === "ready"}
+            orderTag={customer?.orderNumber != null ? formatOrderNumber(customer.orderNumber) : null}
             servedCake={customer ? (servedCakes[customer.id] ?? null) : null}
             isLeaving={!!customer && leavingIds.has(customer.id)}
             dropState={dropState}

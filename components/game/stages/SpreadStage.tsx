@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ActiveOrder, Material, MaterialRegistry } from "@/lib/gameState";
+import type { CakeJob, Material, MaterialRegistry } from "@/lib/gameState";
 import {
   CREAM_FLOW_PER_SEC,
   createEmptyFrosting,
@@ -18,20 +18,22 @@ import { Cake3D, CakeInsideView, TOP_VIEW_PX } from "../cake/CakeRenderer";
 import { AmountGauge } from "../AmountGauge";
 import { MaterialPicker } from "../MaterialPicker";
 import { FitBox, Scaled } from "../FitBox";
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, IDLE_NOTE, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
+import { CakeBoard } from "../cake/CakeBoard";
 
 export type SpreadData = { cells: number[]; side: number[] };
 
 type SpreadStageProps = {
-  order: ActiveOrder;
+  job: CakeJob;
   materials: MaterialRegistry;
   layer: "filling" | "frosting"; // 필링(갈라진 시트 안쪽) / 겉 크림(윗면 + 옆면)
   options: Material[]; // 고를 수 있는 재료
-  targetThickness: number; // 칸당 목표 두께
-  targetLabel: string; // 게이지에 보일 목표 (예: "적정량", "듬뿍")
+  // 게이지 눈금으로 보여줄 목표 두께들. 필링은 적정량 하나, 크림은 주문에 따라 조금/보통/듬뿍 중 하나라 셋 다 보여준다
+  targets: { label: string; thickness: number }[];
   onSelectMaterial: (materialId: string) => void;
   onSave: (data: SpreadData) => void; // 손을 뗄 때마다 지금까지 바른 양을 주문에 저장
   onFinish: (data: SpreadData) => void; // 완료 — 채점 후 다음으로 넘어간다 (되돌릴 수 없음)
+  idle?: boolean; // 작업할 케이크가 없음 — 선반/빈 케이크 받침/도구는 그대로 보여주고 조작만 막는다
 };
 
 type Face = "top" | "side";
@@ -56,24 +58,24 @@ const SIDE_GAUGE_MAX = getSideTargetTotal(1.5) * 1.4;
 // - 옆면(겉 크림만): 누르고 있으면 회전판이 돌면서 정면에 온 옆면에 발린다. 딱 한 바퀴가 "보통" 양.
 // 매 프레임 게임 상태를 갱신하지 않도록 짜는 동안은 로컬 상태에만 쌓고, 손을 떼는 순간 주문에 저장한다.
 export function SpreadStage({
-  order,
+  job,
   materials,
   layer,
   options,
-  targetThickness,
-  targetLabel,
+  targets,
   onSelectMaterial,
   onSave,
   onFinish,
+  idle = false,
 }: SpreadStageProps) {
-  const current = order.cake[layer];
+  const current = job.cake[layer];
   const [cells, setCells] = useState(current.cells);
   const [side, setSide] = useState(current.side);
   const [face, setFace] = useState<Face>("top");
   const [squeeze, setSqueeze] = useState<SqueezeId>("normal");
   const [rotation, setRotation] = useState(0);
   const [nozzle, setNozzle] = useState<{ x: number; y: number } | null>(null); // 누르는 영역 대비 0~1
-  const hasMaterial = current.materialId !== null;
+  const hasMaterial = current.materialId !== null && !idle;
   const noun = layer === "filling" ? "필링" : "크림";
   const hasSide = layer === "frosting";
 
@@ -155,6 +157,7 @@ export function SpreadStage({
         selectedId={current.materialId}
         label={`${noun} 재료`}
         locked={topTotal + sideTotal > 0}
+        inactive={idle}
         container={layer === "filling" ? "jar" : "bag"}
         onSelect={onSelectMaterial}
       />
@@ -169,7 +172,7 @@ export function SpreadStage({
                   type="button"
                   aria-pressed={face === option}
                   onClick={() => setFace(option)}
-                  disabled={nozzle !== null}
+                  disabled={idle || nozzle !== null}
                   className={`rounded-2xl px-3 py-1.5 text-sm font-bold whitespace-nowrap shadow-sm transition-transform active:scale-95 short:px-2 short:py-1 short:text-xs ${
                     face === option ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
                   }`}
@@ -190,6 +193,7 @@ export function SpreadStage({
                 role="radio"
                 aria-checked={squeeze === level.id}
                 onClick={() => setSqueeze(level.id)}
+                disabled={idle}
                 className={`flex items-center justify-center gap-1 rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap shadow-sm transition-transform active:scale-95 short:px-2 short:py-0.5 ${
                   squeeze === level.id ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
                 }`}
@@ -206,11 +210,15 @@ export function SpreadStage({
         </div>
 
         {/* 케이크는 남은 공간에 맞춰 크기가 정해진다 (폰 가로 화면에서도 잘리지 않게) */}
-        {layer === "filling" ? (
+        {idle ? (
+          <FitBox maxSize={CAKE_MAX_SIZE} heightRatio={0.5} className="max-w-[260px]">
+            {(size) => <CakeBoard size={size} />}
+          </FitBox>
+        ) : layer === "filling" ? (
           <FitBox maxSize={CAKE_MAX_SIZE} heightRatio={1} className="max-w-[260px]">
             {(size) => (
               <Scaled width={size} baseWidth={TOP_VIEW_PX} baseHeight={TOP_VIEW_PX}>
-                <CakeInsideView cake={{ ...order.cake, filling: { ...current, cells } }} materials={materials} />
+                <CakeInsideView cake={{ ...job.cake, filling: { ...current, cells } }} materials={materials} />
                 <div className="absolute inset-0">{hitArea("누르고 있으면 필링이 나와요")}</div>
               </Scaled>
             )}
@@ -219,7 +227,7 @@ export function SpreadStage({
           <FitBox maxSize={CAKE_MAX_SIZE} heightRatio={0.95} className="max-w-[260px]">
             {(size) => (
               <Cake3D
-                cake={{ ...order.cake, frosting: { ...current, cells, side } }}
+                cake={{ ...job.cake, frosting: { ...current, cells, side } }}
                 materials={materials}
                 size={size}
                 rotation={rotation}
@@ -234,14 +242,17 @@ export function SpreadStage({
 
         <AmountGauge
           value={isSideFace ? sideTotal : topTotal}
-          target={isSideFace ? getSideTargetTotal(targetThickness) : getSpreadTargetTotal(targetThickness)}
           max={isSideFace ? SIDE_GAUGE_MAX : TOP_GAUGE_MAX}
           label={`${isSideFace ? "옆면" : hasSide ? "윗면" : ""} ${noun} 양`}
-          targetLabel={targetLabel}
+          marks={targets.map(({ label, thickness }) => ({
+            label,
+            value: isSideFace ? getSideTargetTotal(thickness) : getSpreadTargetTotal(thickness),
+          }))}
         />
 
         <div className={SIDE_COLUMN}>
-          <p className={HINT}>
+          {idle && <p className={IDLE_NOTE}>오븐에서 꺼낸 케이크가 오면 바를 수 있어요</p>}
+          <p className={idle ? "hidden" : HINT}>
             {!hasMaterial
               ? `먼저 ${noun} 재료를 고르세요.`
               : isSideFace
@@ -256,7 +267,7 @@ export function SpreadStage({
               setSide(empty.side);
               onSave(empty);
             }}
-            disabled={topTotal + sideTotal === 0}
+            disabled={idle || topTotal + sideTotal === 0}
             className={BUTTON_SECONDARY}
           >
             🧽 다시 바르기
@@ -264,7 +275,7 @@ export function SpreadStage({
           <button
             type="button"
             onClick={() => onFinish({ cells, side })}
-            disabled={topTotal === 0 || nozzle !== null}
+            disabled={idle || topTotal === 0 || nozzle !== null}
             className={BUTTON_PRIMARY}
           >
             {noun} 완료 →

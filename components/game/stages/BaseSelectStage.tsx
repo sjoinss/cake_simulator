@@ -1,38 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import type { ActiveOrder, MaterialRegistry } from "@/lib/gameState";
+import type { CakeJob, MaterialRegistry } from "@/lib/gameState";
 import { findMaterial, getUnlockedMaterials } from "@/lib/materials";
-import { BATTER_FLOW_PER_SEC, BATTER_TARGET } from "@/lib/gameLogic";
+import { BATTER_FLOW_PER_SEC, BATTER_MAX, BATTER_TARGET } from "@/lib/gameLogic";
 import { useHoldLoop } from "@/hooks/useHoldLoop";
 import { AmountGauge } from "../AmountGauge";
 import { MaterialPicker } from "../MaterialPicker";
 import { FitBox, Scaled } from "../FitBox";
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, IDLE_NOTE, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
 
 type BaseSelectStageProps = {
-  order: ActiveOrder;
+  job: CakeJob;
   materials: MaterialRegistry;
   rank: number;
   onSelectBase: (materialId: string) => void;
   onSaveBatter: (amount: number) => void; // 손을 뗄 때마다 부은 양을 주문에 저장
   onNext: () => void;
+  idle?: boolean; // 작업할 주문이 없음 — 선반/빈 틀/게이지는 그대로 보여주고 조작만 막는다
 };
-
-const BATTER_MAX = BATTER_TARGET * 1.5; // 틀이 꽉 차는 양. 넘으면 흘러넘친다
 
 // 시트 스테이션. 반죽 재료를 먼저 고른 뒤, 틀을 누르고 있는 동안 반죽이 서서히 차오른다 (1장 4번 프레스&홀드).
 // 적정량(게이지 초록 띠)에 맞춰 손을 떼는 게 목표다.
-export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBatter, onNext }: BaseSelectStageProps) {
+export function BaseSelectStage({
+  job,
+  materials,
+  rank,
+  onSelectBase,
+  onSaveBatter,
+  onNext,
+  idle = false,
+}: BaseSelectStageProps) {
   const options = getUnlockedMaterials(materials, "base", rank);
-  const base = order.cake.base ? findMaterial(materials, order.cake.base) : undefined;
-  const [amount, setAmount] = useState(order.cake.batter.amount);
+  const base = job.cake.base ? findMaterial(materials, job.cake.base) : undefined;
+  const [amount, setAmount] = useState(job.cake.batter.amount);
   const [isPouring, setIsPouring] = useState(false);
 
   useHoldLoop(isPouring, (dt) => setAmount((prev) => prev + BATTER_FLOW_PER_SEC * dt));
 
   const startPouring = () => {
-    if (base) setIsPouring(true);
+    if (base && !idle) setIsPouring(true);
   };
   const stopPouring = () => {
     if (!isPouring) return;
@@ -47,10 +54,11 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBa
     <div className={STAGE_ROOT}>
       <MaterialPicker
         materials={options}
-        selectedId={order.cake.base}
+        selectedId={job.cake.base}
         label="시트 반죽"
         container="bowl"
         locked={amount > 0}
+        inactive={idle}
         onSelect={onSelectBase}
       />
 
@@ -62,7 +70,7 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBa
               <button
                 type="button"
                 aria-label={base ? "누르고 있으면 반죽이 부어져요" : "반죽 재료를 먼저 고르세요"}
-                disabled={!base}
+                disabled={!base || idle}
                 onPointerDown={(event) => {
                   event.currentTarget.setPointerCapture(event.pointerId);
                   startPouring();
@@ -114,10 +122,16 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBa
           )}
         </FitBox>
 
-        <AmountGauge value={amount} target={BATTER_TARGET} max={BATTER_MAX} label="부은 반죽 양" targetLabel="적정량" />
+        <AmountGauge
+          value={amount}
+          max={BATTER_MAX}
+          label="부은 반죽 양"
+          marks={[{ label: "적정량", value: BATTER_TARGET }]}
+        />
 
         <div className={SIDE_COLUMN}>
-          <p className={HINT}>
+          {idle && <p className={IDLE_NOTE}>주방이 케이크로 꽉 찼어요. 서빙하거나 버리면 새 틀이 나와요</p>}
+          <p className={idle ? "hidden" : HINT}>
             {base
               ? "틀을 누르고 있으면 반죽이 부어져요. 초록 띠에 맞춰 손을 떼세요."
               : "먼저 선반에서 반죽 재료를 고르세요."}
@@ -128,12 +142,17 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBa
               setAmount(0);
               onSaveBatter(0);
             }}
-            disabled={amount === 0}
+            disabled={idle || amount === 0}
             className={BUTTON_SECONDARY}
           >
             🧽 다시 붓기
           </button>
-          <button type="button" onClick={onNext} disabled={amount === 0 || isPouring} className={BUTTON_PRIMARY}>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={idle || amount === 0 || isPouring}
+            className={BUTTON_PRIMARY}
+          >
             오븐으로 →
           </button>
         </div>
