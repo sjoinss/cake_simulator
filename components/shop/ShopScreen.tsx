@@ -129,10 +129,10 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
             onDiscard: () => counterCake && discardCake(counterCake.jobId),
           }}
         />
-        {/* 좌/우 공간을 나누는 은은한 홈(seam). 예전엔 네온 라인 느낌이라 촌스러워서 부드러운 그림자로 교체. */}
+        {/* 주방(계산대)과 홀 사이 벽 기둥 */}
         <div
           aria-hidden
-          className="w-2 shrink-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0)_50%,rgba(0,0,0,0.12)_100%)]"
+          className="relative z-10 w-3 shrink-0 bg-[linear-gradient(90deg,#e9cbbd,#fffaf6_40%,#f3dcd1)] shadow-[2px_0_4px_rgba(120,70,50,0.12),-2px_0_4px_rgba(120,70,50,0.12)]"
         />
         <CustomerSide
           tables={state.tables}

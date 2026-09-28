@@ -1,4 +1,5 @@
 import type { CreamAmount, Customer } from './gameState';
+import { CUSTOMER_LOOK_COUNT } from './assets';
 
 // Phase 1: 손님 종류 1~2명만 하드코딩 (cake-tycoon-prompt.md 14장).
 // 주문에 쓰인 재료 id는 lib/materials.ts의 초기 재료와 맞춰뒀다.
@@ -10,7 +11,12 @@ type CustomerTemplate = {
 const customerPool: CustomerTemplate[] = [
   {
     name: '미나',
-    order: { cake: 'base_vanilla', filling: 'filling_strawberry', frosting: 'cream_vanilla', topping: 'topping_strawberry' },
+    order: {
+      cake: 'base_vanilla',
+      filling: 'filling_strawberry',
+      frosting: 'cream_vanilla',
+      topping: 'topping_strawberry',
+    },
   },
   {
     name: '준호',
@@ -41,6 +47,7 @@ export function createCustomer(tableIndex: number): Customer {
     basePatienceMultiplier: 1.0, // Phase 1 고정, Phase 3에서 손님별 성격치로 확장
     status: 'waiting',
     orderNumber: null,
+    look: Math.floor(Math.random() * CUSTOMER_LOOK_COUNT),
     orderedAt: null,
     starCount: 0,
     order: { ...template.order, creamAmount: CREAM_AMOUNTS[Math.floor(Math.random() * CREAM_AMOUNTS.length)] },

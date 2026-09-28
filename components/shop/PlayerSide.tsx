@@ -1,62 +1,142 @@
 import type { ComponentProps } from "react";
+import { OWNER_IMAGE_KEY, useCustomImages } from "@/components/game/CustomImages";
+import { ImageDropZone } from "@/components/game/ImageDropZone";
+import { ShopSign } from "./ShopSign";
 import { CakeCounter } from "./CakeCounter";
 
 type PlayerSideProps = {
   counter: ComponentProps<typeof CakeCounter>;
 };
 
-// 캐릭터 이미지는 나중에 <img> + 파츠 레이어로 교체. 계산대 위 완성 케이크 표시/드래그는 CakeCounter가 담당.
+// 차양 줄무늬 한 칸 폭(px). 줄무늬와 아래 물결(scallop) 테두리가 같은 주기로 맞물린다.
+const STRIPE = 22;
+const CORAL = "#ec8672";
+
+// 계산대 쪽 (플레이어 공간). 제작 스테이션과 같은 주방이라 같은 파스텔 타일 벽과 나무 조리대 톤을 쓰고,
+// 계산대 위에 코랄·흰색 줄무늬 차양을 달아 "빵집 판매대"처럼 보이게 한다 — 매장 화면에서 가장 눈에 띄는 요소는 이 차양 하나.
+// 캐릭터는 나중에 <img> + 파츠 레이어로 교체. 계산대 위 완성 케이크 표시/드래그는 CakeCounter가 담당.
 export function PlayerSide({ counter }: PlayerSideProps) {
   return (
-    <section
-      aria-label="플레이어 공간"
-      className="relative flex flex-1 basis-2/5 flex-col overflow-hidden bg-[linear-gradient(180deg,var(--theme-secondary)_0%,var(--theme-background)_70%)]"
-    >
-      {/* 짧은 화면(폰 가로)에선 캐릭터를 줄이고 오른쪽으로 비켜서 계산대 위 케이크 받침대와 겹치지 않게 한다 */}
-      <div className="flex flex-1 items-end justify-center pb-3 short:justify-end short:pr-6 short:pb-1">
-        <div className="flex flex-col items-center">
-          <div className="text-7xl leading-none short:text-5xl" aria-hidden>
-            🧑‍🍳
-          </div>
-          {/* 발밑 그림자: 캐릭터가 바닥에 붙어 있다는 느낌을 준다 */}
-          <div className="mt-1 h-2.5 w-14 rounded-full bg-black/10 blur-[1.5px]" aria-hidden />
-        </div>
+    <section aria-label="플레이어 공간" className="relative flex flex-1 basis-2/5 flex-col overflow-hidden">
+      {/* 타일 벽 (스테이션 배경과 같은 패턴) */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundColor: "#f9e6de",
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.7) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255,255,255,0.7) 1.5px, transparent 1.5px)",
+          backgroundSize: "34px 34px",
+        }}
+      />
+
+      {/* 줄무늬 차양 + 물결 테두리 */}
+      <div aria-hidden className="relative z-10 shrink-0">
+        <div
+          className="h-7 shadow-[0_2px_0_rgba(0,0,0,0.05)] short:h-5"
+          style={{
+            background: `repeating-linear-gradient(90deg, ${CORAL} 0 ${STRIPE}px, #fffaf6 ${STRIPE}px ${STRIPE * 2}px)`,
+          }}
+        />
+        <div
+          className="h-3 drop-shadow-[0_3px_2px_rgba(120,60,40,0.18)]"
+          style={{
+            background: `radial-gradient(circle at ${STRIPE / 2}px 0, ${CORAL} ${STRIPE / 2 - 0.5}px, transparent ${STRIPE / 2}px) 0 0 / ${STRIPE * 2}px 12px repeat-x, radial-gradient(circle at ${STRIPE / 2}px 0, #fffaf6 ${STRIPE / 2 - 0.5}px, transparent ${STRIPE / 2}px) ${STRIPE}px 0 / ${STRIPE * 2}px 12px repeat-x`,
+          }}
+        />
       </div>
 
-      {/* 계산대: 플레이어 공간 가로를 꽉 채우고, 세로로는 최소 1/4을 차지하는 나무 책상.
-          Good Pizza, Great Pizza처럼 넓은 상판(70%, 위에서 내려다보는 면) + 얇은 옆면(30%)으로 입체감을 준다.
-          흰색으로 바꾼 건 책상이 아니라 그 위에 놓이는 캐시 레지스터(기계) 쪽이다. */}
+      {/* 차양 아래 매달린 가게 간판 (이름은 펜을 눌러 고칠 수 있다) */}
+      <div className="relative z-10 -mt-1">
+        <ShopSign />
+      </div>
+
+      {/* 주인 캐릭터: 왼쪽으로 치우쳐 서 있고, 앞(계산대 위)에 금전등록기가 놓인다. 오른쪽은 케이크 받침대 자리 */}
+      <div className="relative flex min-h-0 flex-1 items-end pl-[calc(24%-4.5rem)] short:pl-[calc(24%-3rem)]">
+        <ChefCharacter />
+      </div>
+
+      {/* 계산대: 스테이션 조리대와 같은 나무 톤. 넓은 상판(위에서 내려다보는 면) + 세로 널빤지 앞판 */}
       <div className="relative h-1/4 min-h-24 w-full shrink-0">
-        {/* 테이블 상판 (위에서 내려다보이는 넓은 면) */}
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-[70%] bg-[#c99164] shadow-[inset_0_2px_0_rgba(255,255,255,0.35)]"
+          className="absolute inset-x-0 top-0 h-[55%] bg-[#e7c3a0] shadow-[inset_0_3px_0_rgba(255,255,255,0.45),0_-3px_8px_rgba(0,0,0,0.08)]"
         />
-        {/* 테이블 옆면 (상판 앞쪽 얇은 단면) */}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-[30%] bg-[#8a5c3c] shadow-[inset_0_2px_0_rgba(255,255,255,0.1),0_-2px_6px_rgba(0,0,0,0.15)]"
+          className="absolute inset-x-0 bottom-0 h-[45%] shadow-[inset_0_3px_4px_rgba(0,0,0,0.12)]"
+          style={{
+            backgroundColor: "#c99466",
+            backgroundImage: "repeating-linear-gradient(90deg, rgba(0,0,0,0.07) 0 2px, transparent 2px 26px)",
+          }}
         />
 
-        {/* 케이크 진열대: 상판 위, 레지스터와 겹치지 않게 왼쪽 절반 쪽에 배치 */}
-        <div className="absolute bottom-[30%] left-[30%] origin-bottom -translate-x-1/2 translate-y-2 short:scale-[0.8]">
-          <CakeCounter {...counter} />
+        {/* 금전등록기: 주인 캐릭터 바로 앞 (계산대 상판 위) */}
+        <div className="absolute bottom-[52%] left-[24%] origin-bottom -translate-x-1/2 short:scale-[0.75]">
+          <CashRegister />
         </div>
 
-        {/* 캐시 레지스터: 최근 캐주얼 타이쿤 게임(Good Pizza, Great Pizza 등)처럼 크림색 몸체 +
-            파스텔 화면의 작고 귀여운 기계로. 카운터 폭이 넉넉하므로 잘리지 않게 오른쪽 여백을 두고 배치 */}
-        <div aria-hidden className="absolute right-4 bottom-[30%] flex translate-y-2 flex-col items-center">
-          <div className="flex h-11 w-16 flex-col items-center gap-1 rounded-xl border border-black/5 bg-[#fdfbf7] p-1.5 shadow-[0_3px_8px_rgba(0,0,0,0.18)]">
-            <div className="h-6 w-full rounded-md bg-gradient-to-b from-sky-200 to-pink-200" />
-            <div className="flex gap-1">
-              <div className="h-1 w-1 rounded-full bg-[var(--theme-accent)]" />
-              <div className="h-1 w-1 rounded-full bg-neutral-300" />
-              <div className="h-1 w-1 rounded-full bg-neutral-300" />
-            </div>
-          </div>
-          <div className="h-1.5 w-8 rounded-b-sm bg-[#e8ded2]" />
+        {/* 케이크 받침대: 오른쪽에 넉넉히 두고 케이크를 크게 보여준다 */}
+        <div className="absolute bottom-[50%] left-[68%] origin-bottom -translate-x-1/2">
+          <CakeCounter {...counter} />
         </div>
       </div>
     </section>
+  );
+}
+
+// 주인 캐릭터 자리. 그림 파일을 끌어다 놓으면(또는 눌러서 고르면) 바뀌고, 오른쪽 위 X로 기본 그림으로 돌아간다.
+// 기본 그림(lib/assets.ts의 DEFAULT_OWNER_IMAGE)도 없으면 크기를 가늠하는 반투명 네모만 보여준다.
+// 아래쪽은 계산대에 가려지도록 계산대 뒤로 내려 둔다.
+function ChefCharacter() {
+  const { ownerImage, hasCustomOwner, setImage, clearImage } = useCustomImages();
+  return (
+    <ImageDropZone
+      imageUrl={ownerImage}
+      isCustom={hasCustomOwner}
+      label="주인 캐릭터 그림"
+      onFile={(file) => setImage(OWNER_IMAGE_KEY, file)}
+      onClear={() => clearImage(OWNER_IMAGE_KEY)}
+      className="-mb-12 h-60 max-h-[calc(100%+3rem)] w-36 short:-mb-8 short:h-[9.5rem] short:w-24"
+      imageClassName="object-bottom"
+    >
+      <span className="flex h-full w-full items-center justify-center rounded-t-3xl border-2 border-dashed border-[var(--theme-text)]/30 bg-white/35 pb-10 text-center text-[11px] font-bold text-[var(--theme-text)]/45 short:pb-6 short:text-[9px]">
+        주인 캐릭터
+        <br />
+        그림을 끌어다 놓으세요
+      </span>
+    </ImageDropZone>
+  );
+}
+
+// 레트로 금전등록기: 뒤쪽에 금액 표시창, 비스듬한 몸체에 버튼들, 아래 돈 서랍
+function CashRegister() {
+  return (
+    <div aria-hidden className="flex flex-col items-center drop-shadow-[0_4px_4px_rgba(90,50,30,0.25)]">
+      {/* 금액 표시창 */}
+      <div className="flex h-5 w-12 items-center justify-center rounded-t-md bg-[var(--theme-accent)] px-1">
+        <div className="flex h-3 w-full items-center justify-end rounded-sm bg-[#e4f4ee] pr-1 text-[8px] leading-none font-bold text-[#4a7a6a]">
+          $0.00
+        </div>
+      </div>
+      {/* 몸체 + 버튼 */}
+      <div
+        className="grid h-9 w-24 grid-cols-4 content-center gap-x-1 gap-y-[3px] bg-[#fff4e6] px-4"
+        style={{ clipPath: "polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%)" }}
+      >
+        {Array.from({ length: 8 }, (_, index) => (
+          <span
+            key={index}
+            className={`h-2 rounded-[3px] shadow-[0_1px_0_rgba(0,0,0,0.15)] ${
+              index === 7 ? "bg-[var(--theme-accent)]" : "bg-[#f1ddc9]"
+            }`}
+          />
+        ))}
+      </div>
+      {/* 돈 서랍 */}
+      <div className="flex h-4 w-24 items-center justify-center rounded-b-md bg-[#f1ddc9] shadow-[inset_0_1.5px_0_rgba(0,0,0,0.08)]">
+        <span className="h-1 w-5 rounded-full bg-[#c99466]" />
+      </div>
+    </div>
   );
 }

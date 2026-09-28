@@ -1,4 +1,5 @@
 import type { PointerEventHandler } from "react";
+import { useIsShort } from "@/hooks/useIsShort";
 import type { CakeJob } from "@/lib/gameState";
 import { initialMaterials } from "@/lib/materials";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
@@ -21,19 +22,23 @@ type CakeCounterProps = {
   onDiscard: () => void; // 줄 손님이 없는 케이크는 버린다
 };
 
-// 체크무늬 손수건 패턴 (대각선 체크, 클래식 베이커리 느낌)
+// 체크무늬 천 패턴 (클래식 베이커리 느낌)
 const checkeredClothStyle = {
   backgroundImage:
-    "linear-gradient(45deg, #dd6b63 25%, transparent 25%, transparent 75%, #dd6b63 75%), " +
-    "linear-gradient(45deg, #dd6b63 25%, transparent 25%, transparent 75%, #dd6b63 75%)",
-  backgroundSize: "10px 10px",
-  backgroundPosition: "0 0, 5px 5px",
-  backgroundColor: "white",
+    "linear-gradient(45deg, #e07a6e 25%, transparent 25%, transparent 75%, #e07a6e 75%), " +
+    "linear-gradient(45deg, #e07a6e 25%, transparent 25%, transparent 75%, #e07a6e 75%)",
+  backgroundSize: "20px 20px",
+  backgroundPosition: "0 0, 10px 10px",
+  backgroundColor: "#fffaf6",
 };
 
-// 계산대(카운터) 위에 놓이는 체크무늬 손수건 + 케이크 받침대. 카운터 자체(책상)는 PlayerSide에서 그린다.
-// 손수건은 회전시킨 사각형 대신 clip-path로 다이아몬드를 직접 그려서(바닥 기준점 계산이 쉬움),
-// 받침대를 손수건의 가장 넓은 지점(중간 높이) 위에 겹쳐서 자연스럽게 놓인 것처럼 보이게 한다.
+const CLOTH_PX = 112; // 천(정사각형) 한 변
+// 계산대 상판을 비스듬히 내려다보는 각도에 맞춘 세로 눌림 비율 (케이크 윗면 타원 비율과 비슷하게)
+const COUNTER_TILT = 0.36;
+
+// 계산대 위 케이크 받침대. 체크무늬 천을 정사각형 그대로 45° 돌린 뒤 세로로 눌러서, 계산대 상판과 같은
+// 원근으로 바닥에 깔린 것처럼 보이게 한다(체크 무늬까지 같이 눕는다). 받침대 발은 천 한가운데에 놓인다.
+// 카운터 자체(책상)와 금전등록기는 PlayerSide에서 그린다.
 export function CakeCounter({
   cake,
   queuedCount,
@@ -42,28 +47,43 @@ export function CakeCounter({
   onKeyboardServe,
   onDiscard,
 }: CakeCounterProps) {
+  const isShort = useIsShort();
+  const cakeSize = isShort ? 68 : 92;
+
   return (
-    <div className="relative h-28 w-28">
+    <div className="relative h-44 w-44 short:h-32">
       {/* 줄 손님이 없는 케이크는 버리기 (받침대 오른쪽 아래) */}
       {cake && !isDragging && (
-        <div className="absolute right-[-2.5rem] bottom-1 z-10">
+        <div className="absolute right-[-1.5rem] bottom-0 z-10">
           <DiscardButton orderLabel="계산대" onDiscard={onDiscard} compact />
         </div>
       )}
-      {/* 체크무늬 손수건: 피크닉 바구니 아래 깔린 마름모 모양. 받침대보다 확실히 크게 깐다. */}
-      <div
-        className="absolute bottom-0 left-1/2 h-24 w-24 -translate-x-1/2 drop-shadow-[0_3px_4px_rgba(0,0,0,0.2)]"
-        style={{ ...checkeredClothStyle, clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }}
-        aria-hidden
-      />
 
-      {/* 케이크 받침대: 손수건의 가장 넓은 중간 높이에 겹쳐서 배치. 상판(넓다) → 아래로 갈수록 넓어지는
-          나팔 모양 기둥 실루엣 (box-shadow는 clip-path 모양을 따라가지 않아 drop-shadow로 대체) */}
-      <div className="absolute bottom-12 left-1/2 flex -translate-x-1/2 flex-col items-center">
+      {/* 계산대 상판에 눕혀 깐 체크무늬 천 (중심이 아래에서 22px) */}
+      <div aria-hidden className="absolute bottom-[22px] left-1/2 h-0 w-0 drop-shadow-[0_2px_2px_rgba(90,50,30,0.25)]">
+        <div
+          className="absolute rounded-[3px]"
+          style={{
+            ...checkeredClothStyle,
+            width: CLOTH_PX,
+            height: CLOTH_PX,
+            left: -CLOTH_PX / 2,
+            top: -CLOTH_PX / 2,
+            transform: `scaleY(${COUNTER_TILT}) rotate(45deg)`,
+          }}
+        />
+      </div>
+
+      {/* 케이크 받침대: 발이 천 한가운데 → 나팔 모양 기둥 → 넓은 접시 (아래에서 위로 쌓는다) */}
+      <div className="absolute bottom-[16px] left-1/2 flex -translate-x-1/2 flex-col items-center">
         {cake && (
-          <div
-            className={`absolute bottom-full -mb-1 flex flex-col-reverse items-center ${isDragging ? "opacity-0" : ""}`}
-          >
+          <div className={`relative z-10 -mb-3 flex flex-col items-center ${isDragging ? "opacity-0" : ""}`}>
+            {/* 받침대에 못 올라간 완성 케이크 수 (케이크 위쪽) */}
+            {queuedCount > 0 && (
+              <span className="mb-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)] shadow-sm">
+                +{queuedCount}
+              </span>
+            )}
             <button
               type="button"
               aria-label="완성된 케이크. 주문한 손님 테이블로 끌어다 놓아 서빙하세요"
@@ -72,25 +92,28 @@ export function CakeCounter({
                 // detail === 0 이면 마우스/터치가 아니라 키보드(Enter/Space)로 누른 것
                 if (event.detail === 0) onKeyboardServe();
               }}
-              className="animate-cake-wiggle cursor-grab touch-none select-none border-0 bg-transparent p-0 leading-none drop-shadow-[0_3px_3px_rgba(0,0,0,0.25)] active:cursor-grabbing"
+              className="animate-cake-wiggle cursor-grab touch-none border-0 bg-transparent p-0 leading-none select-none active:cursor-grabbing"
             >
               {/* 아이콘 대신 실제로 만든 입체 케이크를 받침대 위에 올린다 */}
-              <CakeSnapshot cake={cake.cake} materials={initialMaterials} size={60} label="완성된 케이크" />
+              <CakeSnapshot cake={cake.cake} materials={initialMaterials} size={cakeSize} label="완성된 케이크" />
             </button>
-            {/* 받침대에 못 올라간 완성 케이크 수 (케이크 위쪽) */}
-            {queuedCount > 0 && (
-              <span className="mb-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)] shadow-sm">
-                +{queuedCount}
-              </span>
-            )}
           </div>
         )}
-        {/* 받침대 상판: 흰 체크무늬 손수건 위에서도 구분되도록 얇은 테두리 + 그림자로 윤곽을 준다 */}
-        <div className="h-3 w-16 rounded-[50%] bg-white shadow-[0_0_0_1.5px_rgba(0,0,0,0.15),0_3px_4px_rgba(0,0,0,0.3)]" />
-        {/* 받침대 기둥: 위는 좁고 아래는 넓게 퍼지는 나팔 모양 */}
+        {/* 접시 */}
         <div
-          className="h-8 w-11 bg-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)]"
-          style={{ clipPath: "polygon(40% 0%, 60% 0%, 85% 100%, 15% 100%)" }}
+          aria-hidden
+          className="h-5 w-28 rounded-[50%] bg-[linear-gradient(180deg,#ffffff,#eee6e1)] shadow-[0_2px_0_#dcd0c8,0_4px_6px_rgba(90,50,30,0.2)] short:h-4 short:w-20"
+        />
+        {/* 기둥 */}
+        <div
+          aria-hidden
+          className="h-7 w-10 bg-[linear-gradient(90deg,#e9e1dc,#ffffff_45%,#e3dad4)] short:h-5 short:w-8"
+          style={{ clipPath: "polygon(38% 0%, 62% 0%, 88% 100%, 12% 100%)" }}
+        />
+        {/* 발 */}
+        <div
+          aria-hidden
+          className="-mt-0.5 h-2.5 w-12 rounded-[50%] bg-[#eee6e1] shadow-[0_1px_2px_rgba(0,0,0,0.2)] short:w-9"
         />
       </div>
     </div>

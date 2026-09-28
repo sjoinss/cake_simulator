@@ -31,6 +31,7 @@ export type Customer = {
   basePatienceMultiplier: number; // 손님별 성격 배율. Phase 1은 1.0 고정
   status: CustomerStatus;
   orderNumber: number | null; // 주문 확정 때 받은 번호. 손님 머리 위에 떠나갈 때까지 계속 띄운다
+  look: number; // 손님 모습 번호 (가게 꾸미기에서 넣은 손님 그림 중 어떤 걸 쓸지). 그림이 없으면 이모지
   orderedAt: number | null; // 주문 확정 시각. 속도 점수는 이때부터 서빙까지 손님이 기다린 시간으로 잰다
   starCount: number; // 단골 시스템용 누적 별점 (Phase 3)
   favoriteMaterialIds?: string[]; // 취향 매칭 보너스용 (Phase 3)

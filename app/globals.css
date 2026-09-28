@@ -128,9 +128,11 @@ body {
   }
 }
 
-/* PC(넓은 화면)에서는 화면 전체를 쓰지 않고, 폰 가로 비율(20:9) 프레임을 중앙에 띄워
-   플래시 게임 창처럼 보이게 한다. 프레임 밖은 어둡게 덮는다. */
-@media (min-width: 901px) {
+/* 큰 PC 화면에서만 화면 전체를 쓰지 않고, 폰 가로 비율(20:9) 프레임을 중앙에 띄워
+   플래시 게임 창처럼 보이게 한다. 프레임 밖은 어둡게 덮는다.
+   태블릿이나 작은 창에서는 프레임을 띄우면 게임이 너무 작아지고 주변만 비어 보여서, 화면을 꽉 채운다
+   (프레임은 가로 1400px 이상 + 세로 800px 이상일 때만). */
+@media (min-width: 1400px) and (min-height: 800px) {
   body {
     display: flex;
     align-items: center;
@@ -140,7 +142,7 @@ body {
   }
 
   .game-root {
-    width: min(1300px, 80vw, calc((100dvh - 6rem) * 20 / 9));
+    width: min(1600px, 92vw, calc((100dvh - 3rem) * 20 / 9));
     aspect-ratio: 20 / 9;
     height: auto;
     border-radius: 1.25rem;
