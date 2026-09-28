@@ -146,8 +146,21 @@ export type GameState = {
   cakes: CakeJob[]; // 주방에서 만드는 중인 케이크들 (완성되어 계산대에 있는 것 포함)
   selectedCakeIds: Record<WorkStation, string | null>; // 스테이션별로 지금 작업 중인 케이크
   ovenSlots: (string | null)[]; // 오븐 칸마다 들어 있는 케이크 id
-  nextOrderNumber: number; // 다음 주문에 붙일 번호. 하루가 시작될 때 1로 리셋한다 (DAY 진행은 아직 미구현)
+  nextOrderNumber: number; // 다음 주문에 붙일 번호. 하루가 시작될 때 1로 리셋한다
+  today: DayProgress; // 오늘 하루 진행 (손님 CUSTOMERS_PER_DAY명을 다 서빙하면 하루가 끝난다)
 };
+
+export type DayProgress = {
+  customers: number; // 오늘 가게에 온 손님 수 (CUSTOMERS_PER_DAY가 되면 더 오지 않는다)
+  served: number; // 오늘 서빙을 마친 손님 수
+  money: number; // 오늘 번 돈
+  scoreTotal: number; // 오늘 서빙 총점 합 (결산의 평균 점수용)
+};
+
+// 하루에 받는 손님 수. 이만큼 다 서빙하고 마지막 손님이 나가면 하루가 끝나고 결산 카드가 뜬다
+export const CUSTOMERS_PER_DAY = 10;
+
+export const createDayProgress = (): DayProgress => ({ customers: 0, served: 0, money: 0, scoreTotal: 0 });
 
 export const TABLE_COUNT = 3;
 export const OVEN_SLOT_COUNT = 2;
@@ -174,5 +187,6 @@ export function createInitialGameState(): GameState {
     selectedCakeIds: { base: null, cream: null, decorate: null },
     ovenSlots: Array.from({ length: OVEN_SLOT_COUNT }, () => null),
     nextOrderNumber: 1,
+    today: createDayProgress(),
   };
 }

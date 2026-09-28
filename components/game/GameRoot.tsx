@@ -9,6 +9,7 @@ import { TopBar } from "./TopBar";
 import { OrderClipRail } from "./OrderClipRail";
 import { CustomImagesProvider } from "./CustomImages";
 import { DecorSettings } from "./DecorSettings";
+import { DayEndCard } from "./DayEndCard";
 
 // 매장과 모든 제작 스테이션이 같은 게임 상태를 공유해야 해서, useGameState는 이 최상위 컴포넌트에서만 호출한다.
 // 오른쪽 위 주문서 집게 레일과 하단 스테이션 탭은 어느 화면에서든 항상 보인다 (Papa's 방식).
@@ -25,7 +26,12 @@ export function GameRoot() {
   return (
     <CustomImagesProvider>
       <div className="game-root relative h-dvh w-dvw flex-col overflow-hidden bg-[var(--theme-background)]">
-        <TopBar day={state.player.day} money={state.player.money} onOpenDecor={() => setIsDecorOpen(true)} />
+        <TopBar
+          day={state.player.day}
+          servedToday={state.today.served}
+          money={state.player.money}
+          onOpenDecor={() => setIsDecorOpen(true)}
+        />
         <div className="relative flex min-h-0 flex-1 flex-col">
           {station === "order" ? (
             <ShopScreen gameState={gameState} />
@@ -41,6 +47,10 @@ export function GameRoot() {
         </div>
         <StationNav state={state} onSelect={gameState.setStation} />
         {isDecorOpen && <DecorSettings onClose={() => setIsDecorOpen(false)} />}
+        {/* 마지막 손님의 결과 카드를 닫은 뒤에 결산이 뜨도록 한다 */}
+        {gameState.isDayOver && !gameState.serveResult && (
+          <DayEndCard day={state.player.day} today={state.today} onNextDay={gameState.startNextDay} />
+        )}
       </div>
     </CustomImagesProvider>
   );

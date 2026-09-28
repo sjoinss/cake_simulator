@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  createDayProgress,
   createInitialGameState,
+  CUSTOMERS_PER_DAY,
   TABLE_COUNT,
   type CakeData,
   type CakeJob,
@@ -64,16 +66,25 @@ export function useGameState() {
     };
   }, []);
 
+  // 예약된 타이머(손님 배정 등)에서 최신 상태를 읽기 위한 거울
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   // 빈 테이블에 새 손님을 배정한다. 배정 순간 종소리 + 슬라이드업 등장 애니메이션이 트리거된다.
+  // 오늘 손님(CUSTOMERS_PER_DAY명)을 다 받았으면 더 오지 않는다.
   const assignCustomer = useCallback(
     (tableIndex: number) => {
+      const current = stateRef.current;
+      if (current.tables[tableIndex] || current.today.customers >= CUSTOMERS_PER_DAY) return;
       playBellSound();
       const newCustomer = createCustomer(tableIndex);
       setState((prev) => {
-        if (prev.tables[tableIndex]) return prev; // 이미 배정된 테이블이면 무시
+        if (prev.tables[tableIndex] || prev.today.customers >= CUSTOMERS_PER_DAY) return prev;
         const tables = [...prev.tables];
         tables[tableIndex] = newCustomer;
-        return { ...prev, tables };
+        return { ...prev, tables, today: { ...prev.today, customers: prev.today.customers + 1 } };
       });
       setJustArrivedIds((prev) => new Set(prev).add(newCustomer.id));
       schedule(() => {
@@ -88,12 +99,16 @@ export function useGameState() {
     [schedule],
   );
 
-  // 마운트 시 (모두 빈 상태인) 테이블에 순서대로 손님을 배정한다.
-  useEffect(() => {
+  // 가게 문을 열 때(첫 마운트, 다음 날 시작) 빈 테이블에 순서대로 손님을 배정한다.
+  const seatOpeningCustomers = useCallback(() => {
     Array.from({ length: TABLE_COUNT }, (_, tableIndex) => tableIndex).forEach((tableIndex, order) => {
       schedule(() => assignCustomer(tableIndex), FIRST_CUSTOMER_DELAY_MS + order * NEXT_CUSTOMER_GAP_MS);
     });
-    // 최초 마운트 시 한 번만 실행 (빈 테이블 목록은 마운트 시점 기준 고정)
+  }, [schedule, assignCustomer]);
+
+  useEffect(() => {
+    seatOpeningCustomers();
+    // 최초 마운트 시 한 번만 실행
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -249,6 +264,12 @@ export function useGameState() {
             money: prev.player.money + result.money,
             tipTotal: prev.player.tipTotal + result.tip,
           },
+          today: {
+            ...prev.today,
+            served: prev.today.served + 1,
+            money: prev.today.money + result.money,
+            scoreTotal: prev.today.scoreTotal + result.total,
+          },
         };
       });
       setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
@@ -282,8 +303,33 @@ export function useGameState() {
 
   const dismissServeResult = useCallback(() => setServeResult(null), []);
 
+  // 오늘 손님을 다 서빙했고 마지막 손님까지 나가서 테이블이 모두 비었으면 하루가 끝난 것 (결산 카드)
+  const isDayOver = state.today.served >= CUSTOMERS_PER_DAY && state.tables.every((table) => table === null);
+
+  // 다음 날 시작: 날짜 +1, 오늘 기록·주문 번호 초기화. 가게 문을 닫으면서 주방에 남은 케이크는 정리하고,
+  // 시트 스테이션에 새 틀을 놓은 뒤 손님을 다시 받는다.
+  const startNextDay = useCallback(() => {
+    setState((prev) =>
+      withBaseCake({
+        ...prev,
+        player: { ...prev.player, day: prev.player.day + 1 },
+        today: createDayProgress(),
+        nextOrderNumber: 1,
+        cakes: [],
+        ovenSlots: prev.ovenSlots.map(() => null),
+        selectedCakeIds: { base: null, cream: null, decorate: null },
+        station: "order",
+      })
+    );
+    setServeResult(null);
+    // 손님 배정은 0.5초 뒤부터라 그 사이 stateRef가 새 날 상태로 바뀐다
+    seatOpeningCustomers();
+  }, [seatOpeningCustomers]);
+
   return {
     state,
+    isDayOver,
+    startNextDay,
     orderingCustomerId,
     orderingStepIndex,
     justArrivedIds,

@@ -1,15 +1,21 @@
+import { CUSTOMERS_PER_DAY } from "@/lib/gameState";
+
 type TopBarProps = {
   day: number;
+  servedToday: number; // 오늘 서빙을 마친 손님 수 (CUSTOMERS_PER_DAY명이면 하루 마감)
   money: number;
   onOpenDecor: () => void; // "가게 꾸미기" 창 열기
 };
 
-// 모든 화면 공통 상단 바: DAY / 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
-export function TopBar({ day, money, onOpenDecor }: TopBarProps) {
+// 모든 화면 공통 상단 바: DAY + 오늘 손님 진행 / 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
+export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
   return (
-    <header className="relative z-20 flex h-12 shrink-0 short:h-9 items-center justify-between gap-3 bg-[var(--theme-secondary)] px-3 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
+    <header className="relative z-20 flex h-12 shrink-0 items-center justify-between gap-3 bg-[var(--theme-secondary)] px-3 shadow-[0_2px_6px_rgba(0,0,0,0.08)] short:h-9">
       <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-base font-bold tracking-wide text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-sm">
         <span aria-hidden>📅</span> DAY {day}
+        <span className="ml-1 text-sm font-semibold text-[var(--theme-text)]/60 short:text-xs">
+          손님 {servedToday}/{CUSTOMERS_PER_DAY}
+        </span>
       </span>
       <div className="flex items-center gap-2">
         <button
