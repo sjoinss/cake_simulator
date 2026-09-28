@@ -1,4 +1,5 @@
 import { GameRoot } from "@/components/game/GameRoot";
+import { ClientOnly } from "@/components/game/ClientOnly";
 
 export default function Home() {
   return (
@@ -9,7 +10,9 @@ export default function Home() {
         </span>
         <p className="text-base font-semibold">화면을 가로로 돌려주세요</p>
       </div>
-      <GameRoot />
+      <ClientOnly>
+        <GameRoot />
+      </ClientOnly>
     </>
   );
 }

@@ -9,23 +9,23 @@ const CAKE_PRICE = 30; // 총점 100일 때 받는 금액 (Phase 1 임시값)
 const SPEED_PERFECT_MS = 150_000; // 이 시간 안에 서빙하면 속도 만점
 const SPEED_SLOW_MS = 360_000; // 이 시간 이상 기다리게 하면 속도 최저점
 const SPEED_MIN_SCORE = 40;
+// 데코는 플레이어 재미용이라 점수에 넣지 않는다. 적당히 꾸미면(그림 2획 이상 또는 글자) 팁을 조금 더 받는다.
+const DECO_TIP = 3;
+const DECO_TIP_MIN_EFFORT = 2;
 
 export type ServeResult = {
-  accuracy: number; // 주문 정확도: 주문한 재료/문구와 일치하는지
+  accuracy: number; // 주문 정확도: 주문한 재료와 일치하는지
   quality: number; // 제작 품질: 반죽 양 + 굽기 + 필링/크림의 범위·균일도·양 (크림 양은 이 손님이 주문한 양 기준)
-  decoration: number; // 데코레이션: 자유 그림 / 텍스트 유무
   speed: number; // 속도: 주문 확정 ~ 서빙까지 손님이 기다린 시간
   total: number;
   money: number;
-  tip: number; // Phase 1은 player.tipTotal에 누적만 한다 (랭크업 로직 미구현)
+  tip: number; // 데코 팁. 돈에 더해지고 player.tipTotal(랭크업 경험치)에도 쌓인다
 };
 
 type OrderSpec = Customer["order"];
 
 const average = (values: number[]) =>
   values.length === 0 ? 0 : Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-
-const normalizeText = (text: string) => text.trim().toLowerCase().replace(/\s+/g, " ");
 
 export function scoreAccuracy(cake: CakeData, order: OrderSpec): number {
   const checks = [
@@ -34,11 +34,6 @@ export function scoreAccuracy(cake: CakeData, order: OrderSpec): number {
     cake.frosting.materialId === order.frosting ? 100 : 0,
     cake.toppings.length > 0 && cake.toppings.every((topping) => topping.itemId === order.topping) ? 100 : 0,
   ];
-  if (order.message) {
-    const wanted = normalizeText(order.message);
-    const written = cake.text.map((text) => normalizeText(text.content));
-    checks.push(written.includes(wanted) ? 100 : written.some((text) => text.includes(wanted)) ? 70 : 0);
-  }
   return average(checks);
 }
 
@@ -58,8 +53,9 @@ export function scoreQuality(cake: CakeData, order: OrderSpec): number {
   ]);
 }
 
-export function scoreDecoration(cake: CakeData): number {
-  return 40 + (cake.drawings.length > 0 ? 30 : 0) + (cake.text.length > 0 ? 30 : 0);
+export function getDecorationTip(cake: CakeData): number {
+  const effort = cake.drawings.length + cake.text.length * DECO_TIP_MIN_EFFORT;
+  return effort >= DECO_TIP_MIN_EFFORT ? DECO_TIP : 0;
 }
 
 export function scoreSpeed(elapsedMs: number): number {
@@ -72,16 +68,14 @@ export function scoreSpeed(elapsedMs: number): number {
 export function scoreServedCake(cake: CakeData, order: OrderSpec, orderedAt: number, servedAt: number): ServeResult {
   const accuracy = scoreAccuracy(cake, order);
   const quality = scoreQuality(cake, order);
-  const decoration = scoreDecoration(cake);
   const speed = scoreSpeed(servedAt - orderedAt);
-  const total = average([accuracy, quality, decoration, speed]);
+  const total = average([accuracy, quality, speed]);
   return {
     accuracy,
     quality,
-    decoration,
     speed,
     total,
     money: Math.round((CAKE_PRICE * total) / 100),
-    tip: Math.round(total / 20),
+    tip: getDecorationTip(cake),
   };
 }

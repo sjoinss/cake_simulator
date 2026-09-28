@@ -22,7 +22,7 @@ export function StationBackdrop({ station }: { station: Station }) {
       <div
         className="absolute inset-0"
         style={{
-          backgroundColor: "#f9e6de",
+          backgroundColor: "var(--theme-wall)",
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.7) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255,255,255,0.7) 1.5px, transparent 1.5px)",
           backgroundSize: "34px 34px",

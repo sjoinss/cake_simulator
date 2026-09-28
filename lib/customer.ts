@@ -1,47 +1,21 @@
-import type { CreamAmount, Customer } from './gameState';
+import type { CreamAmount, Customer, MaterialCategory, MaterialRegistry } from './gameState';
 import { CUSTOMER_LOOK_COUNT } from './assets';
+import { getUnlockedMaterials } from './materials';
 
-// Phase 1: 손님 종류 1~2명만 하드코딩 (cake-tycoon-prompt.md 14장).
-// 주문에 쓰인 재료 id는 lib/materials.ts의 초기 재료와 맞춰뒀다.
-type CustomerTemplate = {
-  name: string;
-  order: Omit<Customer['order'], 'creamAmount'>;
-};
-
-const customerPool: CustomerTemplate[] = [
-  {
-    name: '미나',
-    order: {
-      cake: 'base_vanilla',
-      filling: 'filling_strawberry',
-      frosting: 'cream_vanilla',
-      topping: 'topping_strawberry',
-    },
-  },
-  {
-    name: '준호',
-    order: {
-      cake: 'base_vanilla',
-      filling: 'filling_strawberry',
-      frosting: 'cream_vanilla',
-      topping: 'topping_strawberry',
-      message: 'Happy Birthday',
-    },
-  },
-];
-
-// 손님이 2명뿐이라 매번 같은 주문이 되지 않도록 크림 양은 무작위로 정한다
+// 손님은 이름 없이 주문 번호(#N)로만 구분한다. 주문은 지금 선반에 있는 재료(기본 + 커스텀)에서 무작위로 조합한다.
+// 손님 종류(취향/성격) 다양화는 Phase 3 (14장).
 const CREAM_AMOUNTS: CreamAmount[] = ['light', 'normal', 'heavy'];
+
+const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)];
 
 let nextCustomerSeq = 0;
 
-export function createCustomer(tableIndex: number): Customer {
-  const template = customerPool[nextCustomerSeq % customerPool.length];
+export function createCustomer(tableIndex: number, materials: MaterialRegistry, rank: number): Customer {
   nextCustomerSeq += 1;
+  const pickMaterial = (category: MaterialCategory) => pick(getUnlockedMaterials(materials, category, rank)).id;
 
   return {
     id: `customer_${Date.now()}_${nextCustomerSeq}`,
-    name: template.name,
     tableIndex,
     patience: 100,
     basePatienceMultiplier: 1.0, // Phase 1 고정, Phase 3에서 손님별 성격치로 확장
@@ -50,6 +24,12 @@ export function createCustomer(tableIndex: number): Customer {
     look: Math.floor(Math.random() * CUSTOMER_LOOK_COUNT),
     orderedAt: null,
     starCount: 0,
-    order: { ...template.order, creamAmount: CREAM_AMOUNTS[Math.floor(Math.random() * CREAM_AMOUNTS.length)] },
+    order: {
+      cake: pickMaterial('base'),
+      filling: pickMaterial('filling'),
+      frosting: pickMaterial('cream'),
+      creamAmount: pick(CREAM_AMOUNTS),
+      topping: pickMaterial('topping'),
+    },
   };
 }

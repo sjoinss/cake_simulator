@@ -17,9 +17,10 @@ import { createCustomer } from "@/lib/customer";
 import { withBaseCake } from "@/lib/cake";
 import { getBakingElapsedRatio, OVEN_DURATION_MS, scoreBaking } from "@/lib/gameLogic";
 import { scoreServedCake, type ServeResult } from "@/lib/scoring";
-import { initialMaterials } from "@/lib/materials";
+import { getMaterialRegistry } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
 import { playBellSound } from "@/lib/sound";
+import { clearSave, loadGame, saveGame } from "@/lib/save";
 
 // cake-tycoon-prompt.md 3장 "손님 등장 애니메이션 및 주문 흐름" 기준.
 // ShopScreen의 로컬 useState만으로는 손님 배정/주문 진행 타이머를 감당하기 어려워 이 훅으로 분리했다.
@@ -30,9 +31,10 @@ const ENTER_ANIMATION_MS = 600;
 // ⑤ 서빙 후: 손님이 테이블 위 케이크를 잠시 "먹는" 연출 → 퇴장 애니메이션 → 테이블 비움 → 다음 손님 등장
 const EATING_DURATION_MS = 3000;
 const LEAVE_ANIMATION_MS = 450;
+const SAVE_DEBOUNCE_MS = 400;
 
-// 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 케이크도 정리되므로 이름/케이크를 여기에 복사해둔다.
-export type ServeResultCard = ServeResult & { customerName: string; cake: CakeData };
+// 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 케이크도 정리되므로 주문 번호/케이크를 여기에 복사해둔다.
+export type ServeResultCard = ServeResult & { orderNumber: number | null; cake: CakeData };
 
 // 케이크 한 개를 바꾸는 헬퍼
 const mapCake = (state: GameState, jobId: string, updater: (job: CakeJob) => CakeJob): GameState => ({
@@ -43,7 +45,8 @@ const mapCake = (state: GameState, jobId: string, updater: (job: CakeJob) => Cak
 // 케이크는 주문과 묶여 있지 않다: 시트 스테이션에는 항상 빈 틀이 놓여 있어 주문 없이도 미리 만들 수 있고,
 // 완성된 케이크는 어느 손님에게든 서빙할 수 있다 (받은 손님 주문 기준으로 채점). 줄 사람이 없으면 버려야 한다.
 export function useGameState() {
-  const [state, setState] = useState<GameState>(() => withBaseCake(createInitialGameState()));
+  // 저장된 진행이 있으면 이어서 한다 (GameRoot는 브라우저에서만 그려지므로 여기서 localStorage를 읽어도 된다)
+  const [state, setState] = useState<GameState>(() => withBaseCake(loadGame() ?? createInitialGameState()));
   const [orderingCustomerId, setOrderingCustomerId] = useState<string | null>(null);
   const [orderingStepIndex, setOrderingStepIndex] = useState(0);
   // 방금 배정되어 슬라이드업 애니메이션을 재생해야 하는 손님 id들. 매장 화면이 (제작 화면 왕복 등으로)
@@ -72,6 +75,17 @@ export function useGameState() {
     stateRef.current = state;
   }, [state]);
 
+  // 자동 저장: 상태가 바뀌면 잠깐 모았다가 저장하고, 페이지를 떠날 때는 바로 저장한다 (15장)
+  useEffect(() => {
+    const timer = setTimeout(() => saveGame(state), SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [state]);
+  useEffect(() => {
+    const flush = () => saveGame(stateRef.current);
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, []);
+
   // 빈 테이블에 새 손님을 배정한다. 배정 순간 종소리 + 슬라이드업 등장 애니메이션이 트리거된다.
   // 오늘 손님(CUSTOMERS_PER_DAY명)을 다 받았으면 더 오지 않는다.
   const assignCustomer = useCallback(
@@ -79,7 +93,7 @@ export function useGameState() {
       const current = stateRef.current;
       if (current.tables[tableIndex] || current.today.customers >= CUSTOMERS_PER_DAY) return;
       playBellSound();
-      const newCustomer = createCustomer(tableIndex);
+      const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.rank);
       setState((prev) => {
         if (prev.tables[tableIndex] || prev.today.customers >= CUSTOMERS_PER_DAY) return prev;
         const tables = [...prev.tables];
@@ -122,7 +136,7 @@ export function useGameState() {
 
       const customer = state.tables[tableIndex];
       if (!customer || (customer.status !== "waiting" && customer.status !== "order_confirmed")) return;
-      const steps = getOrderSteps(customer.order, initialMaterials);
+      const steps = getOrderSteps(customer.order, getMaterialRegistry());
       if (steps.length === 0) return;
       const isInitial = customer.status === "waiting";
 
@@ -261,19 +275,19 @@ export function useGameState() {
           cakes: prev.cakes.filter((cake) => cake.jobId !== jobId),
           player: {
             ...prev.player,
-            money: prev.player.money + result.money,
+            money: prev.player.money + result.money + result.tip,
             tipTotal: prev.player.tipTotal + result.tip,
           },
           today: {
             ...prev.today,
             served: prev.today.served + 1,
-            money: prev.today.money + result.money,
+            money: prev.today.money + result.money + result.tip,
             scoreTotal: prev.today.scoreTotal + result.total,
           },
         };
       });
       setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
-      setServeResult({ ...result, customerName: customer.name, cake: job.cake });
+      setServeResult({ ...result, orderNumber: customer.orderNumber, cake: job.cake });
 
       schedule(() => {
         setLeavingIds((prev) => new Set(prev).add(customer.id));
@@ -326,10 +340,28 @@ export function useGameState() {
     seatOpeningCustomers();
   }, [seatOpeningCustomers]);
 
+  // 진행 초기화: 저장을 지우고 DAY 1부터 새로 시작한다. 예약돼 있던 타이머(먹기/퇴장 등)도 모두 멈춘다.
+  // (꾸미기 그림과 가게 이름은 그대로 둔다)
+  const resetProgress = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current.length = 0; // 언마운트 정리 코드가 같은 배열을 들고 있어서 새 배열로 바꾸지 않고 비운다
+    clearSave();
+    const fresh = withBaseCake(createInitialGameState());
+    stateRef.current = fresh;
+    setState(fresh);
+    setOrderingCustomerId(null);
+    setJustArrivedIds(new Set());
+    setServedCakes({});
+    setLeavingIds(new Set());
+    setServeResult(null);
+    seatOpeningCustomers();
+  }, [seatOpeningCustomers]);
+
   return {
     state,
     isDayOver,
     startNextDay,
+    resetProgress,
     orderingCustomerId,
     orderingStepIndex,
     justArrivedIds,

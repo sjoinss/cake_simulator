@@ -1,23 +1,24 @@
 import type { ServeResultCard as ServeResultCardData } from "@/hooks/useGameState";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
-import { initialMaterials } from "@/lib/materials";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { useIsShort } from "@/hooks/useIsShort";
+import { formatOrderNumber } from "@/lib/station";
 
 type ServeResultCardProps = {
   result: ServeResultCardData;
   onClose: () => void;
 };
 
-const SCORE_ROWS: { key: "accuracy" | "quality" | "decoration" | "speed"; label: string }[] = [
+const SCORE_ROWS: { key: "accuracy" | "quality" | "speed"; label: string }[] = [
   { key: "accuracy", label: "주문 정확도" },
   { key: "quality", label: "제작 품질" },
-  { key: "decoration", label: "데코레이션" },
   { key: "speed", label: "속도" },
 ];
 
 // 서빙 직후 뜨는 Papa's 스타일 결과 카드 (cake-tycoon-prompt.md 12장 결과 화면 형태, 17장 10번).
 // 매장 화면 위에 겹쳐 띄우므로 뒤에서 손님이 먹고 퇴장하는 흐름은 그대로 진행된다.
 export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
+  const materialRegistry = useMaterialRegistry();
   const isShort = useIsShort();
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/25 p-4 short:p-2">
@@ -31,16 +32,18 @@ export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
           <h2 id="serve-result-title" className="text-xl font-extrabold tracking-wide short:text-base">
             CAKE COMPLETE!
           </h2>
-          <p className="text-sm opacity-70 short:text-xs">{result.customerName}님의 케이크</p>
+          <p className="text-sm opacity-70 short:text-xs">
+            {result.orderNumber != null ? `${formatOrderNumber(result.orderNumber)} 주문` : "손님의 케이크"}
+          </p>
         </div>
 
         {/* 가로 모드 폰은 세로 공간이 좁아서 케이크를 점수표 옆에 둔다 */}
         <div className="flex items-center gap-4">
           <CakeSnapshot
             cake={result.cake}
-            materials={initialMaterials}
+            materials={materialRegistry}
             size={isShort ? 72 : 96}
-            label={`${result.customerName}님에게 서빙한 케이크`}
+            label="서빙한 케이크"
           />
           <dl className="flex flex-1 flex-col gap-1.5 text-base short:gap-0.5 short:text-sm">
             {SCORE_ROWS.map((row) => (
@@ -60,6 +63,11 @@ export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
         <div className="flex flex-col gap-3 short:flex-row short:items-center short:justify-between short:gap-2">
           <p className="text-center text-2xl font-extrabold text-[var(--theme-accent)] short:text-lg">
             + ${result.money}
+            {result.tip > 0 && (
+              <span className="ml-2 align-middle text-sm font-bold text-[var(--theme-text)]/70 short:text-xs">
+                데코 팁 +${result.tip}
+              </span>
+            )}
           </p>
           <button
             type="button"

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { CakeData, Customer } from "@/lib/gameState";
-import { initialMaterials } from "@/lib/materials";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { SpeechBubble } from "./SpeechBubble";
 import { useCustomImages } from "@/components/game/CustomImages";
@@ -28,11 +28,12 @@ export function CustomerTable({
   isLeaving,
   dropState,
 }: CustomerTableProps) {
+  const materialRegistry = useMaterialRegistry();
   const { getCustomerImage } = useCustomImages();
   const customerImage = customer ? getCustomerImage(customer.look, servedCake ? "eating" : "idle") : null;
   return (
     <div
-      aria-label={customer ? `테이블 ${tableIndex + 1}, ${customer.name}` : `테이블 ${tableIndex + 1}, 빈 테이블`}
+      aria-label={customer ? `테이블 ${tableIndex + 1}, 손님` : `테이블 ${tableIndex + 1}, 빈 테이블`}
       data-table-index={tableIndex} // 드래그 서빙 시 드롭 대상 판별용 (ShopScreen)
       className="relative flex max-w-44 flex-1 basis-0 flex-col items-center justify-end"
     >
@@ -69,7 +70,7 @@ export function CustomerTable({
           <button
             type="button"
             onClick={onTap}
-            aria-label={`${customer.name} 주문 확인`}
+            aria-label={"손님 주문 확인"}
             className="flex h-16 w-16 cursor-pointer items-end justify-center border-0 bg-transparent p-0 text-6xl leading-none transition-transform active:scale-90 short:h-12 short:w-12 short:text-5xl"
           >
             {customerImage ? (
@@ -104,7 +105,7 @@ export function CustomerTable({
           {/* 서빙된 케이크: 먹는 동안 테이블 위에 놓여 있다 */}
           {servedCake && (
             <div className="absolute bottom-1/2 left-1/2 -translate-x-1/2">
-              <CakeSnapshot cake={servedCake} materials={initialMaterials} size={52} label="서빙된 케이크" />
+              <CakeSnapshot cake={servedCake} materials={materialRegistry} size={52} label="서빙된 케이크" />
             </div>
           )}
         </div>

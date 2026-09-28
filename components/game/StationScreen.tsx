@@ -1,7 +1,7 @@
 import type { useGameState } from "@/hooks/useGameState";
 import type { Station } from "@/lib/gameState";
 import { BATTER_TARGET, scoreAmountMatch } from "@/lib/gameLogic";
-import { initialMaterials } from "@/lib/materials";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getCakesAtStage, getOvenQueue, getSelectedCake } from "@/lib/station";
 import { BaseSelectStage } from "./stages/BaseSelectStage";
 import { OvenStage } from "./stages/OvenStage";
@@ -21,6 +21,7 @@ type StationScreenProps = {
 // 각 케이크는 스테이션을 순서대로만 거친다 — 되돌아가는 버튼은 없다 (1장 2번).
 // 케이크는 주문과 묶여 있지 않아서 주문 없이도 미리 만들어 둘 수 있다. 어느 주문용인지는 플레이어가 주문서를 보고 판단한다.
 export function StationScreen({ gameState, station }: StationScreenProps) {
+  const materialRegistry = useMaterialRegistry();
   const { state, selectCake, updateCake, sendCakeTo, putInOven, takeOutOfOven, discardCake, completeCake } = gameState;
 
   const job = station === "oven" ? null : getSelectedCake(state, station);
@@ -52,7 +53,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
                     other.jobId === job.jobId ? "-translate-y-1 bg-white shadow" : "opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <CakeSnapshot cake={other.cake} materials={initialMaterials} size={36} label="" />
+                  <CakeSnapshot cake={other.cake} materials={materialRegistry} size={36} label="" />
                 </button>
               ))}
             </div>
@@ -64,7 +65,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
           <OvenStage
             queue={getOvenQueue(state)}
             slots={state.ovenSlots.map((id) => state.cakes.find((cake) => cake.jobId === id) ?? null)}
-            materials={initialMaterials}
+            materials={materialRegistry}
             onPutIn={putInOven}
             onTakeOut={takeOutOfOven}
             onDiscard={discardCake}
@@ -80,7 +81,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
           <BaseSelectStage
             key={job.jobId}
             job={job}
-            materials={initialMaterials}
+            materials={materialRegistry}
             rank={rank}
             onSelectBase={(materialId) =>
               updateCake(job.jobId, (j) => ({ ...j, cake: { ...j.cake, base: materialId } }))
@@ -99,7 +100,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
           <CreamStation
             key={job.jobId}
             job={job}
-            materials={initialMaterials}
+            materials={materialRegistry}
             rank={rank}
             onUpdate={(updater) => updateCake(job.jobId, updater)}
           />
@@ -109,7 +110,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
           <DecorateStation
             key={job.jobId}
             job={job}
-            materials={initialMaterials}
+            materials={materialRegistry}
             rank={rank}
             onUpdate={(updater) => updateCake(job.jobId, updater)}
             onComplete={() => completeCake(job.jobId)}

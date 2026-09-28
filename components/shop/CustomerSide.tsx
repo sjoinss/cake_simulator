@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { CakeData, Customer } from "@/lib/gameState";
-import { initialMaterials } from "@/lib/materials";
+import type { CakeData, Customer, MaterialRegistry } from "@/lib/gameState";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
 import { CustomerTable } from "./CustomerTable";
@@ -28,6 +28,7 @@ export function CustomerSide({
   hoverTableIndex,
   onCustomerTap,
 }: CustomerSideProps) {
+  const materialRegistry = useMaterialRegistry();
   return (
     <section aria-label="손님 공간" className="relative flex flex-1 basis-3/5 overflow-hidden">
       <DiningRoom />
@@ -43,7 +44,7 @@ export function CustomerSide({
               key={index}
               tableIndex={index}
               customer={customer}
-              bubble={getBubbleContent(customer, orderingCustomerId, orderingStepIndex)}
+              bubble={getBubbleContent(customer, orderingCustomerId, orderingStepIndex, materialRegistry)}
               shouldAnimateEntrance={!!customer && justArrivedIds.has(customer.id)}
               onTap={() => onCustomerTap(index)}
               orderTag={customer?.orderNumber != null ? formatOrderNumber(customer.orderNumber) : null}
@@ -67,8 +68,9 @@ function DiningRoom() {
       <div
         className="absolute inset-0"
         style={{
-          backgroundColor: "#fbefe9",
-          backgroundImage: "repeating-linear-gradient(90deg, rgba(236,134,114,0.08) 0 14px, transparent 14px 40px)",
+          backgroundColor: "var(--theme-wallpaper)",
+          backgroundImage:
+            "repeating-linear-gradient(90deg, var(--theme-wallpaper-stripe) 0 14px, transparent 14px 40px)",
         }}
       />
       {/* 아치형 창문: 바깥 하늘 + 창살. 두 번째 테이블(가운데) 위쪽에 둔다 */}
@@ -80,7 +82,7 @@ function DiningRoom() {
       {/* 창턱 */}
       <div className="absolute top-[43%] left-1/2 h-1.5 w-[26%] -translate-x-1/2 rounded-sm bg-[#fffaf6] shadow-[0_2px_3px_rgba(120,70,50,0.15)]" />
       {/* 아래쪽 벽 패널 + 몰딩 */}
-      <div className="absolute inset-x-0 bottom-[24%] h-[22%] border-t-4 border-[#fffaf6] bg-[#f3d9cd] shadow-[inset_0_2px_0_rgba(0,0,0,0.04)]">
+      <div className="absolute inset-x-0 bottom-[24%] h-[22%] border-t-4 border-[#fffaf6] bg-[var(--theme-wainscot)] shadow-[inset_0_2px_0_rgba(0,0,0,0.04)]">
         <div
           className="absolute inset-x-3 inset-y-2"
           style={{
@@ -107,10 +109,11 @@ function getBubbleContent(
   customer: Customer | null,
   orderingCustomerId: string | null,
   orderingStepIndex: number,
+  materialRegistry: MaterialRegistry,
 ): ReactNode | null {
   if (!customer) return null;
 
-  const steps = getOrderSteps(customer.order, initialMaterials);
+  const steps = getOrderSteps(customer.order, materialRegistry);
 
   if (orderingCustomerId === customer.id) {
     const step = steps[orderingStepIndex];

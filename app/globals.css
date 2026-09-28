@@ -3,9 +3,9 @@
 /* 폰 가로 화면처럼 세로가 짧은 화면 (주 타깃). `short:` 접두사로 상단 바/하단 탭/선반 등을 촘촘하게 줄인다 (11장). */
 @custom-variant short (@media (max-height: 480px));
 
-/* 테마 변수 세트. data-theme 속성으로 전체 세트를 스위칭한다.
-   Phase 1은 pink 하나만 채우고, 나머지(blue/sky/red/yellow/orange/purple)는 Phase 2에서 추가한다.
-   pink 테마는 비비드한 핑크 대신 코랄에 가까운 파스텔톤으로 채운다. */
+/* 테마 변수 세트 (10장). <html data-theme>으로 전체 세트를 스위칭한다 (lib/theme.ts).
+   모두 원색이 아닌 파스텔톤. pink는 비비드한 핑크 대신 코랄에 가까운 톤.
+   테마마다 기본 5색만 정하고, 벽·벽지 같은 배경색은 아래 :root에서 이 5색을 섞어 만든다. */
 :root,
 :root[data-theme="pink"] {
   --theme-primary: #f0a093;
@@ -13,6 +13,58 @@
   --theme-background: #fdf6f2;
   --theme-accent: #ec8672;
   --theme-text: #4a3733;
+}
+:root[data-theme="red"] {
+  --theme-primary: #e99496;
+  --theme-secondary: #f6d3d3;
+  --theme-background: #fdf5f5;
+  --theme-accent: #dd6f73;
+  --theme-text: #4a3334;
+}
+:root[data-theme="orange"] {
+  --theme-primary: #f2ae7c;
+  --theme-secondary: #fadcc2;
+  --theme-background: #fef7f0;
+  --theme-accent: #ea9352;
+  --theme-text: #4b3a2c;
+}
+:root[data-theme="yellow"] {
+  --theme-primary: #ecca6c;
+  --theme-secondary: #f8e9bf;
+  --theme-background: #fefbf1;
+  --theme-accent: #d49f2c;
+  --theme-text: #473d2b;
+}
+:root[data-theme="sky"] {
+  --theme-primary: #8fc9e6;
+  --theme-secondary: #d3ecf7;
+  --theme-background: #f4fafd;
+  --theme-accent: #4fa5d0;
+  --theme-text: #2f4350;
+}
+:root[data-theme="blue"] {
+  --theme-primary: #97a9e6;
+  --theme-secondary: #d6ddf7;
+  --theme-background: #f5f7fd;
+  --theme-accent: #6d84d6;
+  --theme-text: #33384f;
+}
+:root[data-theme="purple"] {
+  --theme-primary: #b9a1df;
+  --theme-secondary: #e6dbf5;
+  --theme-background: #f9f6fd;
+  --theme-accent: #9878cf;
+  --theme-text: #3f3450;
+}
+
+:root {
+  /* 기본 5색에서 섞어 만든 배경색 — 매장/작업대 벽, 홀 벽지, 벽 패널, 기둥 */
+  --theme-wall: color-mix(in srgb, var(--theme-secondary) 60%, #fffaf6);
+  --theme-wallpaper: color-mix(in srgb, var(--theme-secondary) 35%, #fffaf6);
+  --theme-wallpaper-stripe: color-mix(in srgb, var(--theme-accent) 8%, transparent);
+  --theme-wainscot: color-mix(in srgb, var(--theme-secondary) 97%, var(--theme-text));
+  --theme-pillar-edge: color-mix(in srgb, var(--theme-secondary) 90%, var(--theme-text));
+  --theme-cloth: color-mix(in srgb, var(--theme-accent) 92%, var(--theme-text)); /* 계산대 체크무늬 천 */
 
   --background: var(--theme-background);
   --foreground: var(--theme-text);

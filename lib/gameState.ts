@@ -12,6 +12,7 @@ export type Material = {
   emoji: string;
   image?: string; // 재료 그림 경로 (예: /images/materials/filling_strawberry.png). 없으면 CSS 병/그릇 + 이모지로 그린다
   isCustom: boolean;
+  retired?: boolean; // 플레이어가 지운 커스텀 재료. 기존 주문/케이크 표시용으로만 남고 선반·새 주문에는 안 나온다
   unlockRank: number; // 이 랭크에 도달하면 자동 해금. 0 = 처음부터 사용 가능
 };
 
@@ -25,7 +26,6 @@ export type CustomerStatus = 'waiting' | 'ordering' | 'order_confirmed' | 'serve
 
 export type Customer = {
   id: string;
-  name: string;
   tableIndex: number;
   patience: number; // 0~100
   basePatienceMultiplier: number; // 손님별 성격 배율. Phase 1은 1.0 고정
@@ -42,7 +42,6 @@ export type Customer = {
     creamAmount: CreamAmount; // 크림을 얼마나 두껍게 발라달라는지 (서빙할 때 이 기준으로 크림 양을 채점)
     topping: string;
     decoration?: string;
-    message?: string;
   };
 };
 

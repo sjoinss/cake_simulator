@@ -10,7 +10,7 @@ type PlayerSideProps = {
 
 // 차양 줄무늬 한 칸 폭(px). 줄무늬와 아래 물결(scallop) 테두리가 같은 주기로 맞물린다.
 const STRIPE = 22;
-const CORAL = "#ec8672";
+const AWNING_COLOR = "var(--theme-accent)";
 
 // 계산대 쪽 (플레이어 공간). 제작 스테이션과 같은 주방이라 같은 파스텔 타일 벽과 나무 조리대 톤을 쓰고,
 // 계산대 위에 코랄·흰색 줄무늬 차양을 달아 "빵집 판매대"처럼 보이게 한다 — 매장 화면에서 가장 눈에 띄는 요소는 이 차양 하나.
@@ -23,7 +23,7 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         aria-hidden
         className="absolute inset-0"
         style={{
-          backgroundColor: "#f9e6de",
+          backgroundColor: "var(--theme-wall)",
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.7) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255,255,255,0.7) 1.5px, transparent 1.5px)",
           backgroundSize: "34px 34px",
@@ -35,13 +35,13 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         <div
           className="h-7 shadow-[0_2px_0_rgba(0,0,0,0.05)] short:h-5"
           style={{
-            background: `repeating-linear-gradient(90deg, ${CORAL} 0 ${STRIPE}px, #fffaf6 ${STRIPE}px ${STRIPE * 2}px)`,
+            background: `repeating-linear-gradient(90deg, ${AWNING_COLOR} 0 ${STRIPE}px, #fffaf6 ${STRIPE}px ${STRIPE * 2}px)`,
           }}
         />
         <div
           className="h-3 drop-shadow-[0_3px_2px_rgba(120,60,40,0.18)]"
           style={{
-            background: `radial-gradient(circle at ${STRIPE / 2}px 0, ${CORAL} ${STRIPE / 2 - 0.5}px, transparent ${STRIPE / 2}px) 0 0 / ${STRIPE * 2}px 12px repeat-x, radial-gradient(circle at ${STRIPE / 2}px 0, #fffaf6 ${STRIPE / 2 - 0.5}px, transparent ${STRIPE / 2}px) ${STRIPE}px 0 / ${STRIPE * 2}px 12px repeat-x`,
+            background: `radial-gradient(circle at ${STRIPE / 2}px 0, ${AWNING_COLOR} ${STRIPE / 2 - 0.5}px, transparent ${STRIPE / 2}px) 0 0 / ${STRIPE * 2}px 12px repeat-x, radial-gradient(circle at ${STRIPE / 2}px 0, #fffaf6 ${STRIPE / 2 - 0.5}px, transparent ${STRIPE / 2}px) ${STRIPE}px 0 / ${STRIPE * 2}px 12px repeat-x`,
           }}
         />
       </div>

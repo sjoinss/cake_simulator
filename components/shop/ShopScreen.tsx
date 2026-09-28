@@ -7,7 +7,7 @@ import { CustomerSide } from "./CustomerSide";
 import { ServeResultCard } from "./ServeResultCard";
 import type { CakeDragHandlers } from "./CakeCounter";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
-import { initialMaterials } from "@/lib/materials";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 
 type ShopScreenProps = {
   gameState: ReturnType<typeof useGameState>;
@@ -35,6 +35,7 @@ function findTableIndexAt(x: number, y: number): number | null {
 }
 
 export function ShopScreen({ gameState }: ShopScreenProps) {
+  const materialRegistry = useMaterialRegistry();
   const {
     state,
     orderingCustomerId,
@@ -132,7 +133,7 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
         {/* 주방(계산대)과 홀 사이 벽 기둥 */}
         <div
           aria-hidden
-          className="relative z-10 w-3 shrink-0 bg-[linear-gradient(90deg,#e9cbbd,#fffaf6_40%,#f3dcd1)] shadow-[2px_0_4px_rgba(120,70,50,0.12),-2px_0_4px_rgba(120,70,50,0.12)]"
+          className="relative z-10 w-3 shrink-0 bg-[linear-gradient(90deg,var(--theme-pillar-edge),#fffaf6_40%,var(--theme-wainscot))] shadow-[2px_0_4px_rgba(120,70,50,0.12),-2px_0_4px_rgba(120,70,50,0.12)]"
         />
         <CustomerSide
           tables={state.tables}
@@ -159,7 +160,7 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
           }}
         >
           {counterCake && (
-            <CakeSnapshot cake={counterCake.cake} materials={initialMaterials} size={72} label="들고 있는 케이크" />
+            <CakeSnapshot cake={counterCake.cake} materials={materialRegistry} size={72} label="들고 있는 케이크" />
           )}
         </div>
       )}

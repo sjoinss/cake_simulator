@@ -1,7 +1,7 @@
 import type { PointerEventHandler } from "react";
 import { useIsShort } from "@/hooks/useIsShort";
 import type { CakeJob } from "@/lib/gameState";
-import { initialMaterials } from "@/lib/materials";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { DiscardButton } from "@/components/game/DiscardButton";
 
@@ -25,8 +25,8 @@ type CakeCounterProps = {
 // 체크무늬 천 패턴 (클래식 베이커리 느낌)
 const checkeredClothStyle = {
   backgroundImage:
-    "linear-gradient(45deg, #e07a6e 25%, transparent 25%, transparent 75%, #e07a6e 75%), " +
-    "linear-gradient(45deg, #e07a6e 25%, transparent 25%, transparent 75%, #e07a6e 75%)",
+    "linear-gradient(45deg, var(--theme-cloth) 25%, transparent 25%, transparent 75%, var(--theme-cloth) 75%), " +
+    "linear-gradient(45deg, var(--theme-cloth) 25%, transparent 25%, transparent 75%, var(--theme-cloth) 75%)",
   backgroundSize: "20px 20px",
   backgroundPosition: "0 0, 10px 10px",
   backgroundColor: "#fffaf6",
@@ -47,6 +47,7 @@ export function CakeCounter({
   onKeyboardServe,
   onDiscard,
 }: CakeCounterProps) {
+  const materialRegistry = useMaterialRegistry();
   const isShort = useIsShort();
   const cakeSize = isShort ? 68 : 92;
 
@@ -95,7 +96,7 @@ export function CakeCounter({
               className="animate-cake-wiggle cursor-grab touch-none border-0 bg-transparent p-0 leading-none select-none active:cursor-grabbing"
             >
               {/* 아이콘 대신 실제로 만든 입체 케이크를 받침대 위에 올린다 */}
-              <CakeSnapshot cake={cake.cake} materials={initialMaterials} size={cakeSize} label="완성된 케이크" />
+              <CakeSnapshot cake={cake.cake} materials={materialRegistry} size={cakeSize} label="완성된 케이크" />
             </button>
           </div>
         )}

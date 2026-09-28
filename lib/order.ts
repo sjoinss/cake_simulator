@@ -33,9 +33,5 @@ export function getOrderSteps(order: Customer['order'], materials: MaterialRegis
     if (decoration) steps.push({ emoji: decoration.emoji, label: decoration.name });
   }
 
-  if (order.message) {
-    steps.push({ emoji: '💌', label: order.message });
-  }
-
   return steps;
 }

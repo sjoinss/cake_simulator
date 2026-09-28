@@ -1,6 +1,6 @@
 import type { Customer } from "@/lib/gameState";
 import { TABLE_COUNT } from "@/lib/gameState";
-import { initialMaterials } from "@/lib/materials";
+import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
 
@@ -22,6 +22,7 @@ const TILTS = [-3, 2, -1.5];
 // 누르면 아래로 큰 주문서가 펼쳐진다. 테이블이 3개라 동시에 걸리는 주문서도 최대 3장.
 // 주문서는 "주문을 받고 아직 케이크를 못 받은 손님"마다 한 장이다 (케이크와는 따로 — 케이크는 주문 없이도 미리 만든다).
 export function OrderClipRail({ customers, openBillId, onBillTap, onCloseBill }: OrderClipRailProps) {
+  const materialRegistry = useMaterialRegistry();
   const sorted = customers
     .filter((customer): customer is Customer => customer?.status === "order_confirmed" && customer.orderNumber !== null)
     .sort((a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0));
@@ -82,7 +83,7 @@ export function OrderClipRail({ customers, openBillId, onBillTap, onCloseBill }:
             </button>
           </div>
           <ul className="flex flex-col gap-1.5 pt-2 text-sm short:gap-0.5 short:text-xs">
-            {getOrderSteps(openCustomer.order, initialMaterials).map((step) => (
+            {getOrderSteps(openCustomer.order, materialRegistry).map((step) => (
               <li key={step.label} className="flex items-center gap-2">
                 <span className="text-lg leading-none" aria-hidden>
                   {step.emoji}

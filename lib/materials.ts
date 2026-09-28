@@ -1,29 +1,262 @@
-import type { Material, MaterialRegistry } from './gameState';
+import type { Material, MaterialCategory, MaterialRegistry } from './gameState';
 
-// Phase 1: 카테고리별 재료 1개씩만 존재 (cake-tycoon-prompt.md 13-2 튜토리얼 구간).
-// 커스텀 재료 추가는 나중에 이 레지스트리에 push하는 방식으로 동일하게 처리된다.
-export const initialMaterials: MaterialRegistry = {
+// 기본 재료 (8장). 이모지는 윈도우 10에서도 보이는 것만 쓴다 (🫐 등 최신 이모지 제외).
+const builtInMaterials: MaterialRegistry = {
   base: [
-    { id: 'base_vanilla', category: 'base', name: '바닐라 시트', color: '#f5e6c8', emoji: '🍰', isCustom: false, unlockRank: 0 },
+    {
+      id: 'base_vanilla',
+      category: 'base',
+      name: '바닐라 시트',
+      color: '#f5e6c8',
+      emoji: '🍰',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'base_chocolate',
+      category: 'base',
+      name: '초코 시트',
+      color: '#6b4432',
+      emoji: '🍫',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'base_matcha',
+      category: 'base',
+      name: '말차 시트',
+      color: '#b7c98a',
+      emoji: '🍵',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'base_strawberry',
+      category: 'base',
+      name: '딸기 시트',
+      color: '#f4b6c2',
+      emoji: '🍓',
+      isCustom: false,
+      unlockRank: 0,
+    },
   ],
   cream: [
-    { id: 'cream_vanilla', category: 'cream', name: '바닐라 크림', color: '#fffaf0', emoji: '🍦', isCustom: false, unlockRank: 0 },
+    {
+      id: 'cream_vanilla',
+      category: 'cream',
+      name: '바닐라 크림',
+      color: '#fffaf0',
+      emoji: '🍦',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'cream_chocolate',
+      category: 'cream',
+      name: '초코 크림',
+      color: '#8a5a44',
+      emoji: '🍫',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'cream_strawberry',
+      category: 'cream',
+      name: '딸기 크림',
+      color: '#f9c9d4',
+      emoji: '🍓',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'cream_matcha',
+      category: 'cream',
+      name: '말차 크림',
+      color: '#cfe0b0',
+      emoji: '🍵',
+      isCustom: false,
+      unlockRank: 0,
+    },
   ],
   filling: [
-    { id: 'filling_strawberry', category: 'filling', name: '딸기잼', color: '#ff6f91', emoji: '🍓', isCustom: false, unlockRank: 0 },
+    {
+      id: 'filling_strawberry',
+      category: 'filling',
+      name: '딸기잼',
+      color: '#e8506a',
+      emoji: '🍓',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'filling_chocolate',
+      category: 'filling',
+      name: '초코 가나슈',
+      color: '#5a3a2a',
+      emoji: '🍫',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'filling_custard',
+      category: 'filling',
+      name: '커스터드',
+      color: '#f3d27a',
+      emoji: '🍮',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'filling_lemon',
+      category: 'filling',
+      name: '레몬커드',
+      color: '#f5e26a',
+      emoji: '🍋',
+      isCustom: false,
+      unlockRank: 0,
+    },
   ],
   topping: [
-    { id: 'topping_strawberry', category: 'topping', name: '딸기', color: '#ff4d6d', emoji: '🍓', isCustom: false, unlockRank: 0 },
+    {
+      id: 'topping_strawberry',
+      category: 'topping',
+      name: '딸기',
+      color: '#ff4d6d',
+      emoji: '🍓',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'topping_cherry',
+      category: 'topping',
+      name: '체리',
+      color: '#c8102e',
+      emoji: '🍒',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'topping_chocochip',
+      category: 'topping',
+      name: '초코칩',
+      color: '#5a3a2a',
+      emoji: '🍫',
+      isCustom: false,
+      unlockRank: 0,
+    },
+    {
+      id: 'topping_kiwi',
+      category: 'topping',
+      name: '키위',
+      color: '#8cc63f',
+      emoji: '🥝',
+      isCustom: false,
+      unlockRank: 0,
+    },
   ],
   decoration: [],
 };
 
-export function getUnlockedMaterials(registry: MaterialRegistry, category: keyof MaterialRegistry, rank: number): Material[] {
-  return registry[category].filter((material) => material.unlockRank <= rank);
+// 커스텀 재료 (8장 "커스텀 재료 추가는 이 레지스트리에 push"). 플레이어가 가게 꾸미기 창에서 만든다.
+// 지운 재료도 retired로 남겨 둔다 — 이미 받은 주문이나 만들던 케이크가 그 재료를 가리키고 있을 수 있어서.
+// 선반·새 주문에는 retired가 아닌 재료만 나온다.
+export type CustomMaterialCategory = Exclude<MaterialCategory, 'decoration'>;
+const CUSTOM_KEY = 'cake-tycoon.customMaterials';
+
+let customMaterials: Material[] = [];
+let registry: MaterialRegistry = builtInMaterials;
+const listeners = new Set<() => void>();
+
+function rebuild() {
+  const next = { ...builtInMaterials };
+  for (const category of Object.keys(next) as MaterialCategory[]) {
+    const extra = customMaterials.filter((material) => material.category === category);
+    if (extra.length > 0) next[category] = [...next[category], ...extra];
+  }
+  registry = next;
+}
+
+function loadCustomMaterials() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) customMaterials = parsed.filter(isMaterial);
+  } catch {
+    customMaterials = [];
+  }
+  rebuild();
+}
+
+function isMaterial(value: unknown): value is Material {
+  const material = value as Material;
+  return (
+    typeof material?.id === 'string' &&
+    typeof material.name === 'string' &&
+    typeof material.color === 'string' &&
+    typeof material.emoji === 'string' &&
+    ['base', 'cream', 'filling', 'topping'].includes(material.category)
+  );
+}
+
+function commit(next: Material[]) {
+  customMaterials = next;
+  try {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(customMaterials));
+  } catch {
+    // 저장소가 막혀 있어도 이번 판에서는 쓸 수 있게 둔다
+  }
+  rebuild();
+  listeners.forEach((listener) => listener());
+}
+
+if (typeof window !== 'undefined') loadCustomMaterials();
+
+// 기본 + 커스텀 재료 전체. 재료가 바뀌면 새 객체가 되므로 useSyncExternalStore 스냅샷으로 쓸 수 있다.
+export function getMaterialRegistry(): MaterialRegistry {
+  return registry;
+}
+
+export function subscribeMaterials(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function getActiveCustomMaterials(): Material[] {
+  return customMaterials.filter((material) => !material.retired);
+}
+
+export function addCustomMaterial(input: {
+  category: CustomMaterialCategory;
+  name: string;
+  color: string;
+  emoji: string;
+}): Material {
+  const material: Material = {
+    id: `custom_${input.category}_${Date.now().toString(36)}`,
+    category: input.category,
+    name: input.name,
+    color: input.color,
+    emoji: input.emoji,
+    isCustom: true,
+    unlockRank: 0,
+  };
+  commit([...customMaterials, material]);
+  return material;
+}
+
+export function removeCustomMaterial(id: string) {
+  commit(customMaterials.map((material) => (material.id === id ? { ...material, retired: true } : material)));
+}
+
+// 선반에 올리고 새 주문에 쓸 수 있는 재료 (지운 커스텀 재료 제외)
+export function getUnlockedMaterials(registry: MaterialRegistry, category: MaterialCategory, rank: number): Material[] {
+  return registry[category].filter((material) => !material.retired && material.unlockRank <= rank);
 }
 
 export function findMaterial(registry: MaterialRegistry, id: string): Material | undefined {
-  for (const category of Object.keys(registry) as (keyof MaterialRegistry)[]) {
+  for (const category of Object.keys(registry) as MaterialCategory[]) {
     const found = registry[category].find((material) => material.id === id);
     if (found) return found;
   }

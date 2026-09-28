@@ -46,7 +46,9 @@ export function GameRoot() {
           />
         </div>
         <StationNav state={state} onSelect={gameState.setStation} />
-        {isDecorOpen && <DecorSettings onClose={() => setIsDecorOpen(false)} />}
+        {isDecorOpen && (
+          <DecorSettings onClose={() => setIsDecorOpen(false)} onResetProgress={gameState.resetProgress} />
+        )}
         {/* 마지막 손님의 결과 카드를 닫은 뒤에 결산이 뜨도록 한다 */}
         {gameState.isDayOver && !gameState.serveResult && (
           <DayEndCard day={state.player.day} today={state.today} onNextDay={gameState.startNextDay} />

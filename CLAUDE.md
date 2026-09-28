@@ -21,9 +21,9 @@
 
 ### [x] 기반 구조 + 전체 UI 톤
 - `lib/gameState.ts` — `Material`, `MaterialRegistry`, `Customer`, `CakeData`, `CakeJob`, `GameState` 등 전체 타입 + `createInitialGameState()`
-- `lib/materials.ts` — Phase 1 재료 레지스트리 (카테고리별 1개, decoration은 빈 배열)
-- `lib/customer.ts` — 손님 2명 하드코딩 풀 + `createCustomer()`
-- 테마: `app/globals.css`의 `--theme-*` 변수, pink 테마 하나만 채움. 실제 색상은 비비드 핑크가 아니라 채도를 낮춘 파스텔 코랄톤 (`data-theme="pink"`라는 이름은 기획서 7장 테마 목록을 그대로 쓴 것 — 새 테마를 만든 게 아님)
+- `lib/materials.ts` — 재료 레지스트리 (기본 + 커스텀, 아래 "재료 늘리기" 참고)
+- `lib/customer.ts` — `createCustomer()`: 이름 없는 손님 + 선반 재료로 무작위 주문
+- 테마: `app/globals.css`의 `--theme-*` 변수 세트 (아래 "테마 선택" 참고). 기본 pink는 비비드 핑크가 아니라 채도를 낮춘 파스텔 코랄톤
 - 큰 PC 화면(`min-width: 1400px` **그리고** `min-height: 800px`)에서만 `.game-root`를 20:9 프레임(최대 1600px, 92vw)으로 중앙에 띄우고 나머지는 은은한 radial-gradient 비네트로 덮는다 (플래시 게임 창 느낌). 그보다 작은 화면(태블릿, 작은 창, 폰)은 전체화면 — 예전엔 901px부터 프레임을 띄워 태블릿 크기에서 게임이 작아지고 주변만 비어 보였다(사용자 피드백). 프레임 그림자는 오프셋 없이 blur만 줘서 사방에 고르게 퍼지게 함
 - 좌/우 공간 구분선: 네온 글로우 대신 `linear-gradient`로 양쪽 가장자리만 살짝 어두워지는 은은한 홈(seam)
 - DAY/money는 아이콘(📅/💰) + 흰 반투명 pill 배지 (지금은 `components/game/TopBar.tsx` 안)
@@ -50,7 +50,7 @@
 - 최초엔 손님별 "만들기" 버튼 → 제작 화면에서 한 케이크를 끝까지 진행하는 구조였으나, 사용자 피드백("Papa's처럼 주문 받다가도 토핑하러 가고, 굽다가도 새로 만들러 가야 한다")으로 스테이션 구조로 바꿈
 - 서빙(⑤)은 그대로 유지: `ShopScreen`에서 계산대 케이크 pointerdown → `setPointerCapture` → 손가락을 따라다니는 `fixed` 케이크 → pointerup 지점을 `document.elementsFromPoint`로 검사해 `data-table-index` 테이블 판별. 주문을 받은(order_confirmed) 손님이면 **누구에게든** 서빙, 아니면 0.25초 스냅백(감점 없음). 끄는 동안 받을 수 있는 테이블엔 점선, 올려둔 테이블엔 "이 손님에게 주기". 계산대에는 완성 케이크 1개만(`+N` 대기 표시) + 🗑️ 버리기(줄 손님이 없으면 버린다). Enter/Space 키보드 서빙은 가장 먼저 주문한 손님에게(`click`의 `detail === 0`, 18장)
 - `serveCake(jobId, tableIndex)`: 채점 → 돈 지급 → 결과 카드(`ServeResultCard`, Papa's "CAKE COMPLETE!") → 3초 먹기(`servedCakes`) → 퇴장(`leavingIds`) → 1초 후 `assignCustomer()`로 새 손님
-- 채점 `lib/scoring.ts` `scoreServedCake()` — **서빙받은 손님의 주문 기준으로 서빙 순간에 계산**: 정확도(시트/필링/크림/토핑 재료 + 문구) · 품질(반죽 양, 굽기, 필링 범위·균일도·양, 크림 범위·균일도·양 — 크림 양은 그 손님 creamAmount 기준) · 데코(40 + 그림 30 + 텍스트 30) · 속도(`Customer.orderedAt` 주문 확정 ~ 서빙, 150초 만점 / 360초 40점)의 단순 평균. 금액 `30 × 총점/100`, tip `총점/20`(누적만)
+- 채점 `lib/scoring.ts` `scoreServedCake()` — **서빙받은 손님의 주문 기준으로 서빙 순간에 계산**: 정확도(시트/필링/크림/토핑 재료) · 품질(반죽 양, 굽기, 필링 범위·균일도·양, 크림 범위·균일도·양 — 크림 양은 그 손님 creamAmount 기준) · 속도(`Customer.orderedAt` 주문 확정 ~ 서빙, 150초 만점 / 360초 40점)의 단순 평균. 금액 `30 × 총점/100`. **데코는 점수에 안 들어감**(사용자 결정: 데코는 재미용) — 그림 2획 이상 또는 글자가 있으면 데코 팁 $3이 돈에 더해지고(결과 카드에 "데코 팁 +$3") `player.tipTotal`에도 쌓임. 주문 문구(message)는 없앰(길면 안 예쁨)
 
 ### [x] 스테이션 구조 (Papa's 방식, 사용자와 설계 합의 후 구현)
 - 하단 `components/game/StationNav.tsx`: `🧾 주문 | 🥣 시트 | 🔥 오븐 | 🍦 필링·크림 | 🎨 토핑·데코` — **매장 포함 어느 화면에서든 항상 보이고 언제든 이동**. 탭마다 할 일 개수 배지, 오븐 탭은 칸별 진행 바 + 적정 구간(초록)/과열(빨강) 깜빡임
@@ -120,7 +120,32 @@
 - `CUSTOMERS_PER_DAY`(10). `GameState.today`(온 손님/서빙 수/번 돈/총점 합). 오늘 손님을 10명 받으면 더 안 오고, 10명 다 서빙 + 테이블이 모두 비면 `isDayOver` → `DayEndCard`(손님 수, 번 돈, 평균 점수). 마지막 손님 결과 카드를 닫은 뒤에 뜬다
 - `startNextDay`: DAY+1, 오늘 기록·주문 번호(#1) 초기화, 주방 케이크·오븐 정리(가게 문 닫음) 후 새 틀 + 손님 재배정. 상단 바에 "손님 n/10"
 - 손님 배정은 예약 타이머에서 최신 상태를 봐야 해서 `stateRef`로 읽는다
+- 브라우저 확인(저장 데이터를 "9명 서빙, 마지막 손님 #10 주문 대기, 계산대에 그림 2획 케이크" 상태로 만들어 시작): 결과 카드 "#10 주문"·점수 3줄·"+ $30 데코 팁 +$3", 돈 $230→$263 / 10명 뒤 새 손님 안 옴 / 손님 퇴장 후 결산 카드(10명, $263, 평균 88%) / "DAY 2 시작" → DAY 2, 손님 3명 새로 오고 첫 주문 #1
+  - 테스트 팁: 새로고침하면 게임이 `pagehide` 때 자기 상태를 저장해 localStorage에 넣은 값을 덮어쓴다 → `window.addEventListener('pagehide', () => localStorage.setItem(...))`를 걸고(게임 리스너보다 나중이라 마지막에 실행) `location.reload()`. 계산대 케이크 버튼 `.click()`(detail 0)은 키보드 서빙이라 드래그 없이 서빙된다
 - **인내심 게이지는 만들지 않는다** (사용자 결정): 늦어도 손님이 떠나지 않고 속도 점수로 돈만 깎이는 지금 방식 유지. `Customer.patience` 필드만 남아 있음
+
+### [x] 저장 (15장, Phase 2 순서 1번)
+- `lib/save.ts`: `GameState` 전체를 localStorage(`cake-tycoon.save`, 버전 1)에 저장. 상태가 바뀌면 0.4초 모았다가 저장 + `pagehide` 때 즉시 저장. 불러올 때 빠진 필드는 기본값으로 채움
+- 불러올 때 정리: 주문 말하던 손님(`ordering`) → `waiting`, 먹고 나가던 손님(`served`) → 자리 비움(이미 돈 냄), 화면은 매장부터. 빈자리엔 오늘 손님 수 안에서 새 손님. 오븐은 실제 시간 기준이라 오래 비우면 탄다
+- 서버 렌더링과 저장 상태가 어긋나지 않게 `GameRoot`는 `ClientOnly`로 브라우저에서만 그린다
+- "가게 꾸미기" 창 아래 **진행 초기화**(확인 한 번 더): 저장 삭제 + DAY 1부터. 꾸미기 그림·가게 이름은 유지. `resetProgress`는 예약 타이머도 모두 멈춘다
+- Phase 2 진행 순서(사용자 결정): 저장 → 재료 늘리기 + 커스텀 재료 → 테마 선택. 계산대 케이크 여러 개 보관은 **안 함**(주문에 없는 케이크는 버리는 게 규칙), 캐릭터 꾸미기는 나중으로 보류
+
+### [x] 재료 늘리기 + 커스텀 재료 (8장, Phase 2 순서 2번)
+- `lib/materials.ts`: 기본 재료 카테고리별 4개(시트 바닐라/초코/말차/딸기, 필링 딸기잼/초코 가나슈/커스터드/레몬커드, 크림 바닐라/초코/딸기/말차, 토핑 딸기/체리/초코칩/키위). 이모지는 윈도우 10에서 보이는 것만
+- 커스텀 재료는 localStorage(`cake-tycoon.customMaterials`)에 저장, 기본 재료 뒤에 붙인 레지스트리를 `getMaterialRegistry()`로 제공(바뀌면 새 객체). 화면은 `hooks/useMaterialRegistry.ts`(useSyncExternalStore)로 구독해 선반·주문서가 바로 바뀐다. 훅 콜백/비컴포넌트 코드는 `getMaterialRegistry()` 직접 호출
+- 지운 커스텀 재료는 `retired: true`로 남긴다(이미 받은 주문/만들던 케이크가 가리킬 수 있어서). 선반·새 주문은 `getUnlockedMaterials`가 retired 제외
+- 만드는 곳: "가게 꾸미기" 창의 **그림 | 재료** 탭 중 재료 탭(`components/game/MaterialMaker.tsx`) — 종류(시트/필링/크림/토핑), 이름(10자), 색, 이모지(추천 16개 또는 직접 입력, 첫 글자만), 선반 미리보기, 내가 만든 재료 목록(✕로 지우기)
+- 손님 주문은 선반 재료(기본+커스텀)에서 무작위 조합(`createCustomer(tableIndex, registry, rank)`). **손님 이름은 없음**(사용자 결정) — 손님은 주문 번호 #N로만 구분, 결과 카드도 "#N 주문"
+- 선반이 화면보다 넓어지면 옆으로 밀어서 본다(`MaterialPicker` 바깥 가로 스크롤, 떠오른 재료가 안 잘리게 py-3/-my-3)
+- 브라우저 확인: 재료 탭에서 만들기 → 필링 선반에 5번째 병으로 즉시 등장, 초기화 후 새 손님 주문이 무작위(이름·문구 없음), 콘솔 에러 없음. 데코 팁도 서빙까지 확인함(아래 DAY 진행 참고)
+
+### [x] 테마 선택 (10장, Phase 2 순서 3번)
+- `app/globals.css`: 7개 파스텔 테마(pink/red/orange/yellow/sky/blue/purple) — 테마마다 기본 5색(`--theme-primary/secondary/background/accent/text`)만 정한다. 매장·작업대 배경색은 `:root`에서 이 5색을 `color-mix`로 섞은 파생 변수: `--theme-wall`(타일 벽), `--theme-wallpaper`/`-stripe`(홀 벽지), `--theme-wainscot`(홀 벽 패널), `--theme-pillar-edge`(가운데 기둥), `--theme-cloth`(계산대 체크 천). 차양은 accent
+- 테마에 따라 바뀌지 않는 색(나무 조리대·바닥, 흰 대리석 테이블, 금속, 오븐, 금전등록기 크림색)은 하드코딩 그대로 둔다. **새 화면에 테마색이 들어갈 땐 hex 대신 위 변수를 쓸 것**
+- `lib/theme.ts`: 선택은 localStorage(`cake-tycoon.theme`) — 가게 이름·꾸미기 그림처럼 **진행 초기화와 무관**. 모듈 로드 때 `<html data-theme>`을 바로 바꾼다(서버는 pink로 그려서 `app/layout.tsx`의 `<html>`에 `suppressHydrationWarning`). `GameState.player.theme` 필드는 기획서 데이터 구조대로 남아 있지만 쓰지 않는다
+- UI: "가게 꾸미기" 창의 **그림 | 재료 | 테마** 탭 중 테마(`components/game/ThemePicker.tsx`) — 차양처럼 줄무늬 동그라미 7개, 누르면 바로 적용
+- 브라우저 확인: 스카이/옐로에서 매장(차양·벽·천·벽지·패널·탭)과 필링·크림 작업대 색이 함께 바뀜, 새로고침 후 유지, 콘솔 에러 없음, `next build` 통과
 
 ### 기타 참고
 - 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
@@ -134,7 +159,6 @@
 - 아직 실제로 눌러보지 않은 것: 계산대 🗑️ 버리기, 한 스테이션에 케이크 여러 개일 때 고르기 목록
 - 데코 도구 브라우저 실동작 확인 (그리기/지우개/글자 조작/실행 취소)
 - 실제 플레이 밸런스 조정 (반죽 속도, 오븐 50초, 크림 흐름 16/초, 회전판 3.5초, 속도 기준 150/360초, 가격 $30 등 전부 임시값). 한 케이크에 단계가 6개라 플레이가 길어졌을 수 있음
-- DAY 마감 흐름 브라우저 확인 (손님 10명 서빙 → 결산 카드 → 다음 날 손님 재등장, 주문 번호 #1부터)
-- Phase 2 순서를 사용자와 정하기 (기획서의 Phase 2 항목: 커스텀 재료 생성 UI, 캐릭터 파츠 커스터마이징, 테마 선택 UI, 계산대 케이크 여러 개 보관 + 15장 저장 시스템은 아직 미구현)
+- Phase 2 순서(저장 → 재료 → 테마)는 끝남. 다음 할 일은 사용자와 상의
 
 **Phase 1 범위 상기**: 섹션 17 참고. 손님 다양화/커스텀 재료 UI/테마 선택 UI/캐릭터 커스터마이징/재료 해금/장비 업그레이드/팁 시스템/랭크업 연출 등은 Phase 1에서 제외.

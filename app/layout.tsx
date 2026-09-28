@@ -22,6 +22,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ko"
       data-theme="pink"
+      // 저장된 테마를 브라우저에서 바로 입히므로(lib/theme.ts) 서버 값(pink)과 달라도 된다
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

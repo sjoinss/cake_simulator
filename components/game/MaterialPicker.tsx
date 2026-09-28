@@ -25,77 +25,86 @@ export function MaterialPicker({
   inactive,
   onSelect,
 }: MaterialPickerProps) {
+  // 재료가 많아 화면 폭을 넘으면 선반을 옆으로 밀어서 본다. 위아래 여백(py-3, -my-3으로 상쇄)은
+  // 스크롤 영역에 떠오른 재료와 선반 다리가 잘리지 않게 하기 위한 것.
   return (
-    <div className="relative flex shrink-0 flex-col items-center">
-      <div
-        role="radiogroup"
-        aria-label={label}
-        className="relative z-10 flex items-end gap-4 px-5 short:gap-2.5 short:px-3"
-      >
-        {materials.map((material) => {
-          const isSelected = material.id === selectedId;
-          return (
-            <button
-              key={material.id}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              aria-label={material.name}
-              title={material.name}
-              onClick={() => onSelect(material.id)}
-              disabled={inactive || (locked && !isSelected)}
-              className={`group relative flex h-16 w-14 items-end justify-center border-0 bg-transparent p-0 short:h-12 short:w-10 ${
-                locked && !isSelected ? "opacity-40" : ""
-              }`}
-            >
-              {/* 선반 위 그림자: 떠오르면 작고 옅어진다 */}
-              <span
-                aria-hidden
-                className={`absolute bottom-0 left-1/2 h-1.5 -translate-x-1/2 rounded-[50%] bg-black/25 blur-[1.5px] transition-all duration-200 ${
-                  isSelected ? "w-6 opacity-40" : "w-10 opacity-100 short:w-7"
-                }`}
-              />
-              <span
-                className={`relative flex origin-bottom items-end justify-center transition-transform duration-200 ease-out short:scale-[0.72] ${
-                  isSelected
-                    ? "-translate-y-3 short:-translate-y-2"
-                    : "group-hover:-translate-y-0.5 group-active:translate-y-0"
+    <div className="-my-3 max-w-full shrink-0 overflow-x-auto overscroll-x-contain py-3 [scrollbar-width:none]">
+      <div className="relative mx-auto flex w-max flex-col items-center">
+        <div
+          role="radiogroup"
+          aria-label={label}
+          className="relative z-10 flex items-end gap-4 px-5 short:gap-2.5 short:px-3"
+        >
+          {materials.map((material) => {
+            const isSelected = material.id === selectedId;
+            return (
+              <button
+                key={material.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                aria-label={material.name}
+                title={material.name}
+                onClick={() => onSelect(material.id)}
+                disabled={inactive || (locked && !isSelected)}
+                className={`group relative flex h-16 w-14 items-end justify-center border-0 bg-transparent p-0 short:h-12 short:w-10 ${
+                  locked && !isSelected ? "opacity-40" : ""
                 }`}
               >
-                {material.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- 재료 그림은 작은 정적 에셋이라 next/image 최적화가 필요 없다
-                  <img src={withBasePath(material.image)} alt="" draggable={false} className="h-14 w-auto object-contain" />
-                ) : container === "jar" ? (
-                  <Jar material={material} />
-                ) : container === "bag" ? (
-                  <PipingBag material={material} />
-                ) : (
-                  <Bowl material={material} />
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                {/* 선반 위 그림자: 떠오르면 작고 옅어진다 */}
+                <span
+                  aria-hidden
+                  className={`absolute bottom-0 left-1/2 h-1.5 -translate-x-1/2 rounded-[50%] bg-black/25 blur-[1.5px] transition-all duration-200 ${
+                    isSelected ? "w-6 opacity-40" : "w-10 opacity-100 short:w-7"
+                  }`}
+                />
+                <span
+                  className={`relative flex origin-bottom items-end justify-center transition-transform duration-200 ease-out short:scale-[0.72] ${
+                    isSelected
+                      ? "-translate-y-3 short:-translate-y-2"
+                      : "group-hover:-translate-y-0.5 group-active:translate-y-0"
+                  }`}
+                >
+                  {material.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- 재료 그림은 작은 정적 에셋이라 next/image 최적화가 필요 없다
+                    <img
+                      src={withBasePath(material.image)}
+                      alt=""
+                      draggable={false}
+                      className="h-14 w-auto object-contain"
+                    />
+                  ) : container === "jar" ? (
+                    <Jar material={material} />
+                  ) : container === "bag" ? (
+                    <PipingBag material={material} />
+                  ) : (
+                    <Bowl material={material} />
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-      {/* 선반 판자 + 앞면에 붙은 이름표 */}
-      <div aria-hidden className="relative -mt-0.5 w-full min-w-24">
-        <div className="h-2 rounded-sm bg-[#d8a878] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.45)]" />
-        <div className="h-1.5 rounded-b-sm bg-[#a8764c] shadow-[0_3px_5px_rgba(0,0,0,0.18)]" />
-        <div className="absolute top-full left-3 h-2.5 w-1.5 bg-[#a8764c]" />
-        <div className="absolute top-full right-3 h-2.5 w-1.5 bg-[#a8764c]" />
-      </div>
-      <div className="mt-0.5 flex gap-4 px-5 short:hidden">
-        {materials.map((material) => (
-          <span
-            key={material.id}
-            className={`w-14 truncate text-center text-[10px] font-bold ${
-              material.id === selectedId ? "text-[var(--theme-accent)]" : "text-[var(--theme-text)]/70"
-            }`}
-          >
-            {material.name}
-          </span>
-        ))}
+        {/* 선반 판자 + 앞면에 붙은 이름표 */}
+        <div aria-hidden className="relative -mt-0.5 w-full min-w-24">
+          <div className="h-2 rounded-sm bg-[#d8a878] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.45)]" />
+          <div className="h-1.5 rounded-b-sm bg-[#a8764c] shadow-[0_3px_5px_rgba(0,0,0,0.18)]" />
+          <div className="absolute top-full left-3 h-2.5 w-1.5 bg-[#a8764c]" />
+          <div className="absolute top-full right-3 h-2.5 w-1.5 bg-[#a8764c]" />
+        </div>
+        <div className="mt-0.5 flex gap-4 px-5 short:hidden">
+          {materials.map((material) => (
+            <span
+              key={material.id}
+              className={`w-14 truncate text-center text-[10px] font-bold ${
+                material.id === selectedId ? "text-[var(--theme-accent)]" : "text-[var(--theme-text)]/70"
+              }`}
+            >
+              {material.name}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
