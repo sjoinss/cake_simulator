@@ -31,9 +31,9 @@ export function OrderClipRail({ orders, customers, openBillId, onBillTap, onClos
       {/* 금속 봉 */}
       <div
         aria-hidden
-        className="h-2 w-44 rounded-full bg-[linear-gradient(180deg,#e4e8ec,#9aa3ad)] shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
+        className="h-2 w-44 rounded-full short:h-1.5 short:w-32 bg-[linear-gradient(180deg,#e4e8ec,#9aa3ad)] shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
       />
-      <ul aria-label="주문서" className="-mt-1 flex w-44 justify-around">
+      <ul aria-label="주문서" className="-mt-1 flex w-44 justify-around short:w-32">
         {Array.from({ length: TABLE_COUNT }, (_, slot) => {
           const order = sorted[slot];
           return (
@@ -49,7 +49,7 @@ export function OrderClipRail({ orders, customers, openBillId, onBillTap, onClos
                   onClick={() => onBillTap(order)}
                   aria-expanded={order.orderId === openBillId}
                   aria-label={`${formatOrderNumber(order)} 주문서`}
-                  className={`pointer-events-auto -mt-1 flex h-14 w-12 origin-top items-center justify-center bg-[#fffdf8] pb-1 text-lg font-extrabold text-[var(--theme-text)] shadow-[0_3px_5px_rgba(0,0,0,0.2)] ${
+                  className={`pointer-events-auto -mt-1 flex h-14 w-12 origin-top items-center justify-center bg-[#fffdf8] pb-1 text-lg font-extrabold short:h-10 short:w-9 short:text-sm text-[var(--theme-text)] shadow-[0_3px_5px_rgba(0,0,0,0.2)] ${
                     order.orderId === openBillId ? "ring-2 ring-[var(--theme-accent)] ring-inset" : ""
                   }`}
                   style={{ clipPath: RECEIPT_EDGE, transform: `rotate(${TILTS[slot % TILTS.length]}deg)` }}
@@ -66,7 +66,7 @@ export function OrderClipRail({ orders, customers, openBillId, onBillTap, onClos
       {openOrder && openCustomer && (
         <section
           aria-label={`${formatOrderNumber(openOrder)} 주문서`}
-          className="animate-result-pop pointer-events-auto mt-2 w-56 bg-[#fffdf8] px-4 pt-3 pb-6 text-[var(--theme-text)] shadow-[0_8px_20px_rgba(0,0,0,0.25)]"
+          className="animate-result-pop pointer-events-auto mt-2 w-56 bg-[#fffdf8] px-4 pt-3 pb-6 short:w-48 short:px-3 short:pt-2 short:pb-4 text-[var(--theme-text)] shadow-[0_8px_20px_rgba(0,0,0,0.25)]"
           style={{ clipPath: RECEIPT_EDGE }}
         >
           <div className="flex items-start justify-between border-b border-dashed border-black/20 pb-2">
@@ -80,7 +80,7 @@ export function OrderClipRail({ orders, customers, openBillId, onBillTap, onClos
               ✕
             </button>
           </div>
-          <ul className="flex flex-col gap-1.5 pt-2 text-sm">
+          <ul className="flex flex-col gap-1.5 pt-2 text-sm short:gap-0.5 short:text-xs">
             {getOrderSteps(openCustomer.order, initialMaterials).map((step) => (
               <li key={step.label} className="flex items-center gap-2">
                 <span className="text-lg leading-none" aria-hidden>

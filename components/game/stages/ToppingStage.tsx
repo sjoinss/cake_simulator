@@ -5,6 +5,8 @@ import type { ActiveOrder, MaterialRegistry } from "@/lib/gameState";
 import { getUnlockedMaterials } from "@/lib/materials";
 import { Cake3D } from "../cake/CakeRenderer";
 import { MaterialPicker } from "../MaterialPicker";
+import { FitBox } from "../FitBox";
+import { BUTTON_PRIMARY, HINT, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
 
 type ToppingStageProps = {
   order: ActiveOrder;
@@ -40,40 +42,51 @@ export function ToppingStage({ order, materials, rank, onToggleTopping, onNext }
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-2">
-      <MaterialPicker materials={options} selectedId={selectedId} label="토핑 재료" container="bowl" onSelect={setSelectedId} />
-
-      <Cake3D
-        cake={order.cake}
-        materials={materials}
-        size={240}
-        faceLayer={
-          <div
-            className="pointer-events-none absolute inset-0 grid rounded-full opacity-20"
-            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`, gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)` }}
-            aria-hidden
-          >
-            {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => (
-              <div key={index} className="border border-[var(--theme-text)]" />
-            ))}
-          </div>
-        }
-        topOverlay={<div className="h-full w-full cursor-pointer touch-none" onPointerDown={handleTap} />}
+    <div className={STAGE_ROOT}>
+      <MaterialPicker
+        materials={options}
+        selectedId={selectedId}
+        label="토핑 재료"
+        container="bowl"
+        onSelect={setSelectedId}
       />
 
-      <p className="text-sm text-[var(--theme-text)]/70">
-        {selectedId ? "케이크를 탭해서 올려보세요 (다시 탭하면 빼요)" : "먼저 올릴 토핑을 고르세요"}
-      </p>
+      <div className={WORK_ROW}>
+        <FitBox maxSize={260} heightRatio={0.95} className="max-w-[280px]">
+          {(size) => (
+            <Cake3D
+              cake={order.cake}
+              materials={materials}
+              size={size}
+              faceLayer={
+                <div
+                  className="pointer-events-none absolute inset-0 grid rounded-full opacity-20"
+                  style={{
+                    gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+                    gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
+                  }}
+                  aria-hidden
+                >
+                  {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => (
+                    <div key={index} className="border border-[var(--theme-text)]" />
+                  ))}
+                </div>
+              }
+              topOverlay={<div className="h-full w-full cursor-pointer touch-none" onPointerDown={handleTap} />}
+            />
+          )}
+        </FitBox>
 
-      {/* 주문에는 항상 토핑이 있으므로 최소 1개는 올려야 데코로 넘어갈 수 있다 */}
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={order.cake.toppings.length === 0}
-        className="rounded-full bg-[var(--theme-accent)] px-6 py-1.5 text-base font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-40"
-      >
-        토핑 완료 →
-      </button>
+        <div className={SIDE_COLUMN}>
+          <p className={HINT}>
+            {selectedId ? "케이크를 탭해서 올려보세요 (다시 탭하면 빼요)" : "먼저 선반에서 올릴 토핑을 고르세요"}
+          </p>
+          {/* 주문에는 항상 토핑이 있으므로 최소 1개는 올려야 데코로 넘어갈 수 있다 */}
+          <button type="button" onClick={onNext} disabled={order.cake.toppings.length === 0} className={BUTTON_PRIMARY}>
+            토핑 완료 →
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

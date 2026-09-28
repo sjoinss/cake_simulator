@@ -21,7 +21,10 @@ type StepTabsLayoutProps<T extends string> = {
 export function StepTabsLayout<T extends string>({ tabs, active, onChange, children }: StepTabsLayoutProps<T>) {
   return (
     <div className="flex min-h-0 flex-1">
-      <nav aria-label="단계" className="flex w-24 shrink-0 flex-col gap-2 p-2">
+      <nav
+        aria-label="단계"
+        className="relative z-10 flex w-24 shrink-0 flex-col gap-2 p-2 short:w-16 short:gap-1.5 short:p-1.5"
+      >
         {tabs.map((tab) => {
           const isActive = tab.id === active;
           return (
@@ -31,11 +34,11 @@ export function StepTabsLayout<T extends string>({ tabs, active, onChange, child
               onClick={() => onChange(tab.id)}
               disabled={tab.locked}
               aria-pressed={isActive}
-              className={`flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100 ${
+              className={`flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-sm font-bold shadow-sm short:px-1 short:py-1 short:text-xs transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100 ${
                 isActive ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
               }`}
             >
-              <span className="text-2xl leading-none" aria-hidden>
+              <span className="text-2xl leading-none short:text-lg" aria-hidden>
                 {tab.emoji}
               </span>
               {tab.label}
@@ -60,7 +63,7 @@ type StepDoneProps = {
 // 이미 끝낸 단계 탭을 다시 열었을 때 보여주는 결과 요약
 export function StepDone({ title, detail, nextLabel, onNext }: StepDoneProps) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--theme-text)]">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-2 text-[var(--theme-text)]">
       <p className="text-base font-bold">{title}</p>
       <p className="text-sm">{detail}</p>
       <button

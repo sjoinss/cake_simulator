@@ -15,7 +15,11 @@ export function DiscardButton({ orderLabel, onDiscard, compact }: DiscardButtonP
 
   if (confirming) {
     return (
-      <span role="group" aria-label={`${orderLabel} 케이크 버리기 확인`} className="flex items-center gap-1">
+      <span
+        role="group"
+        aria-label={`${orderLabel} 케이크 버리기 확인`}
+        className="flex flex-wrap items-center justify-center gap-1"
+      >
         <span className="text-xs font-bold whitespace-nowrap text-red-600">버리고 처음부터?</span>
         <button
           type="button"
@@ -23,14 +27,14 @@ export function DiscardButton({ orderLabel, onDiscard, compact }: DiscardButtonP
             setConfirming(false);
             onDiscard();
           }}
-          className="rounded-full bg-red-500 px-2.5 py-1 text-xs font-bold text-white shadow-sm active:scale-95"
+          className="rounded-full bg-red-500 px-2.5 py-1 text-xs font-bold whitespace-nowrap text-white shadow-sm active:scale-95"
         >
           버리기
         </button>
         <button
           type="button"
           onClick={() => setConfirming(false)}
-          className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[var(--theme-text)] shadow-sm active:scale-95"
+          className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold whitespace-nowrap text-[var(--theme-text)] shadow-sm active:scale-95"
         >
           취소
         </button>

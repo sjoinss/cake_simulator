@@ -39,14 +39,32 @@ export function scoreAmountMatch(total: number, target: number): number {
   return Math.max(0, Math.min(100, Math.round(100 - Math.abs(total / target - 1) * 150)));
 }
 
-// 구운 정도를 시트 색으로 보여주기 위한 CSS filter. 덜 익으면 창백하고, 적정이면 노릇, 오래 두면 까맣게 탄다.
-export function getBakeFilter(elapsedRatio: number | null): string | undefined {
-  if (elapsedRatio === null) return undefined;
-  const t = Math.max(0, Math.min(elapsedRatio, 1.6));
-  const over = Math.max(0, t - 1);
-  const sepia = Math.min(t, 1) * 0.55 + over * 0.9;
-  const brightness = 1.06 - t * 0.14 - over * 0.9;
-  return `sepia(${sepia.toFixed(2)}) saturate(${(1 + Math.min(t, 1) * 0.4).toFixed(2)}) brightness(${brightness.toFixed(2)})`;
+// 구운 정도에 따라 시트 색을 섞는다: 반죽색 → (적정) 황금 갈색 → 진한 갈색 → 탄 색.
+// 예전엔 CSS filter(sepia/saturate)로 했는데 밝은 반죽색이 누르스름한 연두빛으로 변해서 색을 직접 섞는 방식으로 바꿨다.
+const BAKE_KEYFRAMES: [number, string, number][] = [
+  // [경과 비율, 섞을 색, 섞는 비율]
+  [0, "#ffffff", 0],
+  [0.85, "#d99a52", 0.75],
+  [1.1, "#9c5f2c", 0.85],
+  [1.5, "#3a2418", 0.95],
+];
+
+const mixHex = (from: string, to: string, amount: number) => {
+  const parse = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const a = parse(from);
+  const b = parse(to);
+  return `#${a.map((value, i) => Math.round(value + (b[i] - value) * amount).toString(16).padStart(2, "0")).join("")}`;
+};
+
+export function getBakedColor(baseColor: string, elapsedRatio: number | null): string {
+  if (elapsedRatio === null || elapsedRatio <= 0) return baseColor;
+  const ratio = Math.min(elapsedRatio, 1.5);
+  const nextIndex = BAKE_KEYFRAMES.findIndex(([at]) => at >= ratio);
+  const [atB, colorB, mixB] = BAKE_KEYFRAMES[nextIndex];
+  const [atA, colorA, mixA] = BAKE_KEYFRAMES[Math.max(0, nextIndex - 1)];
+  const t = atB === atA ? 1 : (ratio - atA) / (atB - atA);
+  // 두 키프레임 사이를 보간: 각 키프레임에서 섞은 색을 다시 섞는다
+  return mixHex(mixHex(baseColor, colorA, mixA), mixHex(baseColor, colorB, mixB), t);
 }
 
 export function getBakedRatio(baking: ActiveOrder['cake']['baking'], now: number = Date.now()): number | null {

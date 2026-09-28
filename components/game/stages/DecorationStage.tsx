@@ -6,6 +6,7 @@ import { eraseStrokesAt } from "@/lib/decoration";
 import { CakeTopView } from "../cake/CakeRenderer";
 import { DrawingCanvas, type DrawingTool } from "../cake/DrawingCanvas";
 import { TextOverlay } from "../cake/TextOverlay";
+import { FitBox, Scaled } from "../FitBox";
 
 export type DecorationData = { drawings: CakeDrawing[]; text: CakeText[] };
 
@@ -120,40 +121,50 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
   const activeColor = mode === "text" ? selectedText?.color : tool === "pen" ? color : undefined;
 
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center gap-6 overflow-hidden px-6 py-3">
-      <div style={{ perspective: "600px" }}>
-        <div
-          className="relative h-56 w-56 max-w-full transition-transform duration-700 ease-out"
-          style={{ transform: isTopView ? "rotateX(0deg) scale(1.05)" : "rotateX(55deg) scale(0.9)" }}
-        >
-          <CakeTopView cake={order.cake} materials={materials} />
-          <DrawingCanvas
-            drawings={order.cake.drawings}
-            color={color}
-            size={penSize}
-            tool={tool}
-            enabled={mode === "draw"}
-            onStrokeComplete={(stroke) => commit({ ...current, drawings: [...current.drawings, stroke] })}
-            onEraseStart={pushHistory}
-            onEraseAt={(point) => {
-              const remaining = eraseStrokesAt(order.cake.drawings, point, ERASER_RADIUS);
-              if (remaining.length !== order.cake.drawings.length) onChange({ ...current, drawings: remaining });
-            }}
-          />
-          <TextOverlay
-            texts={order.cake.text}
-            enabled={mode === "text"}
-            selectedIndex={selectedTextIndex}
-            onSelect={setSelectedTextIndex}
-            onMoveStart={pushHistory}
-            onMove={(index, x, y) =>
-              onChange({ ...current, text: current.text.map((text, i) => (i === index ? { ...text, x, y } : text)) })
-            }
-          />
-        </div>
-      </div>
+    <div className="flex min-h-0 flex-1 items-center justify-center gap-6 overflow-hidden px-6 py-3 short:gap-3 short:px-3 short:py-1.5">
+      {/* 데코는 224px 평면 좌표계로 그리고, 남은 공간에 맞춰 통째로 줄인다 (그림/글자 좌표는 %라 그대로 맞는다) */}
+      <FitBox maxSize={260} heightRatio={1} className="max-w-[280px]">
+        {(size) => (
+          <Scaled width={size} baseWidth={224} baseHeight={224}>
+            <div style={{ perspective: "600px" }}>
+              <div
+                className="relative h-56 w-56 max-w-full transition-transform duration-700 ease-out"
+                style={{ transform: isTopView ? "rotateX(0deg) scale(1.05)" : "rotateX(55deg) scale(0.9)" }}
+              >
+                <CakeTopView cake={order.cake} materials={materials} />
+                <DrawingCanvas
+                  drawings={order.cake.drawings}
+                  color={color}
+                  size={penSize}
+                  tool={tool}
+                  enabled={mode === "draw"}
+                  onStrokeComplete={(stroke) => commit({ ...current, drawings: [...current.drawings, stroke] })}
+                  onEraseStart={pushHistory}
+                  onEraseAt={(point) => {
+                    const remaining = eraseStrokesAt(order.cake.drawings, point, ERASER_RADIUS);
+                    if (remaining.length !== order.cake.drawings.length) onChange({ ...current, drawings: remaining });
+                  }}
+                />
+                <TextOverlay
+                  texts={order.cake.text}
+                  enabled={mode === "text"}
+                  selectedIndex={selectedTextIndex}
+                  onSelect={setSelectedTextIndex}
+                  onMoveStart={pushHistory}
+                  onMove={(index, x, y) =>
+                    onChange({
+                      ...current,
+                      text: current.text.map((text, i) => (i === index ? { ...text, x, y } : text)),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </Scaled>
+        )}
+      </FitBox>
 
-      <div className="flex max-h-full w-64 shrink-0 flex-col gap-2.5 overflow-y-auto p-1">
+      <div className="relative flex max-h-full w-64 shrink-0 flex-col gap-2.5 overflow-y-auto rounded-2xl bg-white/50 p-2 short:w-56 short:gap-1.5 short:p-1.5">
         <div role="group" aria-label="데코 도구" className="flex gap-1 rounded-full bg-white/60 p-1">
           <ToolButton pressed={mode === "draw"} onClick={() => setMode("draw")} wide>
             ✏️ 그리기
@@ -192,7 +203,7 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
                 aria-label={`색상 ${swatch}`}
                 aria-pressed={activeColor === swatch}
                 onClick={() => handleColor(swatch)}
-                className={`h-7 w-7 rounded-full border-2 transition-transform active:scale-90 ${
+                className={`h-7 w-7 rounded-full border-2 transition-transform active:scale-90 short:h-6 short:w-6 ${
                   activeColor === swatch ? "border-[var(--theme-text)]" : "border-white"
                 }`}
                 style={{ backgroundColor: swatch }}
@@ -233,7 +244,10 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
                 label="글자 작게"
                 disabled={selectedText.scale <= TEXT_SCALE_MIN}
                 onClick={() =>
-                  updateSelectedText((text) => ({ ...text, scale: Math.max(TEXT_SCALE_MIN, text.scale - TEXT_SCALE_STEP) }))
+                  updateSelectedText((text) => ({
+                    ...text,
+                    scale: Math.max(TEXT_SCALE_MIN, text.scale - TEXT_SCALE_STEP),
+                  }))
                 }
               >
                 A−
@@ -242,20 +256,27 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
                 label="글자 크게"
                 disabled={selectedText.scale >= TEXT_SCALE_MAX}
                 onClick={() =>
-                  updateSelectedText((text) => ({ ...text, scale: Math.min(TEXT_SCALE_MAX, text.scale + TEXT_SCALE_STEP) }))
+                  updateSelectedText((text) => ({
+                    ...text,
+                    scale: Math.min(TEXT_SCALE_MAX, text.scale + TEXT_SCALE_STEP),
+                  }))
                 }
               >
                 A+
               </ToolButton>
               <ToolButton
                 label="왼쪽으로 회전"
-                onClick={() => updateSelectedText((text) => ({ ...text, rotation: text.rotation - TEXT_ROTATION_STEP }))}
+                onClick={() =>
+                  updateSelectedText((text) => ({ ...text, rotation: text.rotation - TEXT_ROTATION_STEP }))
+                }
               >
                 ⟲
               </ToolButton>
               <ToolButton
                 label="오른쪽으로 회전"
-                onClick={() => updateSelectedText((text) => ({ ...text, rotation: text.rotation + TEXT_ROTATION_STEP }))}
+                onClick={() =>
+                  updateSelectedText((text) => ({ ...text, rotation: text.rotation + TEXT_ROTATION_STEP }))
+                }
               >
                 ⟳
               </ToolButton>
@@ -284,7 +305,9 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
         )}
 
         {mode === "text" && !selectedText && order.cake.text.length > 0 && (
-          <p className="text-xs text-[var(--theme-text)]/70">케이크 위 글자를 눌러 선택하면 크기·회전·색·글꼴을 바꿀 수 있어요</p>
+          <p className="text-xs text-[var(--theme-text)]/70">
+            케이크 위 글자를 눌러 선택하면 크기·회전·색·글꼴을 바꿀 수 있어요
+          </p>
         )}
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -294,10 +317,7 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
           <ToolButton label="다시 실행" disabled={redoStack.length === 0} onClick={redo}>
             ↷
           </ToolButton>
-          <ToolButton
-            disabled={order.cake.drawings.length === 0}
-            onClick={() => commit({ ...current, drawings: [] })}
-          >
+          <ToolButton disabled={order.cake.drawings.length === 0} onClick={() => commit({ ...current, drawings: [] })}>
             그림 전체 지우기
           </ToolButton>
         </div>
@@ -305,7 +325,7 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
         <button
           type="button"
           onClick={onFinish}
-          className="rounded-full bg-[var(--theme-accent)] px-6 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95"
+          className="rounded-full bg-[var(--theme-accent)] px-6 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95 short:py-1 short:text-sm"
         >
           완성 🎉
         </button>

@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import type { ActiveOrder, MaterialRegistry } from "@/lib/gameState";
 import { findMaterial } from "@/lib/materials";
-import { BATTER_TARGET, getBakedRatio, getBakeFilter } from "@/lib/gameLogic";
+import { BATTER_TARGET, getBakedColor, getBakedRatio } from "@/lib/gameLogic";
 import { FROSTING_GRID, ON_CAKE_CELLS, SIDE_SEGMENTS, sideThickness } from "@/lib/frosting";
 
 // 케이크를 데이터만 보고 다시 그리는 선언적 렌더러 모음 (cake-tycoon-prompt.md 16장).
@@ -27,8 +27,14 @@ const creamAlpha = (thickness: number) => Math.min(1, thickness / 0.3);
 // "누르고 있는 동안 크림이 쌓인다"가 눈에 보인다 (예전엔 금방 포화돼서 떼야 반영되는 것처럼 보였음)
 const creamPuff = (thickness: number) => Math.min(1, Math.max(0, thickness / 2));
 
-const bakeFilterOf = (cake: CakeData, now?: number) =>
-  getBakeFilter(getBakedRatio(cake.baking, now ?? cake.baking.endTime ?? cake.baking.startTime ?? 0));
+const DEFAULT_SHEET_COLOR = "#f2e9da";
+
+// 구운 정도가 반영된 시트 색 (오븐 안에서는 now를 넘겨 실시간으로)
+const sheetColorOf = (cake: CakeData, baseColor: string | undefined, now?: number) =>
+  getBakedColor(
+    baseColor ?? DEFAULT_SHEET_COLOR,
+    getBakedRatio(cake.baking, now ?? cake.baking.endTime ?? cake.baking.startTime ?? 0)
+  );
 
 type CakeTopViewProps = {
   cake: CakeData;
@@ -46,7 +52,7 @@ export function CakeTopView({ cake, materials, now, showToppings = true, showDec
     <div className="relative shrink-0" style={{ width: TOP_VIEW_PX, height: TOP_VIEW_PX }}>
       <div
         className="absolute inset-0 rounded-full shadow-[inset_0_-6px_0_rgba(0,0,0,0.08)]"
-        style={{ backgroundColor: base?.color ?? "#f2e9da", filter: bakeFilterOf(cake, now) }}
+        style={{ backgroundColor: sheetColorOf(cake, base?.color, now) }}
       />
       <CreamCanvas cells={cake.frosting.cells} color={cream?.color ?? "#fffaf0"} />
       {showToppings && <FlatToppings cake={cake} materials={materials} />}
@@ -64,12 +70,12 @@ export function CakeInsideView({ cake, materials }: { cake: CakeData; materials:
       {/* 갈라진 단면: 겉(구운 껍질) 테두리 안쪽으로 밝은 속살이 보인다 */}
       <div
         className="absolute inset-0 rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.2)]"
-        style={{ backgroundColor: base?.color ?? "#f2e9da", filter: bakeFilterOf(cake) }}
+        style={{ backgroundColor: sheetColorOf(cake, base?.color) }}
       />
       <div
         className="absolute inset-[5%] rounded-full"
         style={{
-          backgroundColor: base?.color ?? "#f2e9da",
+          backgroundColor: base?.color ?? DEFAULT_SHEET_COLOR,
           backgroundImage: "radial-gradient(rgba(160,120,70,0.18) 1px, transparent 1.5px)",
           backgroundSize: "9px 9px",
         }}
@@ -136,7 +142,7 @@ export function Cake3D({
           borderBottomRightRadius: rimRadius,
         }}
       >
-        <div className="absolute inset-0" style={{ backgroundColor: base?.color ?? "#f2e9da", filter: bakeFilterOf(cake, now) }} />
+        <div className="absolute inset-0" style={{ backgroundColor: sheetColorOf(cake, base?.color, now) }} />
         {/* 시트 사이 필링 줄 (옆에서 보이는 층) — 아래 곡선만 그려서 원기둥을 따라 휘어 보이게 한다 */}
         {hasFilling && (
           <div
@@ -275,14 +281,19 @@ function CreamCanvas({ cells, color }: { cells: number[]; color: string }) {
       ctx.fillStyle = gradient;
       ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
     }
-    // 3) 하이라이트: 두꺼울수록 크고 밝게 — 봉긋하게 솟은 느낌
+    // 3) 하이라이트: 두꺼울수록 크고 밝게 — 봉긋하게 솟은 느낌.
+    //    칸마다 또렷한 흰 점을 찍으면 물방울무늬 격자처럼 보여서, 가장자리가 사라지는 부드러운 빛으로 그린다
     for (const { cx, cy, thickness } of blobs) {
       const puff = creamPuff(thickness);
-      if (puff < 0.1) continue;
-      ctx.fillStyle = `rgba(255,255,255,${0.15 + 0.6 * puff})`;
-      ctx.beginPath();
-      ctx.arc(cx - 1.5 - puff, cy - 1.5 - puff, cell * (0.12 + 0.22 * puff), 0, Math.PI * 2);
-      ctx.fill();
+      if (puff < 0.3) continue;
+      const hx = cx - 1.5 - puff;
+      const hy = cy - 1.5 - puff;
+      const radius = cell * (0.35 + 0.35 * puff);
+      const glow = ctx.createRadialGradient(hx, hy, 0, hx, hy, radius);
+      glow.addColorStop(0, `rgba(255,255,255,${0.35 * puff})`);
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(hx - radius, hy - radius, radius * 2, radius * 2);
     }
     ctx.restore();
   }, [cells, color]);

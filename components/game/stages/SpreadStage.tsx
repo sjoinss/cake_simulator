@@ -14,9 +14,11 @@ import {
   TURNTABLE_SEC_PER_TURN,
 } from "@/lib/frosting";
 import { useHoldLoop } from "@/hooks/useHoldLoop";
-import { Cake3D, CakeInsideView } from "../cake/CakeRenderer";
+import { Cake3D, CakeInsideView, TOP_VIEW_PX } from "../cake/CakeRenderer";
 import { AmountGauge } from "../AmountGauge";
 import { MaterialPicker } from "../MaterialPicker";
+import { FitBox, Scaled } from "../FitBox";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
 
 export type SpreadData = { cells: number[]; side: number[] };
 
@@ -43,7 +45,7 @@ const SQUEEZE_LEVELS = [
 ] as const;
 type SqueezeId = (typeof SQUEEZE_LEVELS)[number]["id"];
 
-const CAKE_SIZE = 224;
+const CAKE_MAX_SIZE = 240;
 const TURN_DEG_PER_SEC = 360 / TURNTABLE_SEC_PER_TURN;
 // 게이지 최대치는 모든 목표에서 같게 둬서 "조금/보통/듬뿍" 차이가 게이지에서도 보이게 한다
 const TOP_GAUGE_MAX = getSpreadTargetTotal(1.5) * 1.4;
@@ -147,7 +149,7 @@ export function SpreadStage({
   const isSideFace = hasSide && face === "side";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-2">
+    <div className={STAGE_ROOT}>
       <MaterialPicker
         materials={options}
         selectedId={current.materialId}
@@ -157,8 +159,8 @@ export function SpreadStage({
         onSelect={onSelectMaterial}
       />
 
-      <div className="flex items-center gap-5">
-        <div className="flex flex-col gap-3">
+      <div className={WORK_ROW}>
+        <div className="flex shrink-0 flex-col gap-3 short:gap-1.5">
           {hasSide && (
             <div role="group" aria-label="바를 면" className="flex flex-col gap-1.5">
               {(["top", "side"] as const).map((option) => (
@@ -168,7 +170,7 @@ export function SpreadStage({
                   aria-pressed={face === option}
                   onClick={() => setFace(option)}
                   disabled={nozzle !== null}
-                  className={`rounded-2xl px-3 py-1.5 text-sm font-bold shadow-sm transition-transform active:scale-95 ${
+                  className={`rounded-2xl px-3 py-1.5 text-sm font-bold whitespace-nowrap shadow-sm transition-transform active:scale-95 short:px-2 short:py-1 short:text-xs ${
                     face === option ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
                   }`}
                 >
@@ -178,7 +180,9 @@ export function SpreadStage({
             </div>
           )}
           <div role="radiogroup" aria-label="짜는 세기" className="flex flex-col gap-1">
-            <span className="text-center text-[11px] font-bold text-[var(--theme-text)]/70">짜는 세기</span>
+            <span className="text-center text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)]/70 short:text-[10px]">
+              짜는 세기
+            </span>
             {SQUEEZE_LEVELS.map((level) => (
               <button
                 key={level.id}
@@ -186,7 +190,7 @@ export function SpreadStage({
                 role="radio"
                 aria-checked={squeeze === level.id}
                 onClick={() => setSqueeze(level.id)}
-                className={`flex items-center justify-center gap-1 rounded-full px-3 py-1 text-xs font-bold shadow-sm transition-transform active:scale-95 ${
+                className={`flex items-center justify-center gap-1 rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap shadow-sm transition-transform active:scale-95 short:px-2 short:py-0.5 ${
                   squeeze === level.id ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
                 }`}
               >
@@ -201,22 +205,31 @@ export function SpreadStage({
           </div>
         </div>
 
+        {/* 케이크는 남은 공간에 맞춰 크기가 정해진다 (폰 가로 화면에서도 잘리지 않게) */}
         {layer === "filling" ? (
-          <div className="relative">
-            <CakeInsideView cake={{ ...order.cake, filling: { ...current, cells } }} materials={materials} />
-            <div className="absolute inset-0">{hitArea("누르고 있으면 필링이 나와요")}</div>
-          </div>
+          <FitBox maxSize={CAKE_MAX_SIZE} heightRatio={1} className="max-w-[260px]">
+            {(size) => (
+              <Scaled width={size} baseWidth={TOP_VIEW_PX} baseHeight={TOP_VIEW_PX}>
+                <CakeInsideView cake={{ ...order.cake, filling: { ...current, cells } }} materials={materials} />
+                <div className="absolute inset-0">{hitArea("누르고 있으면 필링이 나와요")}</div>
+              </Scaled>
+            )}
+          </FitBox>
         ) : (
-          <div className="relative">
-            <Cake3D
-              cake={{ ...order.cake, frosting: { ...current, cells, side } }}
-              materials={materials}
-              size={CAKE_SIZE}
-              rotation={rotation}
-              topOverlay={face === "top" ? hitArea("누르고 있으면 윗면에 크림이 나와요") : undefined}
-              sideOverlay={face === "side" ? hitArea("누르고 있으면 회전판이 돌면서 옆면에 크림이 발려요") : undefined}
-            />
-          </div>
+          <FitBox maxSize={CAKE_MAX_SIZE} heightRatio={0.95} className="max-w-[260px]">
+            {(size) => (
+              <Cake3D
+                cake={{ ...order.cake, frosting: { ...current, cells, side } }}
+                materials={materials}
+                size={size}
+                rotation={rotation}
+                topOverlay={face === "top" ? hitArea("누르고 있으면 윗면에 크림이 나와요") : undefined}
+                sideOverlay={
+                  face === "side" ? hitArea("누르고 있으면 회전판이 돌면서 옆면에 크림이 발려요") : undefined
+                }
+              />
+            )}
+          </FitBox>
         )}
 
         <AmountGauge
@@ -227,8 +240,8 @@ export function SpreadStage({
           targetLabel={targetLabel}
         />
 
-        <div className="flex w-36 flex-col gap-2 text-sm text-[var(--theme-text)]/80">
-          <p>
+        <div className={SIDE_COLUMN}>
+          <p className={HINT}>
             {!hasMaterial
               ? `먼저 ${noun} 재료를 고르세요.`
               : isSideFace
@@ -244,7 +257,7 @@ export function SpreadStage({
               onSave(empty);
             }}
             disabled={topTotal + sideTotal === 0}
-            className="rounded-full bg-white/80 px-3 py-1.5 font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95 disabled:opacity-40"
+            className={BUTTON_SECONDARY}
           >
             🧽 다시 바르기
           </button>
@@ -252,7 +265,7 @@ export function SpreadStage({
             type="button"
             onClick={() => onFinish({ cells, side })}
             disabled={topTotal === 0 || nozzle !== null}
-            className="rounded-full bg-[var(--theme-accent)] px-3 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-40"
+            className={BUTTON_PRIMARY}
           >
             {noun} 완료 →
           </button>

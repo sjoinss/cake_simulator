@@ -6,50 +6,85 @@ type MaterialPickerProps = {
   materials: Material[];
   selectedId: string | null;
   label: string; // 스크린리더용 그룹 이름 (예: "시트 재료")
-  container: MaterialContainer; // 재료가 담긴 모양: 잼 병 / 짤주머니 / 그릇
+  container: MaterialContainer; // 그림이 없을 때 그릴 모양: 잼 병 / 짤주머니 / 그릇
   locked?: boolean; // 이미 넣기 시작해서 재료를 바꿀 수 없는 상태
   onSelect: (materialId: string) => void;
 };
 
-// 재료 선반. 모든 재료는 나중에 늘어난다는 전제라 개수와 상관없이 "먼저 고르고 → 넣는" 흐름을 쓴다 (8장).
-// 내부적으로는 단일 선택이지만 체크박스처럼 보이지 않게, 재료가 담긴 병/짤주머니/그릇을 집어 드는 모양으로 보여준다.
+// 벽에 붙은 재료 선반. 모든 재료는 나중에 늘어난다는 전제라 개수와 상관없이 "먼저 고르고 → 넣는" 흐름을 쓴다 (8장).
+// 내부적으로는 단일 선택(radiogroup)이지만, 고른 재료는 선반에서 살짝 떠오르는 것으로만 보여준다 (체크 표시·테두리 없음).
+// 재료에 image가 있으면 그 그림을, 없으면 CSS로 그린 병/짤주머니/그릇 + 이모지를 올려둔다.
 export function MaterialPicker({ materials, selectedId, label, container, locked, onSelect }: MaterialPickerProps) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap items-end justify-center gap-3">
-      {materials.map((material) => {
-        const isSelected = material.id === selectedId;
-        return (
-          <button
+    <div className="relative flex shrink-0 flex-col items-center">
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className="relative z-10 flex items-end gap-4 px-5 short:gap-2.5 short:px-3"
+      >
+        {materials.map((material) => {
+          const isSelected = material.id === selectedId;
+          return (
+            <button
+              key={material.id}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={material.name}
+              title={material.name}
+              onClick={() => onSelect(material.id)}
+              disabled={locked && !isSelected}
+              className="group relative flex h-16 w-14 items-end justify-center border-0 bg-transparent p-0 disabled:opacity-40 short:h-12 short:w-10"
+            >
+              {/* 선반 위 그림자: 떠오르면 작고 옅어진다 */}
+              <span
+                aria-hidden
+                className={`absolute bottom-0 left-1/2 h-1.5 -translate-x-1/2 rounded-[50%] bg-black/25 blur-[1.5px] transition-all duration-200 ${
+                  isSelected ? "w-6 opacity-40" : "w-10 opacity-100 short:w-7"
+                }`}
+              />
+              <span
+                className={`relative flex origin-bottom items-end justify-center transition-transform duration-200 ease-out short:scale-[0.72] ${
+                  isSelected
+                    ? "-translate-y-3 short:-translate-y-2"
+                    : "group-hover:-translate-y-0.5 group-active:translate-y-0"
+                }`}
+              >
+                {material.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- 재료 그림은 작은 정적 에셋이라 next/image 최적화가 필요 없다
+                  <img src={material.image} alt="" draggable={false} className="h-14 w-auto object-contain" />
+                ) : container === "jar" ? (
+                  <Jar material={material} />
+                ) : container === "bag" ? (
+                  <PipingBag material={material} />
+                ) : (
+                  <Bowl material={material} />
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 선반 판자 + 앞면에 붙은 이름표 */}
+      <div aria-hidden className="relative -mt-0.5 w-full min-w-24">
+        <div className="h-2 rounded-sm bg-[#d8a878] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.45)]" />
+        <div className="h-1.5 rounded-b-sm bg-[#a8764c] shadow-[0_3px_5px_rgba(0,0,0,0.18)]" />
+        <div className="absolute top-full left-3 h-2.5 w-1.5 bg-[#a8764c]" />
+        <div className="absolute top-full right-3 h-2.5 w-1.5 bg-[#a8764c]" />
+      </div>
+      <div className="mt-0.5 flex gap-4 px-5 short:hidden">
+        {materials.map((material) => (
+          <span
             key={material.id}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            aria-label={material.name}
-            onClick={() => onSelect(material.id)}
-            disabled={locked && !isSelected}
-            className={`group flex flex-col items-center gap-1 border-0 bg-transparent p-0 transition-transform duration-150 disabled:opacity-40 ${
-              isSelected ? "-translate-y-1.5" : "hover:-translate-y-0.5 active:scale-95"
+            className={`w-14 truncate text-center text-[10px] font-bold ${
+              material.id === selectedId ? "text-[var(--theme-accent)]" : "text-[var(--theme-text)]/70"
             }`}
           >
-            <span
-              className={`relative flex items-end justify-center rounded-full p-1 transition-shadow ${
-                isSelected ? "bg-white/70 shadow-[0_0_0_3px_var(--theme-accent),0_6px_10px_rgba(0,0,0,0.15)]" : ""
-              }`}
-            >
-              {container === "jar" && <Jar material={material} />}
-              {container === "bag" && <PipingBag material={material} />}
-              {container === "bowl" && <Bowl material={material} />}
-            </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap shadow-sm ${
-                isSelected ? "bg-[var(--theme-accent)] text-white" : "bg-white/80 text-[var(--theme-text)]"
-              }`}
-            >
-              {material.name}
-            </span>
-          </button>
-        );
-      })}
+            {material.name}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -59,7 +94,7 @@ function Jar({ material }: { material: Material }) {
   return (
     <span aria-hidden className="relative flex h-14 w-11 flex-col items-center">
       <span className="h-2.5 w-9 rounded-t-md rounded-b-sm bg-[#d9a066] shadow-[inset_0_-2px_0_rgba(0,0,0,0.15)]" />
-      <span className="relative h-11 w-11 overflow-hidden rounded-b-xl rounded-t-md border-2 border-white/90 bg-white/40 shadow-[inset_2px_0_0_rgba(255,255,255,0.7)]">
+      <span className="relative h-11 w-11 overflow-hidden rounded-t-md rounded-b-xl border-2 border-white/90 bg-white/40 shadow-[inset_2px_0_0_rgba(255,255,255,0.7)]">
         <span className="absolute inset-x-0 bottom-0 h-[78%]" style={{ backgroundColor: material.color }} />
         <span className="absolute top-1/2 left-1/2 flex h-5 w-6 -translate-x-1/2 -translate-y-1/3 items-center justify-center rounded-sm bg-white/90 text-xs leading-none">
           {material.emoji}
@@ -74,7 +109,7 @@ function PipingBag({ material }: { material: Material }) {
   return (
     <span aria-hidden className="relative flex h-14 w-11 flex-col items-center">
       <span
-        className="h-11 w-11 border-white"
+        className="h-11 w-11"
         style={{
           backgroundColor: material.color,
           clipPath: "polygon(0 0, 100% 0, 62% 100%, 38% 100%)",

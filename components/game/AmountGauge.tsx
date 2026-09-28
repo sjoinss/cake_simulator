@@ -17,8 +17,8 @@ export function AmountGauge({ value, target, max, label, targetLabel }: AmountGa
   const stateText = { low: "부족해요", ok: "딱 좋아요", over: "너무 많아요" }[state];
 
   return (
-    <div className="flex h-56 max-h-full shrink-0 flex-col items-center gap-1.5">
-      <span className="text-xs font-bold text-[var(--theme-text)]">
+    <div className="flex h-full max-h-56 min-h-28 shrink-0 flex-col items-center gap-1.5 py-1 short:gap-1">
+      <span className="text-xs font-bold whitespace-nowrap text-[var(--theme-text)] short:text-[10px]">
         목표: <span className="text-[var(--theme-accent)]">{targetLabel}</span>
       </span>
       <div
@@ -28,7 +28,7 @@ export function AmountGauge({ value, target, max, label, targetLabel }: AmountGa
         aria-valuemax={Math.round(max)}
         aria-valuenow={Math.round(value)}
         aria-valuetext={stateText}
-        className="relative w-8 flex-1 overflow-hidden rounded-full border-2 border-white bg-white/50 shadow-inner"
+        className="relative w-8 flex-1 overflow-hidden rounded-full border-2 border-white bg-white/50 shadow-inner short:w-6"
       >
         <div
           className="absolute inset-x-0 bg-emerald-300/70"
@@ -37,13 +37,13 @@ export function AmountGauge({ value, target, max, label, targetLabel }: AmountGa
         />
         <div
           className={`absolute inset-x-1 bottom-0 rounded-full ${
-            state === "over" ? "bg-red-400" : "bg-[#fff6e6] shadow-[0_0_0_1px_rgba(0,0,0,0.1)]"
+            state === "over" ? "bg-red-400" : "bg-amber-300 shadow-[inset_0_2px_0_rgba(255,255,255,0.5)]"
           }`}
           style={{ height: `${fillPercent}%` }}
           aria-hidden
         />
       </div>
-      <span className="text-xs font-bold text-[var(--theme-text)]/70">{stateText}</span>
+      <span className="text-xs font-bold whitespace-nowrap text-[var(--theme-text)]/70 short:text-[10px]">{stateText}</span>
     </div>
   );
 }

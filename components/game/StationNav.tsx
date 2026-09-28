@@ -42,7 +42,7 @@ export function StationNav({ state, onSelect }: StationNavProps) {
   };
 
   return (
-    <nav aria-label="스테이션" className="relative z-20 shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-1.5">
+    <nav aria-label="스테이션" className="relative z-20 shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-1.5 short:py-1">
       <ul className="flex items-stretch gap-1.5">
         {STATIONS.map(({ station, emoji, label }) => {
           const isCurrent = state.station === station;
@@ -53,13 +53,13 @@ export function StationNav({ state, onSelect }: StationNavProps) {
                 type="button"
                 onClick={() => onSelect(station)}
                 aria-current={isCurrent ? "page" : undefined}
-                className={`relative flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold shadow-sm transition-transform active:scale-95 ${
+                className={`relative flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold short:h-8 short:text-xs shadow-sm transition-transform active:scale-95 ${
                   isCurrent ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
                 } ${alert === "ideal" ? "animate-pulse ring-3 ring-emerald-400" : ""} ${
                   alert === "over" ? "animate-pulse ring-3 ring-red-500" : ""
                 }`}
               >
-                <span className="text-xl leading-none" aria-hidden>
+                <span className="text-xl leading-none short:text-base" aria-hidden>
                   {emoji}
                 </span>
                 {label}

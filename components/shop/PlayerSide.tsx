@@ -12,9 +12,10 @@ export function PlayerSide({ counter }: PlayerSideProps) {
       aria-label="플레이어 공간"
       className="relative flex flex-1 basis-2/5 flex-col overflow-hidden bg-[linear-gradient(180deg,var(--theme-secondary)_0%,var(--theme-background)_70%)]"
     >
-      <div className="flex flex-1 items-end justify-center pb-3">
+      {/* 짧은 화면(폰 가로)에선 캐릭터를 줄이고 오른쪽으로 비켜서 계산대 위 케이크 받침대와 겹치지 않게 한다 */}
+      <div className="flex flex-1 items-end justify-center pb-3 short:justify-end short:pr-6 short:pb-1">
         <div className="flex flex-col items-center">
-          <div className="text-7xl leading-none" aria-hidden>
+          <div className="text-7xl leading-none short:text-5xl" aria-hidden>
             🧑‍🍳
           </div>
           {/* 발밑 그림자: 캐릭터가 바닥에 붙어 있다는 느낌을 준다 */}
@@ -38,7 +39,7 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         />
 
         {/* 케이크 진열대: 상판 위, 레지스터와 겹치지 않게 왼쪽 절반 쪽에 배치 */}
-        <div className="absolute bottom-[30%] left-[30%] -translate-x-1/2 translate-y-2">
+        <div className="absolute bottom-[30%] left-[30%] origin-bottom -translate-x-1/2 translate-y-2 short:scale-[0.8]">
           <CakeCounter {...counter} />
         </div>
 

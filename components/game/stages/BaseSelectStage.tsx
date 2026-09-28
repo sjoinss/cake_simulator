@@ -7,6 +7,8 @@ import { BATTER_FLOW_PER_SEC, BATTER_TARGET } from "@/lib/gameLogic";
 import { useHoldLoop } from "@/hooks/useHoldLoop";
 import { AmountGauge } from "../AmountGauge";
 import { MaterialPicker } from "../MaterialPicker";
+import { FitBox, Scaled } from "../FitBox";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
 
 type BaseSelectStageProps = {
   order: ActiveOrder;
@@ -42,7 +44,7 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBa
   const isOverflowing = amount > BATTER_MAX;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-2">
+    <div className={STAGE_ROOT}>
       <MaterialPicker
         materials={options}
         selectedId={order.cake.base}
@@ -52,87 +54,89 @@ export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBa
         onSelect={onSelectBase}
       />
 
-      <div className="flex items-center gap-6">
-        {/* 케이크 틀 (옆에서 본 모습). 누르고 있으면 위에서 반죽이 흘러 들어와 차오른다. */}
-        <button
-          type="button"
-          aria-label={base ? "누르고 있으면 반죽이 부어져요" : "반죽 재료를 먼저 고르세요"}
-          disabled={!base}
-          onPointerDown={(event) => {
-            event.currentTarget.setPointerCapture(event.pointerId);
-            startPouring();
-          }}
-          onPointerUp={stopPouring}
-          onPointerCancel={stopPouring}
-          onKeyDown={(event) => {
-            if (event.key === " " || event.key === "Enter") startPouring();
-          }}
-          onKeyUp={stopPouring}
-          className="relative flex h-44 w-56 touch-none select-none items-end justify-center border-0 bg-transparent p-0 disabled:cursor-not-allowed"
-        >
-          {/* 붓는 중: 기울어진 볼 + 반죽 줄기 */}
-          <span
-            aria-hidden
-            className={`absolute top-0 left-1/2 text-4xl leading-none transition-transform duration-200 ${
-              isPouring ? "-translate-x-1/2 rotate-[-35deg]" : "-translate-x-1/2 opacity-60"
-            }`}
-          >
-            🥣
-          </span>
-          {isPouring && (
-            <span
-              aria-hidden
-              className="absolute top-9 left-1/2 w-2 -translate-x-1/2 rounded-full"
-              // 볼 입구(위에서 2.25rem)부터 틀(높이 7rem, 바닥 정렬) 안 반죽 표면까지
-              style={{ height: `${8.75 - levelPercent * 0.07}rem`, backgroundColor: base?.color }}
-            />
+      <div className={WORK_ROW}>
+        {/* 케이크 틀 (옆에서 본 모습). 누르고 있으면 위에서 반죽이 흘러 들어와 차오른다. 224x176으로 그리고 공간에 맞춰 줄인다 */}
+        <FitBox maxSize={240} heightRatio={176 / 224} className="max-w-[260px]">
+          {(size) => (
+            <Scaled width={size} baseWidth={224} baseHeight={176}>
+              <button
+                type="button"
+                aria-label={base ? "누르고 있으면 반죽이 부어져요" : "반죽 재료를 먼저 고르세요"}
+                disabled={!base}
+                onPointerDown={(event) => {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  startPouring();
+                }}
+                onPointerUp={stopPouring}
+                onPointerCancel={stopPouring}
+                onKeyDown={(event) => {
+                  if (event.key === " " || event.key === "Enter") startPouring();
+                }}
+                onKeyUp={stopPouring}
+                className="relative flex h-44 w-56 touch-none select-none items-end justify-center border-0 bg-transparent p-0 disabled:cursor-not-allowed"
+              >
+                {/* 붓는 중: 기울어진 볼 + 반죽 줄기 */}
+                <span
+                  aria-hidden
+                  className={`absolute top-0 left-1/2 text-4xl leading-none transition-transform duration-200 ${
+                    isPouring ? "-translate-x-1/2 rotate-[-35deg]" : "-translate-x-1/2 opacity-60"
+                  }`}
+                >
+                  🥣
+                </span>
+                {isPouring && (
+                  <span
+                    aria-hidden
+                    className="absolute top-9 left-1/2 w-2 -translate-x-1/2 rounded-full"
+                    // 볼 입구(위에서 2.25rem)부터 틀(높이 7rem, 바닥 정렬) 안 반죽 표면까지
+                    style={{ height: `${8.75 - levelPercent * 0.07}rem`, backgroundColor: base?.color }}
+                  />
+                )}
+                {/* 틀 */}
+                <div className="relative h-28 w-52 overflow-hidden rounded-b-2xl border-4 border-t-0 border-[#9aa3ad] bg-[#e7ebef] shadow-[inset_0_-6px_10px_rgba(0,0,0,0.12),0_6px_12px_rgba(0,0,0,0.18)]">
+                  <div
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-0"
+                    style={{
+                      height: `${levelPercent}%`,
+                      backgroundColor: base?.color ?? "transparent",
+                      boxShadow: "inset 0 3px 0 rgba(255,255,255,0.5)",
+                    }}
+                  />
+                </div>
+                {isOverflowing && (
+                  <span aria-hidden className="absolute bottom-0 left-2 animate-pulse text-xl">
+                    💦
+                  </span>
+                )}
+              </button>
+            </Scaled>
           )}
-          {/* 틀 */}
-          <div className="relative h-28 w-52 overflow-hidden rounded-b-2xl border-4 border-t-0 border-[#9aa3ad] bg-[#e7ebef] shadow-[inset_0_-6px_10px_rgba(0,0,0,0.12),0_6px_12px_rgba(0,0,0,0.18)]">
-            <div
-              aria-hidden
-              className="absolute inset-x-0 bottom-0 transition-[height] duration-100"
-              style={{
-                height: `${levelPercent}%`,
-                backgroundColor: base?.color ?? "transparent",
-                boxShadow: "inset 0 3px 0 rgba(255,255,255,0.5)",
-              }}
-            />
-          </div>
-          {isOverflowing && (
-            <span aria-hidden className="absolute bottom-0 left-2 animate-pulse text-xl">
-              💦
-            </span>
-          )}
-        </button>
+        </FitBox>
 
         <AmountGauge value={amount} target={BATTER_TARGET} max={BATTER_MAX} label="부은 반죽 양" targetLabel="적정량" />
-      </div>
 
-      <p className="text-sm text-[var(--theme-text)]/70">
-        {base ? "틀을 누르고 있으면 반죽이 부어져요. 초록 띠에 맞춰 손을 떼세요." : "먼저 반죽 재료를 고르세요."}
-      </p>
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setAmount(0);
-            onSaveBatter(0);
-          }}
-          disabled={amount === 0}
-          className="rounded-full bg-white/80 px-4 py-1.5 text-sm font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95 disabled:opacity-40"
-        >
-          🧽 다시 붓기
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={amount === 0 || isPouring}
-          className="rounded-full bg-[var(--theme-accent)] px-5 py-1.5 text-base font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-40"
-        >
-          오븐으로 보내기 →
-        </button>
+        <div className={SIDE_COLUMN}>
+          <p className={HINT}>
+            {base
+              ? "틀을 누르고 있으면 반죽이 부어져요. 초록 띠에 맞춰 손을 떼세요."
+              : "먼저 선반에서 반죽 재료를 고르세요."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setAmount(0);
+              onSaveBatter(0);
+            }}
+            disabled={amount === 0}
+            className={BUTTON_SECONDARY}
+          >
+            🧽 다시 붓기
+          </button>
+          <button type="button" onClick={onNext} disabled={amount === 0 || isPouring} className={BUTTON_PRIMARY}>
+            오븐으로 →
+          </button>
+        </div>
       </div>
     </div>
   );

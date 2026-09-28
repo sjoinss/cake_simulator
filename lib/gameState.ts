@@ -10,6 +10,7 @@ export type Material = {
   name: string;
   color: string;
   emoji: string;
+  image?: string; // 재료 그림 경로 (예: /images/materials/filling_strawberry.png). 없으면 CSS 병/그릇 + 이모지로 그린다
   isCustom: boolean;
   unlockRank: number; // 이 랭크에 도달하면 자동 해금. 0 = 처음부터 사용 가능
 };

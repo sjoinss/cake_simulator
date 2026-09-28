@@ -117,7 +117,48 @@ export function depositCream(cells: number[], px: number, py: number, units: num
     if (!ON_CAKE_SET.has(index)) continue;
     next[index] += (units * weight) / weightSum;
   }
+  spreadOverflow(next);
   return next;
+}
+
+// 한 칸에 쌓일 수 있는 두께. 이보다 두꺼워지면 넘친 크림이 더 얇은 옆 칸으로 흘러 퍼진다.
+// 한 자리에 계속 짜면 두께만 늘고 모양은 그대로여서 "짜는데 화면이 안 변하는" 문제가 있었다 —
+// 이제는 짜는 동안 웅덩이가 점점 넓어지는 게 보인다.
+const MAX_STACK = 1.8;
+const SPREAD_PASSES = 4;
+
+const NEIGHBORS: number[][] = Array.from({ length: FROSTING_CELL_COUNT }, (_, index) => {
+  const row = Math.floor(index / FROSTING_GRID);
+  const col = index % FROSTING_GRID;
+  return [
+    [row - 1, col],
+    [row + 1, col],
+    [row, col - 1],
+    [row, col + 1],
+  ]
+    .filter(([r, c]) => r >= 0 && r < FROSTING_GRID && c >= 0 && c < FROSTING_GRID)
+    .map(([r, c]) => r * FROSTING_GRID + c)
+    .filter((neighbor) => ON_CAKE_SET.has(neighbor));
+});
+
+function spreadOverflow(cells: number[]) {
+  for (let pass = 0; pass < SPREAD_PASSES; pass++) {
+    let moved = false;
+    for (const index of ON_CAKE_CELLS) {
+      const excess = cells[index] - MAX_STACK;
+      if (excess <= 0.001) continue;
+      const lower = NEIGHBORS[index].filter((neighbor) => cells[neighbor] < cells[index]);
+      if (lower.length === 0) continue; // 주변이 다 차 있으면 그대로 두껍게 남는다
+      const share = excess / lower.length;
+      for (const neighbor of lower) {
+        const flow = Math.min(share, (cells[index] - cells[neighbor]) / 2);
+        cells[index] -= flow;
+        cells[neighbor] += flow;
+      }
+      moved = true;
+    }
+    if (!moved) break;
+  }
 }
 
 export type FrostingScore = { coverage: number; evenness: number; amount: number };
