@@ -11,6 +11,12 @@
 - 이 컴퓨터에는 Node.js가 기본 PATH에 없다. PowerShell에서 `node`/`npm`/`npx`를 쓰려면 매 명령 앞에
   `$env:Path += ";C:\Program Files\nodejs";` 를 붙여야 한다 (셸 상태가 명령마다 초기화됨).
 
+## 웹 공개 (GitHub Pages)
+- 주소: https://sjoinss.github.io/cake_simulator/ — **master에 푸시하면 자동 배포**(`.github/workflows/deploy.yml`: `npm ci` → `npm run build` → `out/`을 Pages에 올림). 저장소는 이걸 위해 공개로 전환함(사용자 결정)
+- `next.config.ts`: `output: "export"`(서버 없이 정적 사이트), `trailingSlash`, `images.unoptimized`. 하위 경로는 워크플로가 `PAGES_BASE_PATH=/cake_simulator`로 넣어줄 때만 적용 — 로컬 `npm run dev`는 루트(/) 그대로
+- public/ 파일을 `<img>`/CSS url로 직접 쓸 땐 `lib/assets.ts`의 `withBasePath()`를 거칠 것 (하위 경로가 자동으로 안 붙음)
+- 서버 기능(API 라우트, 서버 액션 등)은 정적 내보내기라 쓸 수 없다
+
 ## 진행 상황 (Phase 1 MVP, cake-tycoon-prompt.md 19장 순서 기준)
 
 ### [x] 기반 구조 + 전체 UI 톤

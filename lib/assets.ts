@@ -1,5 +1,9 @@
 import type { Station } from './gameState';
 
+// 사이트가 하위 경로(GitHub Pages의 /cake_simulator 등)에 올라가 있을 때 public/ 파일 경로 앞에 그 경로를 붙인다.
+// next.config.ts가 NEXT_PUBLIC_BASE_PATH를 넣어준다. 아래 경로들은 "/images/..."처럼 적고, 쓰는 곳에서 이걸 거친다.
+export const withBasePath = (path: string) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}${path}`;
+
 // 나중에 실제 그림 에셋이 생기면 경로만 채우면 되는 자리 (7장 "이미지 에셋 최소화" — 지금은 전부 CSS로 그린다).
 // 파일은 public/images/ 아래에 두고 "/images/..." 로 적는다. null이면 CSS로 그린 기본 배경을 쓴다.
 export const STATION_BACKGROUNDS: Record<Station, string | null> = {

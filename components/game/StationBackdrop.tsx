@@ -1,5 +1,5 @@
 import type { Station } from "@/lib/gameState";
-import { STATION_BACKGROUNDS } from "@/lib/assets";
+import { STATION_BACKGROUNDS, withBasePath } from "@/lib/assets";
 
 // 제작 스테이션 배경: 위쪽은 파스텔 타일 벽, 아래쪽은 매장 계산대와 같은 나무 조리대 (케이크가 놓이는 곳).
 // lib/assets.ts의 STATION_BACKGROUNDS에 그림 경로를 넣으면 CSS로 그린 배경 대신 그 그림을 깐다.
@@ -11,7 +11,7 @@ export function StationBackdrop({ station }: { station: Station }) {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${image})` }}
+        style={{ backgroundImage: `url(${withBasePath(image)})` }}
       />
     );
   }

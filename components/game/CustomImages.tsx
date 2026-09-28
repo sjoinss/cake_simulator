@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteImage, loadImage, saveImage } from "@/lib/imageStore";
-import { CUSTOMER_LOOK_COUNT, DEFAULT_OWNER_IMAGE } from "@/lib/assets";
+import { CUSTOMER_LOOK_COUNT, DEFAULT_OWNER_IMAGE, withBasePath } from "@/lib/assets";
 
 // 손님 모습은 최대 CUSTOMER_LOOK_COUNT(6)종류. 종류마다 평소 모습 + 케이크를 먹는 모습 두 장
 export type CustomerLookPose = "idle" | "eating";
@@ -99,7 +99,7 @@ export function CustomImagesProvider({ children }: { children: ReactNode }) {
 
   const value: CustomImagesValue = {
     images,
-    ownerImage: images[OWNER_IMAGE_KEY] ?? DEFAULT_OWNER_IMAGE,
+    ownerImage: images[OWNER_IMAGE_KEY] ?? (DEFAULT_OWNER_IMAGE ? withBasePath(DEFAULT_OWNER_IMAGE) : null),
     hasCustomOwner: !!images[OWNER_IMAGE_KEY],
     setImage,
     clearImage,

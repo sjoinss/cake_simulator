@@ -1,4 +1,5 @@
 import type { Material } from "@/lib/gameState";
+import { withBasePath } from "@/lib/assets";
 
 export type MaterialContainer = "jar" | "bag" | "bowl";
 
@@ -63,7 +64,7 @@ export function MaterialPicker({
               >
                 {material.image ? (
                   // eslint-disable-next-line @next/next/no-img-element -- 재료 그림은 작은 정적 에셋이라 next/image 최적화가 필요 없다
-                  <img src={material.image} alt="" draggable={false} className="h-14 w-auto object-contain" />
+                  <img src={withBasePath(material.image)} alt="" draggable={false} className="h-14 w-auto object-contain" />
                 ) : container === "jar" ? (
                   <Jar material={material} />
                 ) : container === "bag" ? (
