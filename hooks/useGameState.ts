@@ -7,9 +7,18 @@ import {
   type ActiveOrder,
   type CraftingStage,
   type GameState,
+  type Station,
+  type WorkStation,
 } from "@/lib/gameState";
 import { createCustomer } from "@/lib/customer";
-import { scoreServedCake, type ServeResult } from "@/lib/gameLogic";
+import { createEmptySpreadLayer } from "@/lib/frosting";
+import {
+  getBakingElapsedRatio,
+  OVEN_DURATION_MS,
+  scoreBaking,
+  scoreServedCake,
+  type ServeResult,
+} from "@/lib/gameLogic";
 import { initialMaterials } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
 import { playBellSound } from "@/lib/sound";
@@ -26,6 +35,35 @@ const LEAVE_ANIMATION_MS = 450;
 
 // 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 주문도 정리되므로 이름/케이크를 여기에 복사해둔다.
 export type ServeResultCard = ServeResult & { customerName: string; cake: ActiveOrder["cake"] };
+
+// 주문이 확정되는 순간 만들어지는 빈 케이크. createdAt(속도 점수 기준)도 이때부터 잰다 — Papa's처럼 손님이 기다린 시간.
+function createOrder(customerId: string, orderNumber: number): ActiveOrder {
+  return {
+    orderId: `order_${Date.now()}_${customerId}`,
+    customerId,
+    stage: "base",
+    orderNumber,
+    attempt: 0,
+    createdAt: Date.now(),
+    completedAt: null,
+    cake: createEmptyCake(),
+  };
+}
+
+function createEmptyCake(): ActiveOrder["cake"] {
+  return {
+    base: null,
+    batter: { amount: 0, score: 0 },
+    baking: { startTime: null, endTime: null, duration: OVEN_DURATION_MS, doneness: 0 },
+    filling: createEmptySpreadLayer(),
+    frosting: createEmptySpreadLayer(true),
+    toppingsDone: false,
+    toppings: [],
+    decorations: [],
+    text: [],
+    drawings: [],
+  };
+}
 
 export function useGameState() {
   const [state, setState] = useState<GameState>(createInitialGameState);
@@ -86,97 +124,65 @@ export function useGameState() {
 
   // 손님을 탭했을 때: waiting → 순차 주문 진행 → order_confirmed.
   // 이미 확정된 손님을 다시 탭하면 주문 내용을 다시 순차 재생해서 보여준다(상태는 그대로 유지).
+  // ⚠️ 타이머 등록 같은 부수 효과는 setState 업데이터 밖에서 한다. 업데이터 안에서 하면 개발 모드(StrictMode)가
+  // 업데이터를 두 번 실행하면서 확정 타이머도 두 번 걸려, 같은 손님 주문이 두 개씩 생기는 버그가 있었다.
   const handleCustomerTap = useCallback(
     (tableIndex: number) => {
       if (orderingCustomerId) return; // 다른 손님 주문이 진행 중이면 겹치지 않게 무시
 
-      setState((prev) => {
-        const customer = prev.tables[tableIndex];
-        if (!customer) return prev;
-        if (customer.status !== "waiting" && customer.status !== "order_confirmed") return prev;
+      const customer = state.tables[tableIndex];
+      if (!customer || (customer.status !== "waiting" && customer.status !== "order_confirmed")) return;
+      const steps = getOrderSteps(customer.order, initialMaterials);
+      if (steps.length === 0) return;
+      const isInitial = customer.status === "waiting";
 
-        const steps = getOrderSteps(customer.order, initialMaterials);
-        if (steps.length === 0) return prev;
+      setOrderingCustomerId(customer.id);
+      setOrderingStepIndex(0);
+      steps.forEach((_, index) => {
+        if (index > 0) schedule(() => setOrderingStepIndex(index), index * ORDER_STEP_DURATION_MS);
+      });
 
-        const isInitial = customer.status === "waiting";
-
-        setOrderingCustomerId(customer.id);
-        setOrderingStepIndex(0);
-
-        steps.forEach((_, index) => {
-          if (index === 0) return;
-          const timer = setTimeout(() => setOrderingStepIndex(index), index * ORDER_STEP_DURATION_MS);
-          timers.current.push(timer);
+      schedule(() => {
+        setOrderingCustomerId(null);
+        if (!isInitial) return; // 재생(replay)은 상태를 바꾸지 않는다
+        // 주문이 확정되면 주문서가 바로 시트 스테이션에 올라간다 (Papa's의 티켓 레일).
+        setState((current) => {
+          const target = current.tables[tableIndex];
+          if (target?.id !== customer.id || target.status !== "ordering") return current;
+          const tables = [...current.tables];
+          tables[tableIndex] = { ...target, status: "order_confirmed", orderNumber: current.nextOrderNumber };
+          return {
+            ...current,
+            tables,
+            activeOrders: [...current.activeOrders, createOrder(target.id, current.nextOrderNumber)],
+            nextOrderNumber: current.nextOrderNumber + 1,
+          };
         });
+      }, steps.length * ORDER_STEP_DURATION_MS);
 
-        const finishTimer = setTimeout(() => {
-          setOrderingCustomerId(null);
-          if (isInitial) {
-            setState((current) => {
-              const tables = [...current.tables];
-              const target = tables[tableIndex];
-              if (!target) return current;
-              tables[tableIndex] = { ...target, status: "order_confirmed" };
-              return { ...current, tables };
-            });
-          }
-        }, steps.length * ORDER_STEP_DURATION_MS);
-        timers.current.push(finishTimer);
-
-        if (!isInitial) return prev; // 재생(replay)은 상태를 바꾸지 않는다
-
+      if (!isInitial) return;
+      setState((prev) => {
+        const target = prev.tables[tableIndex];
+        if (target?.id !== customer.id || target.status !== "waiting") return prev;
         const tables = [...prev.tables];
-        tables[tableIndex] = { ...customer, status: "ordering" };
+        tables[tableIndex] = { ...target, status: "ordering" };
         return { ...prev, tables };
       });
     },
-    [orderingCustomerId]
+    [orderingCustomerId, state.tables, schedule]
   );
 
-  // 손님 주문이 확정된 뒤 "만들기"/"이어 만들기"를 누르면 제작 화면으로 진입한다.
-  // 이미 진행 중인 주문(activeOrders)이 있으면 이어서, 없으면 새로 시작한다 (cake-tycoon-prompt.md 17장 5번).
-  const startOrResumeOrder = useCallback((customerId: string) => {
-    setState((prev) => {
-      const existing = prev.activeOrders.find((order) => order.customerId === customerId);
-      if (existing) {
-        return { ...prev, screen: "crafting", craftingOrderId: existing.orderId };
-      }
-
-      const newOrder: ActiveOrder = {
-        orderId: `order_${Date.now()}_${customerId}`,
-        customerId,
-        stage: "base",
-        createdAt: Date.now(),
-        completedAt: null,
-        cake: {
-          base: null,
-          baking: { startTime: null, duration: 0, doneness: 0 },
-          filling: null,
-          frosting: { coverage: 0, evenness: 0 },
-          toppings: [],
-          decorations: [],
-          text: [],
-          drawings: [],
-        },
-      };
-
-      return {
-        ...prev,
-        screen: "crafting",
-        craftingOrderId: newOrder.orderId,
-        activeOrders: [...prev.activeOrders, newOrder],
-      };
-    });
+  // 하단 스테이션 탭: 어느 스테이션이든 언제든 이동할 수 있다. 케이크 진행 상태는 주문(activeOrders)에 남아 있다.
+  const setStation = useCallback((station: Station) => {
+    setState((prev) => (prev.station === station ? prev : { ...prev, station }));
   }, []);
 
-  // 제작 화면에서 나가기: 현재 주문의 진행 상태(stage/cake)는 activeOrders에 그대로 남아
-  // 나중에 "이어 만들기"로 복귀할 수 있다.
-  const exitCrafting = useCallback(() => {
-    setState((prev) => ({ ...prev, screen: "shop", craftingOrderId: null }));
+  // 스테이션 상단 티켓 레일에서 작업할 주문을 고른다.
+  const selectOrder = useCallback((station: WorkStation, orderId: string) => {
+    setState((prev) => ({ ...prev, selectedOrderIds: { ...prev.selectedOrderIds, [station]: orderId } }));
   }, []);
 
-  // 제작 단계(④)에서 케이크 데이터를 갱신할 때 쓰는 범용 업데이터. 시트 선택/오븐/크림/토핑/
-  // 데코레이션 각 단계가 필요한 필드만 골라 바꾸도록 updater 함수를 넘겨받는다.
+  // 각 스테이션에서 케이크 데이터를 갱신할 때 쓰는 범용 업데이터. 필요한 필드만 골라 바꾸도록 updater 함수를 넘겨받는다.
   const updateOrder = useCallback((orderId: string, updater: (order: ActiveOrder) => ActiveOrder) => {
     setState((prev) => ({
       ...prev,
@@ -184,21 +190,82 @@ export function useGameState() {
     }));
   }, []);
 
-  // 제작 화면 하단 단계 탭(Papa's 스타일)에서 단계를 전환할 때 사용.
-  // Phase 1 뼈대 단계라 이동 자유도 제한(순서대로만 진행 등)은 아직 걸지 않는다 — 실제 판정/잠금은 ⑤에서 다듬는다.
-  const setOrderStage = useCallback(
+  // 케이크를 다음 스테이션 대기열로 보낸다. 되돌아가는 이동은 없다 (1장 2번).
+  const sendOrderTo = useCallback(
     (orderId: string, stage: CraftingStage) => {
       updateOrder(orderId, (order) => ({ ...order, stage }));
     },
     [updateOrder]
   );
 
-  // 데코레이션 "완성": 주문을 ready로 바꾸고 매장으로 복귀한다. 케이크는 계산대 위에 표시된다.
+  // 오븐 대기 중인 케이크를 빈 오븐 칸에 넣는다. 타이머는 절대 시각이라 다른 스테이션에 가 있어도 계속 흐른다.
+  const putInOven = useCallback((orderId: string) => {
+    setState((prev) => {
+      const slotIndex = prev.ovenSlots.indexOf(null);
+      const order = prev.activeOrders.find((o) => o.orderId === orderId);
+      if (slotIndex < 0 || !order || order.stage !== "oven" || order.cake.baking.startTime !== null) return prev;
+      const ovenSlots = [...prev.ovenSlots];
+      ovenSlots[slotIndex] = orderId;
+      return {
+        ...prev,
+        ovenSlots,
+        activeOrders: prev.activeOrders.map((o) =>
+          o.orderId === orderId
+            ? {
+                ...o,
+                cake: {
+                  ...o.cake,
+                  baking: { startTime: Date.now(), endTime: null, duration: OVEN_DURATION_MS, doneness: 0 },
+                },
+              }
+            : o
+        ),
+      };
+    });
+  }, []);
+
+  // 오븐에서 꺼내면 그 순간의 경과 비율로 굽기 점수를 매기고, 필링·크림 스테이션 대기열로 넘긴다.
+  const takeOutOfOven = useCallback((slotIndex: number) => {
+    setState((prev) => {
+      const orderId = prev.ovenSlots[slotIndex];
+      if (!orderId) return prev;
+      const ovenSlots = [...prev.ovenSlots];
+      ovenSlots[slotIndex] = null;
+      const now = Date.now();
+      return {
+        ...prev,
+        ovenSlots,
+        activeOrders: prev.activeOrders.map((o) => {
+          if (o.orderId !== orderId || o.cake.baking.startTime === null) return o;
+          const ratio = getBakingElapsedRatio(o.cake.baking.startTime, o.cake.baking.duration, now);
+          return {
+            ...o,
+            stage: "cream",
+            cake: { ...o.cake, baking: { ...o.cake.baking, endTime: now, doneness: scoreBaking(ratio) } },
+          };
+        }),
+      };
+    });
+  }, []);
+
+  // 타거나 실수한 케이크를 버리고 처음(시트)부터 다시 만든다. 주문 번호와 주문 시각(속도 점수)은 그대로다.
+  const discardOrder = useCallback((orderId: string) => {
+    setState((prev) => ({
+      ...prev,
+      ovenSlots: prev.ovenSlots.map((id) => (id === orderId ? null : id)),
+      activeOrders: prev.activeOrders.map((order) =>
+        order.orderId === orderId
+          ? { ...order, stage: "base", attempt: order.attempt + 1, completedAt: null, cake: createEmptyCake() }
+          : order
+      ),
+    }));
+  }, []);
+
+  // 데코레이션 "완성": 주문을 ready로 바꾸고 매장으로 이동한다. 케이크는 계산대 위에 표시된다.
   const completeOrder = useCallback((orderId: string) => {
     setState((prev) => ({
       ...prev,
-      screen: "shop",
-      craftingOrderId: null,
+      station: "order",
       activeOrders: prev.activeOrders.map((order) =>
         order.orderId === orderId ? { ...order, stage: "ready", completedAt: Date.now() } : order
       ),
@@ -273,10 +340,13 @@ export function useGameState() {
     leavingIds,
     serveResult,
     handleCustomerTap,
-    startOrResumeOrder,
-    exitCrafting,
-    setOrderStage,
+    setStation,
+    selectOrder,
     updateOrder,
+    sendOrderTo,
+    putInOven,
+    takeOutOfOven,
+    discardOrder,
     completeOrder,
     serveOrder,
     dismissServeResult,

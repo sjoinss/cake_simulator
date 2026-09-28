@@ -10,8 +10,7 @@ type CustomerTableProps = {
   bubble: ReactNode | null;
   shouldAnimateEntrance: boolean;
   onTap: () => void;
-  makeButtonLabel: string | null;
-  onMakeClick: (() => void) | undefined;
+  orderTag: string | null; // 머리 위에 띄우는 주문 번호 ("#1")
   isAwaitingServe: boolean; // 이 손님 케이크가 완성되어 계산대에서 서빙을 기다리는 중
   servedCake: ActiveOrder["cake"] | null; // 서빙 완료 후 먹는 중인 케이크 (테이블 위에 표시)
   isLeaving: boolean; // 먹고 나서 퇴장 애니메이션 재생 중
@@ -24,8 +23,7 @@ export function CustomerTable({
   bubble,
   shouldAnimateEntrance,
   onTap,
-  makeButtonLabel,
-  onMakeClick,
+  orderTag,
   isAwaitingServe,
   servedCake,
   isLeaving,
@@ -49,6 +47,15 @@ export function CustomerTable({
           }`}
         >
           {bubble && <SpeechBubble>{bubble}</SpeechBubble>}
+          {orderTag && (
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-sm font-extrabold shadow-sm ${
+                isAwaitingServe ? "bg-[var(--theme-accent)] text-white" : "bg-white/90 text-[var(--theme-text)]"
+              }`}
+            >
+              {orderTag}
+            </span>
+          )}
           <button
             type="button"
             onClick={onTap}
@@ -59,20 +66,7 @@ export function CustomerTable({
           </button>
           {/* 발밑 그림자 */}
           <div className="h-2 w-10 rounded-full bg-black/10 blur-[1px]" aria-hidden />
-          {makeButtonLabel && (
-            <button
-              type="button"
-              onClick={onMakeClick}
-              className="rounded-full bg-[var(--theme-accent)] px-3 py-1 text-sm font-bold text-white shadow-sm transition-transform active:scale-95"
-            >
-              {makeButtonLabel}
-            </button>
-          )}
-          {isAwaitingServe && (
-            <span className="rounded-full bg-white/80 px-3 py-1 text-sm font-bold text-[var(--theme-text)] shadow-sm">
-              🎂 서빙 대기
-            </span>
-          )}
+
         </div>
       )}
       {/* 드래그 중 드롭 안내: 색만으로 구분하지 않도록 텍스트 라벨을 함께 보여준다 (18장) */}
@@ -91,9 +85,9 @@ export function CustomerTable({
           dropState ? "outline-3 outline-offset-2 outline-dashed outline-[var(--theme-accent)]" : ""
         }`}
       >
-        {/* 서빙된 케이크: 먹는 동안 테이블 위에 놓여 있다. 위에서 본 케이크를 세로로 눌러서 테이블 위에 비스듬히 놓인 느낌을 준다 */}
+        {/* 서빙된 케이크: 먹는 동안 테이블 위에 놓여 있다 */}
         {servedCake && (
-          <div className="absolute -top-4 left-1/2 -translate-x-1/2 scale-y-[0.6]">
+          <div className="absolute bottom-[45%] left-1/2 -translate-x-1/2">
             <CakeSnapshot cake={servedCake} materials={initialMaterials} size={52} label="서빙된 케이크" />
           </div>
         )}

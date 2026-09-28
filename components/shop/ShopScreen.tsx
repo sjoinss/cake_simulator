@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { useGameState } from "@/hooks/useGameState";
-import { HUD } from "@/components/game/HUD";
 import { PlayerSide } from "./PlayerSide";
 import { CustomerSide } from "./CustomerSide";
 import { ServeResultCard } from "./ServeResultCard";
 import type { CakeDragHandlers } from "./CakeCounter";
+import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
+import { initialMaterials } from "@/lib/materials";
+import { formatOrderNumber } from "@/lib/station";
 
 type ShopScreenProps = {
   gameState: ReturnType<typeof useGameState>;
@@ -43,7 +45,6 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
     leavingIds,
     serveResult,
     handleCustomerTap,
-    startOrResumeOrder,
     serveOrder,
     dismissServeResult,
   } = gameState;
@@ -56,7 +57,6 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
     .filter((order) => order.stage === "ready")
     .sort((a, b) => (a.completedAt ?? 0) - (b.completedAt ?? 0));
   const counterOrder = readyOrders[0] ?? null;
-  const counterCustomer = counterOrder ? state.tables.find((table) => table?.id === counterOrder.customerId) : null;
 
   // 잘못된 곳에 놓으면 받침대 위치로 부드럽게 되돌아간 뒤 드래그 상태를 정리한다.
   useEffect(() => {
@@ -108,13 +108,12 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
   const isDraggingActive = !!drag && !drag.isReturning;
 
   return (
-    <div className="game-root relative h-dvh w-dvw flex-col overflow-hidden">
-      <HUD day={state.player.day} money={state.player.money} />
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="relative flex flex-1 min-h-0">
         <PlayerSide
           counter={{
             cake: counterOrder,
-            customerName: counterCustomer?.name ?? null,
+            orderLabel: counterOrder ? formatOrderNumber(counterOrder) : null,
             queuedCount: Math.max(0, readyOrders.length - 1),
             isDragging: !!drag,
             dragHandlers,
@@ -137,7 +136,6 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
           draggingCustomerId={isDraggingActive ? (counterOrder?.customerId ?? null) : null}
           hoverTableIndex={isDraggingActive ? hoverTableIndex : null}
           onCustomerTap={handleCustomerTap}
-          onStartOrResumeOrder={startOrResumeOrder}
         />
       </div>
 
@@ -145,14 +143,16 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
       {drag && (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 text-5xl leading-none drop-shadow-[0_6px_6px_rgba(0,0,0,0.25)]"
+          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_6px_6px_rgba(0,0,0,0.25)]"
           style={{
             left: drag.isReturning ? drag.originX : drag.x,
             top: drag.isReturning ? drag.originY : drag.y,
             transition: drag.isReturning ? `left ${SNAP_BACK_MS}ms ease-out, top ${SNAP_BACK_MS}ms ease-out` : "none",
           }}
         >
-          🎂
+          {counterOrder && (
+            <CakeSnapshot cake={counterOrder.cake} materials={initialMaterials} size={72} label="들고 있는 케이크" />
+          )}
         </div>
       )}
 

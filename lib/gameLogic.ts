@@ -3,9 +3,12 @@ import type { ActiveOrder, Customer } from './gameState';
 // 제작 단계 관련 순수 로직 (cake-tycoon-prompt.md 2장, 19장 4번 "터치 포인트 샘플링 기반 근사치" 원칙).
 // Phase 1: 판정 자체는 단순하게 유지한다. 서빙 결과 채점은 파일 하단 scoreServedCake 참고.
 
-export const OVEN_DURATION_MS = 6000; // 모바일 캐주얼 게임 호흡에 맞춰 6초로 설정 (Phase 1 임시값)
-const OVEN_IDEAL_START_RATIO = 0.7; // 70%~90% 구간이 "적정 구간"
-const OVEN_IDEAL_END_RATIO = 0.9;
+// 오븐 한 바퀴 50초, 80%~95%(40~47.5초) 구간이 "적정 구간" (Phase 1 임시값).
+// 굽는 동안 다른 스테이션 일을 병행하라는 의도라 일부러 길게 잡았다 (Papa's 방식).
+export const OVEN_DURATION_MS = 50_000;
+export const OVEN_IDEAL_START_RATIO = 0.8;
+export const OVEN_IDEAL_END_RATIO = 0.95;
+export const OVEN_BURNT_RATIO = 1.2; // 이 이상 두면 탄다 (오븐 탭이 빨갛게 경고)
 
 // startTime~now 경과 시간을 duration 대비 비율로 변환한다. 다른 화면에 있다가 돌아와도
 // 절대 시각(Date.now()) 기준으로 계산하므로 정확하다.
@@ -13,7 +16,7 @@ export function getBakingElapsedRatio(startTime: number, duration: number, now: 
   return (now - startTime) / duration;
 }
 
-// 굽기 정도 점수(0~100). 너무 일찍/늦게 꺼내면 감점, 적정 구간(70~90%)이면 만점.
+// 굽기 정도 점수(0~100). 너무 일찍/늦게 꺼내면 감점, 적정 구간이면 만점.
 export function scoreBaking(elapsedRatio: number): number {
   if (elapsedRatio < OVEN_IDEAL_START_RATIO) {
     return Math.max(10, Math.round((elapsedRatio / OVEN_IDEAL_START_RATIO) * 70));
@@ -22,35 +25,47 @@ export function scoreBaking(elapsedRatio: number): number {
     return 100;
   }
   const overshoot = elapsedRatio - OVEN_IDEAL_END_RATIO;
-  return Math.max(10, Math.round(100 - overshoot * 200));
+  return Math.max(10, Math.round(100 - overshoot * 300));
 }
 
-// 크림 바르기 판정: 매 프레임 픽셀 분석 대신, 드래그 중 지나간 그리드 셀을 표시해두고
-// 칠해진 비율(coverage)과 4분면 간 편차(evenness)로 근사치를 낸다.
-export function scoreFrostingCoverage(paintedCells: number, totalCells: number): number {
-  if (totalCells === 0) return 0;
-  return Math.round((paintedCells / totalCells) * 100);
+// 반죽 붓기: 누르고 있는 동안 일정 속도로 차오르고, 적정량(초록 띠)에 맞춰 손을 떼야 한다
+export const BATTER_TARGET = 100;
+export const BATTER_FLOW_PER_SEC = 25; // 적정량까지 약 4초
+export const AMOUNT_BAND = 0.1; // 게이지에 초록 띠로 표시하는 적정량 ±10%
+
+// 양 판정 공용 (반죽, 필링, 크림): 목표와의 차이가 20%면 70점, 67% 이상이면 0점
+export function scoreAmountMatch(total: number, target: number): number {
+  if (target <= 0 || total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round(100 - Math.abs(total / target - 1) * 150)));
 }
 
-export function scoreFrostingEvenness(quadrantCounts: number[], quadrantSize: number): number {
-  if (quadrantSize === 0) return 0;
-  const ratios = quadrantCounts.map((count) => count / quadrantSize);
-  const max = Math.max(...ratios);
-  const min = Math.min(...ratios);
-  return Math.round((1 - (max - min)) * 100);
+// 구운 정도를 시트 색으로 보여주기 위한 CSS filter. 덜 익으면 창백하고, 적정이면 노릇, 오래 두면 까맣게 탄다.
+export function getBakeFilter(elapsedRatio: number | null): string | undefined {
+  if (elapsedRatio === null) return undefined;
+  const t = Math.max(0, Math.min(elapsedRatio, 1.6));
+  const over = Math.max(0, t - 1);
+  const sepia = Math.min(t, 1) * 0.55 + over * 0.9;
+  const brightness = 1.06 - t * 0.14 - over * 0.9;
+  return `sepia(${sepia.toFixed(2)}) saturate(${(1 + Math.min(t, 1) * 0.4).toFixed(2)}) brightness(${brightness.toFixed(2)})`;
+}
+
+export function getBakedRatio(baking: ActiveOrder['cake']['baking'], now: number = Date.now()): number | null {
+  if (baking.startTime === null) return null;
+  return getBakingElapsedRatio(baking.startTime, baking.duration || OVEN_DURATION_MS, baking.endTime ?? now);
 }
 
 // ---- ⑤ 서빙 결과 채점 (cake-tycoon-prompt.md 12장) ----
 // Phase 1은 각 항목을 0~100으로 단순 계산하고, 총점은 단순 평균 (가중치 없음).
 
 const CAKE_PRICE = 30; // 총점 100일 때 받는 금액 (Phase 1 임시값)
-const SPEED_PERFECT_MS = 60_000; // 이 시간 안에 완성하면 속도 만점
-const SPEED_SLOW_MS = 180_000; // 이 시간 이상 걸리면 속도 최저점
+// 주문 확정 ~ 완성까지. 오븐만 50초라 여러 주문을 병행하는 걸 감안해 넉넉히 잡았다 (임시값)
+const SPEED_PERFECT_MS = 150_000; // 이 시간 안에 완성하면 속도 만점
+const SPEED_SLOW_MS = 360_000; // 이 시간 이상 걸리면 속도 최저점
 const SPEED_MIN_SCORE = 40;
 
 export type ServeResult = {
   accuracy: number; // 주문 정확도: 주문한 재료/문구와 일치하는지
-  quality: number; // 제작 품질: 굽기 + 크림 범위 + 크림 균일도
+  quality: number; // 제작 품질: 반죽 양 + 굽기 + 필링/크림의 범위·균일도·양
   decoration: number; // 데코레이션: 자유 그림 / 텍스트 유무
   speed: number; // 속도: 제작 시작 ~ 완성까지 걸린 시간
   total: number;
@@ -69,7 +84,8 @@ const normalizeText = (text: string) => text.trim().toLowerCase().replace(/\s+/g
 export function scoreAccuracy(cake: CakeData, order: OrderSpec): number {
   const checks = [
     cake.base === order.cake ? 100 : 0,
-    cake.filling === order.frosting ? 100 : 0,
+    cake.filling.materialId === order.filling ? 100 : 0,
+    cake.frosting.materialId === order.frosting ? 100 : 0,
     cake.toppings.length > 0 && cake.toppings.every((topping) => topping.itemId === order.topping) ? 100 : 0,
   ];
   if (order.message) {
@@ -81,7 +97,13 @@ export function scoreAccuracy(cake: CakeData, order: OrderSpec): number {
 }
 
 export function scoreQuality(cake: CakeData): number {
-  return average([cake.baking.doneness, cake.frosting.coverage, cake.frosting.evenness]);
+  const { filling, frosting } = cake;
+  return average([
+    cake.batter.score,
+    cake.baking.doneness,
+    average([filling.coverage, filling.evenness, filling.amount]),
+    average([frosting.coverage, frosting.evenness, frosting.amount]),
+  ]);
 }
 
 export function scoreDecoration(cake: CakeData): number {

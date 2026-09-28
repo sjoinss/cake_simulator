@@ -1,55 +1,139 @@
+"use client";
+
+import { useState } from "react";
 import type { ActiveOrder, MaterialRegistry } from "@/lib/gameState";
-import { getUnlockedMaterials } from "@/lib/materials";
-import { CakeRenderer } from "../cake/CakeRenderer";
+import { findMaterial, getUnlockedMaterials } from "@/lib/materials";
+import { BATTER_FLOW_PER_SEC, BATTER_TARGET } from "@/lib/gameLogic";
+import { useHoldLoop } from "@/hooks/useHoldLoop";
+import { AmountGauge } from "../AmountGauge";
+import { MaterialPicker } from "../MaterialPicker";
 
 type BaseSelectStageProps = {
   order: ActiveOrder;
   materials: MaterialRegistry;
   rank: number;
   onSelectBase: (materialId: string) => void;
+  onSaveBatter: (amount: number) => void; // 손을 뗄 때마다 부은 양을 주문에 저장
   onNext: () => void;
 };
 
-// 시트 선택 단계. Phase 1은 카테고리별 재료가 1개뿐이라 사실상 확인만 하는 단계지만,
-// 나중에 재료가 늘어나도 그대로 쓸 수 있도록 선택 UI 구조를 갖춰둔다.
-export function BaseSelectStage({ order, materials, rank, onSelectBase, onNext }: BaseSelectStageProps) {
+const BATTER_MAX = BATTER_TARGET * 1.5; // 틀이 꽉 차는 양. 넘으면 흘러넘친다
+
+// 시트 스테이션. 반죽 재료를 먼저 고른 뒤, 틀을 누르고 있는 동안 반죽이 서서히 차오른다 (1장 4번 프레스&홀드).
+// 적정량(게이지 초록 띠)에 맞춰 손을 떼는 게 목표다.
+export function BaseSelectStage({ order, materials, rank, onSelectBase, onSaveBatter, onNext }: BaseSelectStageProps) {
   const options = getUnlockedMaterials(materials, "base", rank);
+  const base = order.cake.base ? findMaterial(materials, order.cake.base) : undefined;
+  const [amount, setAmount] = useState(order.cake.batter.amount);
+  const [isPouring, setIsPouring] = useState(false);
+
+  useHoldLoop(isPouring, (dt) => setAmount((prev) => prev + BATTER_FLOW_PER_SEC * dt));
+
+  const startPouring = () => {
+    if (base) setIsPouring(true);
+  };
+  const stopPouring = () => {
+    if (!isPouring) return;
+    setIsPouring(false);
+    onSaveBatter(amount);
+  };
+
+  const levelPercent = Math.min(100, (amount / BATTER_MAX) * 100);
+  const isOverflowing = amount > BATTER_MAX;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
-      <CakeRenderer cake={order.cake} materials={materials} />
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-2">
+      <MaterialPicker
+        materials={options}
+        selectedId={order.cake.base}
+        label="시트 반죽"
+        container="bowl"
+        locked={amount > 0}
+        onSelect={onSelectBase}
+      />
 
-      <div className="flex flex-wrap justify-center gap-3">
-        {options.map((material) => {
-          const isSelected = order.cake.base === material.id;
-          return (
-            <button
-              key={material.id}
-              type="button"
-              onClick={() => onSelectBase(material.id)}
-              aria-pressed={isSelected}
-              className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-3 shadow-sm transition-transform active:scale-95 ${
-                isSelected ? "border-[var(--theme-accent)] bg-white" : "border-transparent bg-white/70"
-              }`}
-            >
-              <span className="text-3xl leading-none" aria-hidden>
-                {material.emoji}
-              </span>
-              <span className="text-sm font-bold text-[var(--theme-text)]">{material.name}</span>
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-6">
+        {/* 케이크 틀 (옆에서 본 모습). 누르고 있으면 위에서 반죽이 흘러 들어와 차오른다. */}
+        <button
+          type="button"
+          aria-label={base ? "누르고 있으면 반죽이 부어져요" : "반죽 재료를 먼저 고르세요"}
+          disabled={!base}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            startPouring();
+          }}
+          onPointerUp={stopPouring}
+          onPointerCancel={stopPouring}
+          onKeyDown={(event) => {
+            if (event.key === " " || event.key === "Enter") startPouring();
+          }}
+          onKeyUp={stopPouring}
+          className="relative flex h-44 w-56 touch-none select-none items-end justify-center border-0 bg-transparent p-0 disabled:cursor-not-allowed"
+        >
+          {/* 붓는 중: 기울어진 볼 + 반죽 줄기 */}
+          <span
+            aria-hidden
+            className={`absolute top-0 left-1/2 text-4xl leading-none transition-transform duration-200 ${
+              isPouring ? "-translate-x-1/2 rotate-[-35deg]" : "-translate-x-1/2 opacity-60"
+            }`}
+          >
+            🥣
+          </span>
+          {isPouring && (
+            <span
+              aria-hidden
+              className="absolute top-9 left-1/2 w-2 -translate-x-1/2 rounded-full"
+              // 볼 입구(위에서 2.25rem)부터 틀(높이 7rem, 바닥 정렬) 안 반죽 표면까지
+              style={{ height: `${8.75 - levelPercent * 0.07}rem`, backgroundColor: base?.color }}
+            />
+          )}
+          {/* 틀 */}
+          <div className="relative h-28 w-52 overflow-hidden rounded-b-2xl border-4 border-t-0 border-[#9aa3ad] bg-[#e7ebef] shadow-[inset_0_-6px_10px_rgba(0,0,0,0.12),0_6px_12px_rgba(0,0,0,0.18)]">
+            <div
+              aria-hidden
+              className="absolute inset-x-0 bottom-0 transition-[height] duration-100"
+              style={{
+                height: `${levelPercent}%`,
+                backgroundColor: base?.color ?? "transparent",
+                boxShadow: "inset 0 3px 0 rgba(255,255,255,0.5)",
+              }}
+            />
+          </div>
+          {isOverflowing && (
+            <span aria-hidden className="absolute bottom-0 left-2 animate-pulse text-xl">
+              💦
+            </span>
+          )}
+        </button>
+
+        <AmountGauge value={amount} target={BATTER_TARGET} max={BATTER_MAX} label="부은 반죽 양" targetLabel="적정량" />
       </div>
 
-      {order.cake.base && (
+      <p className="text-sm text-[var(--theme-text)]/70">
+        {base ? "틀을 누르고 있으면 반죽이 부어져요. 초록 띠에 맞춰 손을 떼세요." : "먼저 반죽 재료를 고르세요."}
+      </p>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setAmount(0);
+            onSaveBatter(0);
+          }}
+          disabled={amount === 0}
+          className="rounded-full bg-white/80 px-4 py-1.5 text-sm font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95 disabled:opacity-40"
+        >
+          🧽 다시 붓기
+        </button>
         <button
           type="button"
           onClick={onNext}
-          className="rounded-full bg-[var(--theme-accent)] px-6 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95"
+          disabled={amount === 0 || isPouring}
+          className="rounded-full bg-[var(--theme-accent)] px-5 py-1.5 text-base font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-40"
         >
-          다음 단계로 →
+          오븐으로 보내기 →
         </button>
-      )}
+      </div>
     </div>
   );
 }

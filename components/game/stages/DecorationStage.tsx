@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { ActiveOrder, CakeDrawing, CakeText, MaterialRegistry } from "@/lib/gameState";
 import { eraseStrokesAt } from "@/lib/decoration";
-import { CakeRenderer } from "../cake/CakeRenderer";
+import { CakeTopView } from "../cake/CakeRenderer";
 import { DrawingCanvas, type DrawingTool } from "../cake/DrawingCanvas";
 import { TextOverlay } from "../cake/TextOverlay";
 
@@ -126,7 +126,7 @@ export function DecorationStage({ order, materials, onChange, onFinish }: Decora
           className="relative h-56 w-56 max-w-full transition-transform duration-700 ease-out"
           style={{ transform: isTopView ? "rotateX(0deg) scale(1.05)" : "rotateX(55deg) scale(0.9)" }}
         >
-          <CakeRenderer cake={order.cake} materials={materials} />
+          <CakeTopView cake={order.cake} materials={materials} />
           <DrawingCanvas
             drawings={order.cake.drawings}
             color={color}

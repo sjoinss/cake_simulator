@@ -20,17 +20,17 @@
 - 테마: `app/globals.css`의 `--theme-*` 변수, pink 테마 하나만 채움. 실제 색상은 비비드 핑크가 아니라 채도를 낮춘 파스텔 코랄톤 (`data-theme="pink"`라는 이름은 기획서 7장 테마 목록을 그대로 쓴 것 — 새 테마를 만든 게 아님)
 - PC(넓은 화면): `min-width: 901px` 미디어쿼리로 `.game-root`를 20:9 폰 가로 비율 프레임으로 중앙에 띄우고 나머지는 은은한 radial-gradient 비네트로 덮는다 (플래시 게임 창 느낌). 900px 이하는 기존처럼 전체화면. 프레임 그림자는 오프셋 없이 blur만 줘서 사방에 고르게 퍼지게 함
 - 좌/우 공간 구분선: 네온 글로우 대신 `linear-gradient`로 양쪽 가장자리만 살짝 어두워지는 은은한 홈(seam)
-- `components/game/HUD.tsx` — DAY/money를 아이콘(📅/💰) + 흰 반투명 pill 배지로 표시
+- DAY/money는 아이콘(📅/💰) + 흰 반투명 pill 배지 (지금은 `components/game/TopBar.tsx` 안)
 - `components/shop/SpeechBubble.tsx` — 얇은 테두리 + 은은한 그림자로 카드 느낌
 - 캐릭터/손님 발밑에 흐린 타원 그림자로 바닥에 붙어있는 느낌, 탭 시 `active:scale-*`로 눌리는 피드백
 - **캐릭터/손님/테이블은 전부 이모지·CSS 도형 placeholder** — 나중에 실제 이미지 에셋이 생기면 교체 예정 (Phase 1은 기획서 7장 "이미지 에셋 최소화" 원칙에 맞춰 CSS로 최대한 다듬어두는 것으로 진행)
 
 ### [x] ① 매장 화면 뼈대 (좌/우 분할, 정적 배치)
-- `components/game/GameRoot.tsx` — 최상위 클라이언트 컴포넌트. `useGameState()`를 여기서만 호출하고 `state.screen`에 따라 `ShopScreen`/`CraftingScreen`에 훅 결과 전체(`gameState` prop)를 넘긴다. `app/page.tsx`는 `GameRoot`만 렌더링
+- `components/game/GameRoot.tsx` — 최상위 클라이언트 컴포넌트. `useGameState()`를 여기서만 호출하고 `state.station`에 따라 `ShopScreen`/`StationScreen`에 훅 결과 전체(`gameState` prop)를 넘긴다. 위아래로 `TopBar`/`StationNav`를 항상 붙인다. `app/page.tsx`는 `GameRoot`만 렌더링
 - `components/shop/ShopScreen.tsx` — 좌(`basis-2/5`)/우(`basis-3/5`) 분할. 손님 쪽 공간을 더 넓게 확보
 - `components/shop/PlayerSide.tsx` — 캐릭터 + 계산대(책상). 책상은 가로를 꽉 채우고 세로 최소 1/4(`h-1/4 min-h-24`)을 차지하며, **넓은 흰색 상판(70%, 위에서 내려다보는 면) + 얇은 테마색 옆면(30%)** 2단 구성 (Good Pizza, Great Pizza류 캐주얼 타이쿤 게임 참고 — 상판 비율이 커야 "위에서 내려다보는 테이블"처럼 보인다). 상판 위에 `CakeCounter`와 크림색 몸체의 캐시 레지스터(작은 모니터형 기계, 파스텔 그라데이션 화면)가 겹쳐 놓인다
   - ⚠️ `perspective()+rotateX()`로 진짜 3D 기울임을 시도했다가 폭 넓은 요소에서 대각선으로 깨지는 아티팩트가 생겨 포기 — 밝기 2단 구분(넓은 상판/얇은 옆면)만으로 입체감을 표현하는 쪽으로 정착
-- `components/shop/CakeCounter.tsx` — 책상 상판 위 체크무늬 손수건(정사각형을 `clip-path`로 다이아몬드 모양으로 직접 그림 — `rotate` 대신 이 방식을 쓴 이유: 바닥 기준점 계산이 쉬움) + 케이크 받침대(상판+나팔 모양 기둥, 손수건의 가장 넓은 중간 높이에 겹쳐 배치). `box-shadow`는 `clip-path` 도형을 따라가지 않아 윤곽 그림자는 `drop-shadow`로 처리. 완성된 케이크(`cake` prop)가 있으면 🎂로 표시 (현재 항상 `cake={null}`)
+- `components/shop/CakeCounter.tsx` — 책상 상판 위 체크무늬 손수건(정사각형을 `clip-path`로 다이아몬드 모양으로 직접 그림 — `rotate` 대신 이 방식을 쓴 이유: 바닥 기준점 계산이 쉬움) + 케이크 받침대(상판+나팔 모양 기둥, 손수건의 가장 넓은 중간 높이에 겹쳐 배치). `box-shadow`는 `clip-path` 도형을 따라가지 않아 윤곽 그림자는 `drop-shadow`로 처리. 완성된 케이크가 있으면 받침대 위에 실제 입체 케이크(`CakeSnapshot`) + 주문 번호표
 - `components/shop/CustomerSide.tsx` / `CustomerTable.tsx` / `SpeechBubble.tsx` — 테이블 3개, 각자 칸(1/3) 가로를 꽉 채우는 사각 테이블. 플레이어 쪽 책상과 눈높이가 완전히 같으면 어색해서 `mb-2`로 살짝 낮춤
 
 ### [x] ② 손님 등장 애니메이션 + 순차 주문 말풍선 + 주문서 확정 (cake-tycoon-prompt.md 3장)
@@ -40,64 +40,54 @@
 - `justArrivedIds`(`Set<string>`, 훅 상태)로 슬라이드업 등장 애니메이션 재생 여부를 판단
   - ⚠️ 처음엔 `key={customer.id}` div의 DOM 마운트 시점으로 애니메이션을 트리거했는데, `GameRoot`가 화면을 통째로 스위칭하는 구조라 제작 화면을 왕복할 때마다 `ShopScreen` 전체가 리마운트되면서 이미 있던 손님까지 매번 애니메이션이 재생되는 버그가 있었음 — DOM 마운트 대신 이 상태값으로 판단하도록 바꿔서 해결
 
-### [x] ③ 제작 화면 진입/이탈 + 여러 주문(activeOrders) 상태 관리
-(기획서 19장 5번에 "구현 전 설계안부터 제시" 지시가 있어 설계안을 먼저 보여주고 확인받은 뒤 구현함)
-- `hooks/useGameState.ts` — `startOrResumeOrder(customerId)`: 손님별 `activeOrders`에 항목이 있으면 이어서, 없으면 `stage:'base'`의 새 `ActiveOrder`를 만들어 진입. `exitCrafting()`: `screen:'shop'`으로 복귀하되 진행 상태(`stage`/`cake`)는 보존
-- `components/shop/CustomerTable.tsx`/`CustomerSide.tsx` — 주문 확정된 손님에게 "만들기"/"이어 만들기" 버튼 (해당 손님의 `activeOrders` 존재 여부로 라벨 결정)
-- `components/game/CraftingScreen.tsx`, `OrderTicket.tsx` — 제작 화면 뼈대. 상단 "나가기" 버튼 + 주문서 상시 노출(기획서 1장 원칙)
+### [x] ③~⑤ 제작 + 서빙 (최초 구현 후 "스테이션 구조"로 전면 개편됨 — 아래 참고)
+- 최초엔 손님별 "만들기" 버튼 → 제작 화면에서 한 케이크를 끝까지 진행하는 구조였으나, 사용자 피드백("Papa's처럼 주문 받다가도 토핑하러 가고, 굽다가도 새로 만들러 가야 한다")으로 스테이션 구조로 바꿈
+- 서빙(⑤)은 그대로 유지: `ShopScreen`에서 계산대 케이크 pointerdown → `setPointerCapture` → 손가락을 따라다니는 `fixed` 케이크 → pointerup 지점을 `document.elementsFromPoint`로 검사해 `data-table-index` 테이블 판별. 주문한 손님이면 서빙, 아니면 0.25초 스냅백(감점 없음). 계산대에는 완성 케이크 1개만(`+N` 대기 표시). Enter/Space 키보드 서빙(`click`의 `detail === 0`, 18장)
+- `serveOrder`: 채점 → 돈 지급 → 결과 카드(`ServeResultCard`, Papa's "CAKE COMPLETE!") → 3초 먹기(`servedCakes`) → 퇴장(`leavingIds`) → 1초 후 `assignCustomer()`로 새 손님
+- 채점 `lib/gameLogic.ts` `scoreServedCake()`: 정확도(시트/필링/크림/토핑 재료 + 문구) · 품질(반죽 양, 굽기, 필링 평균, 크림 평균) · 데코(40 + 그림 30 + 텍스트 30) · 속도(주문 확정부터, 150초 만점 / 360초 40점)의 단순 평균. 금액 `30 × 총점/100`, tip `총점/20`(누적만)
 
-### [x] ④ 제작 단계들 (시트 선택 → 오븐 → 크림 → 토핑 → 데코레이션) (2장/4장/19장)
-- `lib/gameLogic.ts` — 오븐 타이밍 판정(`OVEN_DURATION_MS`=6초, 70~90% 구간이 만점, `scoreBaking`)과 크림 판정(`scoreFrostingCoverage`/`scoreFrostingEvenness`) 순수 함수. ⑤ 결과 화면 채점에 재사용 가능
-- `components/game/cake/CakeRenderer.tsx` — 시트/크림/토핑을 `cake` 데이터만 보고 다시 그리는 선언적 렌더러(16장 원칙). 텍스트/자유 그림은 데코 단계 전용 오버레이가 따로 담당(중복 방지)
-- `components/game/cake/DrawingCanvas.tsx` — pointer 이벤트 자유 그림, 좌표는 캔버스 크기 대비 %로 저장(토핑/텍스트와 좌표계 통일), `cake.drawings`에서 항상 다시 그림
-- `components/game/cake/TextOverlay.tsx` — 드래그 가능한 DOM 텍스트 오버레이(Canvas 아님, 16장 원칙). (처음엔 `window.prompt()`로 입력받았으나 후속 다듬기에서 인라인 입력창으로 교체)
-- `components/game/stages/BaseSelectStage.tsx` — 재료 1개뿐이라 사실상 확인 단계지만, 재료가 늘어나도 그대로 쓸 구조
-- `components/game/stages/OvenStage.tsx` — `baking.startTime`(절대 시각) 기준 실시간 진행률. 다른 화면 갔다 와도 `Date.now()`로 정확히 재계산됨을 실제로 확인함
-- `components/game/stages/FrostingStage.tsx` — 6x6 그리드 드래그 페인팅(19장 4번 "터치 포인트 샘플링 근사치" 원칙), 완료 시 `cake.filling`에 크림 재료 id 자동 지정 + `cake.frosting`에 coverage/evenness 저장
-- `components/game/stages/ToppingStage.tsx` — 6x6 스냅 그리드에 탭으로 토핑 추가/제거(1장 5번 "그리드/스냅" 원칙)
-- `components/game/stages/DecorationStage.tsx` — 진입 시 `rotateX(55deg)→rotateX(0deg)` 카메라 전환 연출(4장, 생략 불가), 그림/텍스트 도구(후속 다듬기에서 확장) + "완성" 버튼(누르면 `stage:'ready'`로 바꾸고 매장 화면으로 자동 복귀)
-- `hooks/useGameState.ts` — 여러 전용 setter 대신 범용 `updateOrder(orderId, updater)` 하나로 각 단계의 `cake` 필드를 갱신
-- `components/game/CraftingScreen.tsx`에서 위 5단계를 `order.stage`에 따라 조립. 브라우저로 시트→오븐→크림→토핑→데코 전체 플로우를 실제로 클릭해서 확인함
-  - (⑤에서 해결됨) 예전 한계: "완성"된 주문(`stage:'ready'`)도 매장 화면에서 여전히 "이어 만들기" 버튼으로 보임(재진입하면 "완성된 케이크입니다" 안내만 뜸) — 서빙/결과 화면이 없어서 자연스러운 종료 지점이 아직 없음
+### [x] 스테이션 구조 (Papa's 방식, 사용자와 설계 합의 후 구현)
+- 하단 `components/game/StationNav.tsx`: `🧾 주문 | 🥣 시트 | 🔥 오븐 | 🍦 필링·크림 | 🎨 토핑·데코` — **매장 포함 어느 화면에서든 항상 보이고 언제든 이동**. 탭마다 할 일 개수 배지, 오븐 탭은 칸별 진행 바 + 적정 구간(초록)/과열(빨강) 깜빡임
+- 상단 `components/game/TopBar.tsx`(모든 화면 공통)는 DAY / 돈만. 주문서는 바 **아래 오른쪽** `components/game/OrderClipRail.tsx` — 식당 주방처럼 금속 봉에 집게로 집어 둔 작은 주문서(`#1` 번호만, 최대 3장). 누르면 아래로 영수증 모양 큰 주문서(재료 목록만, 진행 단계는 안 적음)가 펼쳐지고, 그 케이크가 있는 스테이션의 작업 대상으로도 선택됨 (`GameRoot.handleBillTap`)
+- **지금 어느 주문 케이크를 작업 중인지 화면에 적지 않는다** (사용자 요청: 알려주면 너무 쉬워짐). 스테이션 좌상단엔 버리기 버튼만
+- 주문은 손님 이름 대신 **번호(`#1`)**로 부른다. `GameState.nextOrderNumber` — 하루가 시작될 때 1로 리셋할 예정(DAY 진행 미구현). 번호는 `Customer.orderNumber`에도 저장해서 손님 머리 위에 떠날 때까지(먹는 중 포함) **항상** 띄운다. 확정 후엔 말풍선도 안 띄움
+- 상태: `GameState.station`(현재 화면), `selectedOrderIds`(스테이션별 작업 중 주문), `ovenSlots`(2칸). `ActiveOrder.stage`는 케이크가 있는 스테이션(`base → oven → cream → decorate → ready`, **앞으로만**, 1장 2번). `lib/station.ts`의 `getSelectedOrder`는 고른 주문이 이미 넘어갔으면 대기열 첫 주문을 돌려줌
+- 주문 확정 순간 `ActiveOrder`가 생성되어 시트 스테이션에 올라감 (`createdAt`도 이때부터 = 속도 점수 기준)
+- ⚠️ 버그 수정 기록: `handleCustomerTap`이 `setState` 업데이터 **안에서** 타이머를 걸어서, 개발 모드 StrictMode의 업데이터 이중 실행 때문에 주문이 2개씩 생겼음. 부수 효과는 업데이터 밖으로, 업데이터는 상태 확인 후 멱등하게
+- 케이크 버리기 `discardOrder` (`components/game/DiscardButton.tsx`, 인라인 "버리고 처음부터? 버리기/취소" 확인): 번호·주문 시각은 유지, 케이크만 초기화 후 시트 단계로. `ActiveOrder.attempt`를 올려 단계 컴포넌트 key를 바꿔 로컬 상태까지 초기화
+- 모든 재료는 **먼저 고르고 → 넣는다** (재료가 늘어난다는 전제, 8장). `components/game/MaterialPicker.tsx`는 내부적으로 radiogroup이지만 잼 병(jar)/짤주머니(bag)/그릇(bowl) 모양으로 보여줌. 넣기 시작하면 재료 고정("다시 붓기/바르기"로 비워야 변경)
+- 프레스&홀드(1장 4번) 공용 `hooks/useHoldLoop.ts`(rAF), 양 게이지 공용 `components/game/AmountGauge.tsx`(적정량 ±10% 초록 띠)
 
-### [x] ⑤ 계산대 표시 + 드래그 서빙 + 결과 화면 (3장 93~97줄, 12장, 17장 8~11번)
-- `lib/gameState.ts` — `ActiveOrder`에 `createdAt`/`completedAt` 추가 (속도 점수용)
-- `lib/gameLogic.ts` — `scoreServedCake()`: 주문 정확도(시트/크림/토핑/문구 일치) · 제작 품질(굽기+크림 범위+균일도 평균) · 데코레이션(40 + 그림 30 + 텍스트 30) · 속도(60초 이내 만점, 180초 이상 40점)의 단순 평균이 총점. 금액 = `30 × 총점/100`, tip = `총점/20` (`player.tipTotal`에 누적만, 표시 안 함 — 17장 "팁 시스템 제외")
-- `hooks/useGameState.ts`
-  - `completeOrder(orderId)`: 데코 "완성" → `stage:'ready'` + `completedAt` + 매장 복귀
-  - `serveOrder(orderId)`: 채점 → 돈 지급 → 손님 `status:'served'` → `activeOrders`에서 제거 → 결과 카드(`serveResult`) → `EATING_DURATION_MS`(3초) 먹는 연출 → 퇴장 애니메이션(0.45초) → 테이블 비움 → 1초 후 `assignCustomer()`로 새 손님(종소리+슬라이드업)
-  - 서빙된 케이크는 `activeOrders`에서 빠지므로 먹는 동안 테이블에 그릴 데이터는 `servedCakes`(customerId → cake)에 따로 보관. 퇴장 중 손님은 `leavingIds`
-  - 초기 손님 배정 로직을 `assignCustomer(tableIndex)`로 분리해 퇴장 후 재배정에도 재사용
-- `components/shop/ShopScreen.tsx` — 드래그 상태 보유. 계산대 케이크에서 pointerdown → `setPointerCapture` → 손가락을 따라다니는 `fixed` 🎂 → pointerup 지점을 `document.elementsFromPoint`로 검사해 `data-table-index` 테이블을 찾는다. 주문한 손님이면 서빙, 아니면 받침대 위치로 0.25초 스냅백(감점 없음)
-  - 계산대에는 완성 케이크 1개만 올린다(완성 순서대로). 나머지는 이름표에 `+N`으로 대기 표시
-  - 키보드 대체 조작: 케이크 버튼을 Enter/Space로 누르면(`click` 이벤트의 `detail === 0`) 바로 해당 손님에게 서빙 (18장 접근성)
-- `components/shop/CakeCounter.tsx` — 받침대 위 흔들리는 🎂(`animate-cake-wiggle`) + 손님 이름표
-- `components/shop/CustomerTable.tsx` — 드래그 중 주인 테이블엔 "여기에 놓기 ⬇", 다른 손님 테이블 위에선 "이 손님 케이크가 아니에요" 라벨 + 점선 외곽선. 완성 대기 중엔 "만들기" 버튼 대신 "🎂 서빙 대기" 배지(기존 "이어 만들기" 한계 해결). 먹는 중엔 😋 + 테이블 위 🎂
-- `components/shop/ServeResultCard.tsx` — Papa's 스타일 "CAKE COMPLETE!" 카드(항목별 %, TOTAL, + $금액). 매장 위 오버레이라 뒤에서 먹기/퇴장은 계속 진행됨
-- 브라우저에서 실제 마우스 드래그로 확인: 잘못된 테이블 드롭 → 스냅백, 올바른 테이블 → 결과 카드 + HUD 금액 증가, 먹기 → 퇴장 → 새 손님 등장까지 확인. 콘솔 에러 없음
+#### 스테이션별
+- 시트 `stages/BaseSelectStage.tsx`: 반죽 재료 선택 → 틀을 누르고 있으면 반죽이 차오름(`BATTER_TARGET`=100, 초당 25). 반죽 양은 채점 + 입체 케이크 높이에 반영
+- 오븐 `stages/OvenStage.tsx`: 대기 트레이 → 빈 칸에 넣기. `OVEN_DURATION_MS`=50초, 80~95%(40~47.5초) 만점, 120%부터 탐. 시트 색이 `getBakeFilter`로 실시간 변함(창백 → 노릇 → 까맘). 칸별 버리기 버튼
+- 필링·크림 `stages/CreamStation.tsx`: 왼쪽 탭(`stages/StepTabsLayout.tsx`) 필링 → 크림, **필링을 끝내야 크림 탭이 열림**. 공용 `stages/SpreadStage.tsx`
+  - 필링: 갈라진 시트 단면(`CakeInsideView`)에 짜서 바름, 목표 두께 고정(`FILLING_TARGET_THICKNESS`)
+  - 크림: 입체 케이크 윗면 + **옆면(회전판)**. 옆면은 누르고 있으면 회전판이 돌며 정면 조각에 발림 — 딱 한 바퀴(3.5초)가 "보통" 양(`lib/frosting.ts` `SIDE_SEGMENTS`=24). 주문의 `creamAmount`(조금/보통/듬뿍, 손님 생성 시 무작위)가 목표. 크림 완료 시 케이크가 토핑·데코로 넘어감
+  - 판정 `lib/frosting.ts`: 12x12 칸 두께 그리드에 가우시안으로 쌓음. 범위(목표 35% 이상 칸 비율) · 균일도(평균 절대 편차/평균) · 양(`scoreAmountMatch`, 20% 차이 = 70점). 크림은 윗면/옆면 평균 + 합계 양
+  - 짜는 동안은 로컬 상태만 갱신하고 손을 뗄 때 주문에 저장. ⚠️ 크림 층을 SVG 원 100여 개 + 블러로 그렸더니 매 프레임 렌더링이 밀려 게이지가 "확" 차오르는 문제가 있어 `CreamCanvas`(canvas)로 교체
+- 토핑·데코 `stages/DecorateStation.tsx`: 왼쪽 탭 토핑 → 데코, "토핑 완료"를 눌러야 데코가 열림
+  - 토핑: 재료 선택 후 입체 케이크 윗면 탭(6x6 스냅), 다시 탭하면 뺌
+  - 데코 `stages/DecorationStage.tsx`: 진입 시 `rotateX(55deg)→0` 카메라 전환(4장). 그리기(색 5, 굵기 3, 획 단위 지우개 `lib/decoration.ts`), 글자(인라인 입력, 크기/회전/색/글꼴/삭제, 드래그·방향키, `clampToCake`), 실행 취소/다시 실행(로컬 히스토리). "완성 🎉" → `ready` + 매장으로 이동
 
-### [x] 후속 다듬기
-- 제작 단계는 **앞으로만** 진행 (1장 2번 "이전 단계로 자유롭게 되돌아가지 않고 순서대로"). 하단 바는 버튼이 아니라 진행 표시(✅ 완료 / 현재 / 🔒 잠김)이고, 단계 이동은 각 단계의 "다음 단계로" 버튼으로만 한다. 각 단계의 "다음" 버튼이 완료 조건을 건다(시트 선택, 굽기 완료, 크림 완료, 토핑 1개 이상)
-  - 한때 탭으로 지나온 단계를 다시 볼 수 있게 했다가(`isStageUnlocked`) 1장 2번과 어긋나서 제거함
-- `components/game/cake/CakeSnapshot.tsx` — 완성 케이크 읽기 전용 렌더러. 제작 화면 크기(224px)로 그린 뒤 `scale()`로 축소, 자유 그림은 같은 % 좌표계의 SVG polyline으로 다시 그림. 결과 카드(점수표 옆, 96px)와 먹는 중인 테이블 위(52px, `scale-y-[0.6]`으로 눕힘)에 사용. 결과 카드용 케이크는 `ServeResultCard` 데이터에 같이 복사해 둔다
-- 브라우저로 결과 카드의 실제 케이크 모습(토핑+그림) 확인. 테이블 위 스냅샷은 DOM으로만 확인(스크린샷 타이밍을 못 맞춤)
-- 데코레이션 도구 (5장/6장): `DecorationStage`를 케이크(왼쪽) + 도구 패널(오른쪽) 가로 배치로 바꿈 (가로 폰의 좁은 세로 공간 대응). "✏️ 그리기 / 🔤 글자" 모드 전환
-  - 그리기: 펜 색상 5개, 펜 크기 3단계, 지우개, 그림 전체 지우기
-  - 지우개는 픽셀을 긁지 않고 **닿은 획을 통째로 삭제** (`lib/decoration.ts`의 `eraseStrokesAt`, 선분 거리 판정) — 그림 데이터가 항상 획 목록으로 남아 `CakeSnapshot`에서 그대로 다시 그려진다
-  - 글자: `window.prompt()` 대신 인라인 입력창 + "추가". 글자를 눌러 선택 → 크기(A−/A+), 회전(15° 단위), 색상, 글꼴(고딕/명조/손글씨) 버튼, 삭제. 드래그 또는 방향키로 이동하며 `clampToCake`로 케이크 원 안(반경 42%)에 가둔다
-  - 실행 취소/다시 실행: `DecorationStage` 로컬 히스토리(`{drawings, text}` 스냅샷). 드래그·지우개처럼 연속 조작은 시작 시 1번만 쌓는다. 제작 화면을 나갔다 오면 히스토리만 초기화됨
-  - 그리기 모드에선 글자가, 글자 모드에선 캔버스가 포인터를 받지 않도록 서로 끈다
-  - `CraftingScreen`의 그림/텍스트 전용 핸들러 4개를 `onChange({drawings, text})` 하나로 합침
-  - ⚠️ 이 작업은 브라우저 실동작 확인을 못 함 (아래 참고). tsc/eslint 통과 + `lib/decoration.ts` 함수만 Node로 검증
-- 참고: 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
-- ⚠️ 브라우저 자동화 주의: Chrome 창이 오래 가려져 있으면(탭 hidden) 타이머가 분 단위로 몰아서 실행돼 `setTimeout` 기반 대기와 게임 타이머가 멈춘 것처럼 보이고 CDP 호출도 타임아웃난다. 이럴 땐 사용자에게 Chrome 창을 앞으로 가져와 달라고 요청할 것
+#### 케이크 렌더링 `components/game/cake/CakeRenderer.tsx` (16장 "데이터에서 다시 그리기")
+- `CakeTopView`: 224px 평면(데코 단계, 자유 그림/텍스트 % 좌표계의 기준). `CakeInsideView`: 필링 단면. `Cake3D`: 윗면 타원(평면을 `scale(x, 0.42)`로 눕힘) + 원기둥 옆면(아래 타원 곡선, 필링 줄, 회전 반영 옆면 크림 그라데이션, 음영) + **토핑은 눕히지 않고 세워서** y순 정렬. `faceLayer`/`topOverlay`/`sideOverlay`로 입력 영역을 꽂음
+- **데코 단계를 뺀 모든 케이크는 입체**(`Cake3D`) — 오븐, 토핑, 계산대, 드래그 중, 결과 카드, 테이블 위(`CakeSnapshot`은 `Cake3D` 래퍼). 예전에 평면을 `scale-y`로 눌러 서빙 케이크가 납작해 보이던 문제 해결
+- 옆면 크림 회전판 받침(회색 타원)은 용도가 안 보인다는 피드백으로 제거 — 회전은 옆면 크림 무늬가 도는 것으로만 보인다
+- 크림/필링이 "떼야 반영된다"는 제보(두 번): 상태·캔버스는 실시간 갱신되고 있었음(rAF를 MessageChannel로 흉내 내 확인). 원인은 표시 쪽 — ① 크림이 두께 0.45에서 불투명으로 포화돼 그 뒤로 짜도 모양이 안 변했고 ② 🍦 아이콘이 짜는 지점을 가려서, 떼는 순간 아이콘이 사라지며 크림이 "나타나는" 것처럼 보였음. → 두께에 따라 그림자/하이라이트가 계속 커지는 3단계 그리기(`creamPuff`), 짜는 위치는 점선 원 + 옆으로 비킨 작은 아이콘. 캔버스는 `useLayoutEffect`, rAF dt 음수 방지
+- **짜는 세기**(살살 0.6 / 보통 1 / 꾹 1.5배): 같은 속도로 전체를 훑었을 때 두께가 달라진다. "조금" 주문을 바르다 마는 식이 아니라 세기로 양을 맞추게 하려는 것 (사용자 요청)
+- 검증: tsc/eslint 통과. 백그라운드 탭에서 rAF를 MessageChannel로 흉내 내(`window.requestAnimationFrame` 덮어쓰기) 주문→붓기→오븐 42초→필링→크림 윗면·옆면→토핑→데코 완성→드래그 서빙→결과 카드까지 전체 흐름 확인, 콘솔 에러 없음. **스크린샷 기반 육안 확인은 아직 못 함**(탭 hidden). 한 스크립트가 45초를 넘으면 CDP가 타임아웃되지만 스크립트는 뒤에서 계속 돈다는 점 주의
+
+### 기타 참고
+- 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
+- ⚠️ 브라우저 자동화 주의: 탭이 hidden이면 rAF가 아예 멈추고(붓기/짜기 불가) 타이머도 몰아서 실행되며 스크린샷/CDP가 타임아웃난다. Claude가 연 탭이 별도 창/그룹에 있어 hidden인 경우가 많으니, 사용자에게 **"케이크 타이쿤" 탭을 앞으로** 가져와 달라고 요청할 것
+- 셸: 이 컴퓨터엔 Python이 없다(`python`은 스토어 스텁). 일부 파일이 CRLF라 문자열 치환 스크립트는 줄바꿈을 정규화해서 처리할 것
 
 ## 다음 할 일
-Phase 1 MVP(19장 ①~⑤)와 기획서 1장/5장/6장 누락분까지 구현됨. 이후 후보 (우선순위는 사용자와 상의):
-- **데코 도구 브라우저 실동작 확인** (최우선): 그리기/지우개/펜 크기/실행 취소·다시 실행, 글자 추가·선택·크기·회전·색·글꼴·삭제·드래그·방향키 이동, 결과 카드 스냅샷에 글꼴/회전 반영 여부. Chrome 창을 앞에 둔 상태에서 테스트할 것
-- 테이블 위 먹는 중 케이크 스냅샷 위치/크기 육안 확인
-- 실제 플레이 밸런스 조정 (오븐 6초, 속도 기준 60/180초, 케이크 가격 $30 등 전부 임시값)
-- DAY 진행(하루 종료 조건)은 기획서 Phase 1 범위에 명시가 없어 미구현 — 규칙을 사용자에게 받아야 함
+- **육안 확인** (최우선, Chrome 탭을 앞에 둔 상태): 크림/필링이 누르는 동안 눈에 보이게 쌓이는지(사용자 피드백 대기), 입체 케이크 모양(계산대·드래그·결과 카드·테이블 위), 재료 병 모양, 주문서 레일/펼침 위치가 콘텐츠를 가리는지, 좁은 가로 화면에서 세로 공간 부족 여부
+- 데코 도구 브라우저 실동작 확인 (그리기/지우개/글자 조작/실행 취소)
+- 실제 플레이 밸런스 조정 (반죽 속도, 오븐 50초, 크림 흐름 16/초, 회전판 3.5초, 속도 기준 150/360초, 가격 $30 등 전부 임시값). 한 케이크에 단계가 6개라 플레이가 길어졌을 수 있음
+- DAY 진행(하루 종료 조건)은 미구현 — 규칙을 사용자에게 받아야 함 (주문 번호 리셋도 여기에 연결)
 - 손님 인내심 게이지(1장 6번)는 17장 Phase 1 목록에 없어서 미구현 (`Customer.patience` 필드만 있음)
 
 **Phase 1 범위 상기**: 섹션 17 참고. 손님 다양화/커스텀 재료 UI/테마 선택 UI/캐릭터 커스터마이징/재료 해금/장비 업그레이드/팁 시스템/랭크업 연출 등은 Phase 1에서 제외.

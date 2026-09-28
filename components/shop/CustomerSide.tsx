@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { ActiveOrder, Customer } from "@/lib/gameState";
 import { initialMaterials } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
+import { formatOrderNumber } from "@/lib/station";
 import { CustomerTable } from "./CustomerTable";
 
 type CustomerSideProps = {
@@ -15,7 +16,6 @@ type CustomerSideProps = {
   draggingCustomerId: string | null; // 지금 드래그 중인 케이크의 주인
   hoverTableIndex: number | null; // 드래그 중인 케이크가 올라가 있는 테이블
   onCustomerTap: (tableIndex: number) => void;
-  onStartOrResumeOrder: (customerId: string) => void;
 };
 
 export function CustomerSide({
@@ -29,7 +29,6 @@ export function CustomerSide({
   draggingCustomerId,
   hoverTableIndex,
   onCustomerTap,
-  onStartOrResumeOrder,
 }: CustomerSideProps) {
   return (
     <section
@@ -37,11 +36,8 @@ export function CustomerSide({
       className="flex flex-1 basis-3/5 items-end justify-around gap-2 overflow-hidden bg-[linear-gradient(180deg,var(--theme-primary)_0%,var(--theme-background)_70%)] px-3 pb-4"
     >
       {tables.map((customer, index) => {
-        // 주문이 확정된 손님만 "만들기"/"이어 만들기" 버튼을 보여준다 (cake-tycoon-prompt.md 17장 5번).
+        // 주문이 확정된 손님 머리 위에는 주문 번호를 항상 띄운다(먹는 동안까지). 주문 내용은 주문서 레일에서 언제든 볼 수 있다.
         const activeOrder = customer ? activeOrders.find((order) => order.customerId === customer.id) : undefined;
-        const isAwaitingServe = activeOrder?.stage === "ready";
-        const canMake =
-          !!customer && customer.status === "order_confirmed" && orderingCustomerId !== customer.id && !isAwaitingServe;
         const isDragTarget = !!customer && customer.id === draggingCustomerId;
         const dropState = isDragTarget ? "target" : customer && hoverTableIndex === index ? "hover" : null;
 
@@ -53,9 +49,8 @@ export function CustomerSide({
             bubble={getBubbleContent(customer, orderingCustomerId, orderingStepIndex)}
             shouldAnimateEntrance={!!customer && justArrivedIds.has(customer.id)}
             onTap={() => onCustomerTap(index)}
-            makeButtonLabel={canMake ? (activeOrder ? "이어 만들기" : "만들기") : null}
-            onMakeClick={customer ? () => onStartOrResumeOrder(customer.id) : undefined}
-            isAwaitingServe={isAwaitingServe}
+            orderTag={customer?.orderNumber != null ? formatOrderNumber({ orderNumber: customer.orderNumber }) : null}
+            isAwaitingServe={activeOrder?.stage === "ready"}
             servedCake={customer ? (servedCakes[customer.id] ?? null) : null}
             isLeaving={!!customer && leavingIds.has(customer.id)}
             dropState={dropState}
@@ -92,11 +87,7 @@ function getBubbleContent(
   }
 
   if (customer.status === "order_confirmed") {
-    return (
-      <span aria-hidden className="tracking-wide">
-        {steps.map((step) => step.emoji).join(" ")}
-      </span>
-    );
+    return null; // 주문서는 상단 레일에 있으니 손님 앞에 다시 띄우지 않는다
   }
 
   return "...";

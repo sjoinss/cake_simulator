@@ -10,7 +10,7 @@ export const initialMaterials: MaterialRegistry = {
     { id: 'cream_vanilla', category: 'cream', name: '바닐라 크림', color: '#fffaf0', emoji: '🍦', isCustom: false, unlockRank: 0 },
   ],
   filling: [
-    { id: 'filling_strawberry', category: 'filling', name: '딸기 필링', color: '#ff6f91', emoji: '🍓', isCustom: false, unlockRank: 0 },
+    { id: 'filling_strawberry', category: 'filling', name: '딸기잼', color: '#ff6f91', emoji: '🍓', isCustom: false, unlockRank: 0 },
   ],
   topping: [
     { id: 'topping_strawberry', category: 'topping', name: '딸기', color: '#ff4d6d', emoji: '🍓', isCustom: false, unlockRank: 0 },
