@@ -137,6 +137,7 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
         />
         <CustomerSide
           tables={state.tables}
+          rank={state.player.rank}
           orderingCustomerId={orderingCustomerId}
           orderingStepIndex={orderingStepIndex}
           justArrivedIds={justArrivedIds}

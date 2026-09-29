@@ -41,6 +41,7 @@ export type Customer = {
     frosting: string;
     creamAmount: CreamAmount; // 크림을 얼마나 두껍게 발라달라는지 (서빙할 때 이 기준으로 크림 양을 채점)
     topping: string;
+    toppingCount?: number; // 토핑 개수까지 주문한 경우 (TOPPING_COUNT_RANK부터). 없으면 개수 무관
     decoration?: string;
   };
 };
@@ -141,7 +142,7 @@ export type GameState = {
   player: Player;
   theme: ThemeName;
   station: Station;
-  openTables: number; // 랭크에 따라 열리는 테이블 개수. Phase 1은 3 고정
+  openTables: number; // 쓰지 않음 — 열린 테이블은 랭크로 계산한다 (lib/progress.ts isTableOpen)
   tables: (Customer | null)[]; // 길이 3, 인덱스 = 테이블 번호
   cakes: CakeJob[]; // 주방에서 만드는 중인 케이크들 (완성되어 계산대에 있는 것 포함)
   selectedCakeIds: Record<WorkStation, string | null>; // 스테이션별로 지금 작업 중인 케이크

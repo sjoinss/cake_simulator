@@ -4,9 +4,11 @@ import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
 import { CustomerTable } from "./CustomerTable";
+import { isTableOpen, tableUnlockRank } from "@/lib/progress";
 
 type CustomerSideProps = {
   tables: (Customer | null)[];
+  rank: number; // 랭크로 열린 테이블만 손님을 받는다
   orderingCustomerId: string | null;
   orderingStepIndex: number;
   justArrivedIds: ReadonlySet<string>;
@@ -19,6 +21,7 @@ type CustomerSideProps = {
 
 export function CustomerSide({
   tables,
+  rank,
   orderingCustomerId,
   orderingStepIndex,
   justArrivedIds,
@@ -51,6 +54,7 @@ export function CustomerSide({
               servedCake={customer ? (servedCakes[customer.id] ?? null) : null}
               isLeaving={!!customer && leavingIds.has(customer.id)}
               dropState={dropState}
+              lockedRank={isTableOpen(rank, index) ? null : tableUnlockRank(index)}
             />
           );
         })}

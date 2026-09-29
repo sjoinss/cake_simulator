@@ -27,12 +27,19 @@ type OrderSpec = Customer["order"];
 const average = (values: number[]) =>
   values.length === 0 ? 0 : Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 
+// 토핑: 전부 주문한 토핑이어야 하고, 개수까지 주문했으면 하나 차이마다 25점씩 깎는다
+function scoreToppings(cake: CakeData, order: OrderSpec): number {
+  if (cake.toppings.length === 0 || cake.toppings.some((topping) => topping.itemId !== order.topping)) return 0;
+  if (order.toppingCount === undefined) return 100;
+  return Math.max(0, 100 - 25 * Math.abs(cake.toppings.length - order.toppingCount));
+}
+
 export function scoreAccuracy(cake: CakeData, order: OrderSpec): number {
   const checks = [
     cake.base === order.cake ? 100 : 0,
     cake.filling.materialId === order.filling ? 100 : 0,
     cake.frosting.materialId === order.frosting ? 100 : 0,
-    cake.toppings.length > 0 && cake.toppings.every((topping) => topping.itemId === order.topping) ? 100 : 0,
+    scoreToppings(cake, order),
   ];
   return average(checks);
 }

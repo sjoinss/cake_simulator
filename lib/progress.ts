@@ -34,6 +34,18 @@ export const isMaterialOwned = (material: Material, owned: readonly string[]) =>
 // 상점 가격: 늦게 열리는 재료일수록 비싸다
 export const materialPrice = (material: Material) => 30 + 15 * material.unlockRank;
 
+// ── 랭크별 난이도 (13-3) ──
+// 테이블은 가운데부터 하나씩 열린다: TABLE_UNLOCK_RANKS[n] = n+1번째로 열리는 테이블(TABLE_OPEN_ORDER[n])의 랭크
+export const TABLE_OPEN_ORDER = [1, 0, 2];
+export const TABLE_UNLOCK_RANKS = [1, 2, 4];
+export const tableUnlockRank = (tableIndex: number) => TABLE_UNLOCK_RANKS[TABLE_OPEN_ORDER.indexOf(tableIndex)] ?? 1;
+export const isTableOpen = (rank: number, tableIndex: number) => rank >= tableUnlockRank(tableIndex);
+
+// 이 랭크부터 손님이 토핑 개수까지 주문한다 (TOPPING_COUNT_MIN~MAX개)
+export const TOPPING_COUNT_RANK = 3;
+export const TOPPING_COUNT_MIN = 3;
+export const TOPPING_COUNT_MAX = 5;
+
 // ── 장비 업그레이드 ──
 export type UpgradeId = 'ovenSpeed' | 'ovenSlots';
 

@@ -2,7 +2,7 @@
 
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import type { MaterialCategory } from "@/lib/gameState";
-import { CUSTOM_MATERIAL_RANK } from "@/lib/progress";
+import { CUSTOM_MATERIAL_RANK, TABLE_UNLOCK_RANKS, TOPPING_COUNT_RANK } from "@/lib/progress";
 
 const CATEGORY_LABELS: Record<MaterialCategory, string> = {
   base: "시트",
@@ -25,6 +25,11 @@ export function RankUpCard({ ranks, onOpenShop, onClose }: RankUpCardProps) {
     registry[category].filter((material) => !material.isCustom && ranks.includes(material.unlockRank)),
   );
   const unlocksCustom = ranks.includes(CUSTOM_MATERIAL_RANK);
+  // 새로 생긴 일들 (재료 말고)
+  const news = [
+    ...(ranks.some((rank) => TABLE_UNLOCK_RANKS.includes(rank)) ? ["🪑 테이블이 하나 더 열렸어요 — 손님이 더 많이 와요"] : []),
+    ...(ranks.includes(TOPPING_COUNT_RANK) ? ["🍓 이제 손님이 토핑 개수까지 주문해요 (×4 등)"] : []),
+  ];
   const hasNews = newMaterials.length > 0;
 
   return (
@@ -57,6 +62,11 @@ export function RankUpCard({ ranks, onOpenShop, onClose }: RankUpCardProps) {
             </ul>
           </div>
         )}
+        {news.map((line) => (
+          <p key={line} className="w-full rounded-xl bg-white/80 px-3 py-1.5 text-xs font-bold">
+            {line}
+          </p>
+        ))}
         {unlocksCustom && (
           <p className="rounded-xl bg-white/80 px-3 py-2 text-xs font-bold">
             ✨ 나만의 재료 만들기가 열렸어요

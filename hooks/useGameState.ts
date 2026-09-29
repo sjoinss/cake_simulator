@@ -5,7 +5,6 @@ import {
   createDayProgress,
   createInitialGameState,
   CUSTOMERS_PER_DAY,
-  TABLE_COUNT,
   type CakeData,
   type CakeJob,
   type CraftingStage,
@@ -21,6 +20,7 @@ import {
   getOvenDuration,
   getOvenSlotCount,
   isMaterialOwned,
+  isTableOpen,
   materialPrice,
   UPGRADES,
   upgradeLevel,
@@ -118,7 +118,7 @@ export function useGameState() {
       const current = stateRef.current;
       if (current.tables[tableIndex] || current.today.customers >= CUSTOMERS_PER_DAY) return;
       playBellSound();
-      const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.unlockedItems);
+      const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.unlockedItems, current.player.rank);
       setState((prev) => {
         if (prev.tables[tableIndex] || prev.today.customers >= CUSTOMERS_PER_DAY) return prev;
         const tables = [...prev.tables];
@@ -148,9 +148,12 @@ export function useGameState() {
           arrivalTimer.current = null;
           const current = stateRef.current;
           if (current.today.customers >= CUSTOMERS_PER_DAY) return;
-          const emptyTables = current.tables.flatMap((table, index) => (table ? [] : [index]));
+          // 랭크로 열린 테이블 중 빈 곳 (13-3: 처음엔 가운데 하나, 랭크가 오르며 늘어난다)
+          const emptyTables = current.tables.flatMap((table, index) =>
+            table || !isTableOpen(current.player.rank, index) ? [] : [index],
+          );
           if (emptyTables.length === 0) return;
-          if (!current.tutorialDone && emptyTables.length < TABLE_COUNT) {
+          if (!current.tutorialDone && current.tables.some(Boolean)) {
             wait(TUTORIAL_RECHECK_MS);
             return;
           }
@@ -337,7 +340,11 @@ export function useGameState() {
       });
       setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
       setServeResult({ ...result, orderNumber: customer.orderNumber, cake: job.cake });
-      if (reachedRanks.length > 0) setRankUps((prev) => [...prev, ...reachedRanks]);
+      if (reachedRanks.length > 0) {
+        setRankUps((prev) => [...prev, ...reachedRanks]);
+        // 새로 열린 테이블이 비어 있지 않게: 멈춰 있던 손님 예약을 다시 건다
+        if (!arrivalTimer.current) scheduleArrival(randomBetween(REFILL_GAP_MIN_MS, REFILL_GAP_MAX_MS));
+      }
 
       schedule(() => {
         setLeavingIds((prev) => new Set(prev).add(customer.id));

@@ -91,6 +91,10 @@ export function ToppingStage({ job, materials, owned, onToggleTopping, onNext, i
           <p className={idle ? "hidden" : HINT}>
             {selectedId ? "케이크를 탭해서 올려보세요 (다시 탭하면 빼요)" : "먼저 선반에서 올릴 토핑을 고르세요"}
           </p>
+          {/* 개수를 주문하는 손님이 있어서 올린 개수를 보여준다 */}
+          {!idle && job.cake.toppings.length > 0 && (
+            <p className="text-sm font-bold text-[var(--theme-text)] short:text-xs">올린 토핑 {job.cake.toppings.length}개</p>
+          )}
           {/* 주문에는 항상 토핑이 있으므로 최소 1개는 올려야 데코로 넘어갈 수 있다 */}
           <button
             type="button"

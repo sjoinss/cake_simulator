@@ -26,7 +26,14 @@ export function getOrderSteps(order: Customer['order'], materials: MaterialRegis
   }
 
   const topping = findMaterial(materials, order.topping);
-  if (topping) steps.push({ emoji: topping.emoji, label: topping.name });
+  if (topping) {
+    const count = order.toppingCount;
+    steps.push(
+      count === undefined
+        ? { emoji: topping.emoji, label: topping.name }
+        : { emoji: topping.emoji, label: `${topping.name} ${count}개`, badge: `×${count}` },
+    );
+  }
 
   if (order.decoration) {
     const decoration = findMaterial(materials, order.decoration);

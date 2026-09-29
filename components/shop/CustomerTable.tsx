@@ -15,6 +15,7 @@ type CustomerTableProps = {
   servedCake: CakeData | null; // 서빙 완료 후 먹는 중인 케이크 (테이블 위에 표시)
   isLeaving: boolean; // 먹고 나서 퇴장 애니메이션 재생 중
   dropState: "available" | "hover" | null; // 케이크를 끄는 중: available = 줄 수 있는 손님, hover = 지금 이 테이블 위에 있음
+  lockedRank: number | null; // 아직 안 열린 테이블이면 열리는 랭크 (13-3)
 };
 
 export function CustomerTable({
@@ -27,20 +28,36 @@ export function CustomerTable({
   servedCake,
   isLeaving,
   dropState,
+  lockedRank,
 }: CustomerTableProps) {
   const materialRegistry = useMaterialRegistry();
   const { getCustomerImage } = useCustomImages();
   const customerImage = customer ? getCustomerImage(customer.look, servedCake ? "eating" : "idle") : null;
   return (
     <div
-      aria-label={customer ? `테이블 ${tableIndex + 1}, 손님` : `테이블 ${tableIndex + 1}, 빈 테이블`}
+      aria-label={
+        customer
+          ? `테이블 ${tableIndex + 1}, 손님`
+          : lockedRank !== null
+            ? `테이블 ${tableIndex + 1}, 랭크 ${lockedRank}에 열려요`
+            : `테이블 ${tableIndex + 1}, 빈 테이블`
+      }
       data-table-index={tableIndex} // 드래그 서빙 시 드롭 대상 판별용 (ShopScreen)
       className="relative flex max-w-44 flex-1 basis-0 flex-col items-center justify-end"
     >
+      {/* 아직 안 여는 테이블: 흐리게 + 상판 위 "예약" 팻말 */}
+      {lockedRank !== null && !customer && (
+        <span className="absolute bottom-[4.6rem] z-30 flex flex-col items-center short:bottom-[2.9rem]">
+          <span className="rounded-md border border-black/10 bg-white px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)]/70 shadow-sm short:px-1.5 short:text-[10px]">
+            🔒 랭크 {lockedRank}
+          </span>
+          <span aria-hidden className="h-1.5 w-1 bg-[#c9b8ac]" />
+        </span>
+      )}
       {/* 의자 등받이: 손님 뒤에 있어서 앉아 있는 것처럼 보인다. 빈 테이블에도 놓여 있다 */}
       <div
         aria-hidden
-        className="absolute bottom-14 left-1/2 h-24 w-20 -translate-x-1/2 rounded-t-[1.8rem] border-4 border-b-0 border-[#b98559] bg-[#d9aa7e] shadow-[inset_0_3px_0_rgba(255,255,255,0.3)] short:bottom-9 short:h-16 short:w-14 short:rounded-t-[1.2rem]"
+        className={`absolute bottom-14 left-1/2 h-24 w-20 -translate-x-1/2 rounded-t-[1.8rem] border-4 border-b-0 border-[#b98559] bg-[#d9aa7e] shadow-[inset_0_3px_0_rgba(255,255,255,0.3)] short:bottom-9 short:h-16 short:w-14 short:rounded-t-[1.2rem] ${lockedRank !== null && !customer ? "opacity-50" : ""}`}
       >
         <div className="mx-auto mt-2 h-[70%] w-1.5 rounded-full bg-[#b98559]/60" />
       </div>
@@ -96,7 +113,7 @@ export function CustomerTable({
         </span>
       )}
       {/* 둥근 카페 테이블 (옆에서 본 모습): 흰 대리석 상판 + 가는 다리 + 둥근 받침. 손님은 상판 뒤에 앉아 있다 */}
-      <div className="relative z-20 flex w-[94%] flex-col items-center">
+      <div className={`relative z-20 flex w-[94%] flex-col items-center ${lockedRank !== null && !customer ? "opacity-50" : ""}`}>
         <div
           className={`relative h-5 w-full rounded-[50%] short:h-4 bg-[linear-gradient(180deg,#ffffff,#f1e9e4)] shadow-[0_3px_0_#e0d2c9,0_6px_8px_rgba(90,50,30,0.15)] ${
             dropState ? "outline-3 outline-offset-4 outline-dashed outline-[var(--theme-accent)]" : ""
