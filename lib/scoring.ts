@@ -98,7 +98,8 @@ function findFailReason(cake: CakeData, order: OrderSpec, accuracy: number, tota
 }
 
 export function getDecorationTip(cake: CakeData): number {
-  const effort = cake.drawings.length + cake.text.length * DECO_TIP_MIN_EFFORT;
+  // 그림 획(모양 도장 포함) 1, 스티커 1, 글자 2 — 합이 기준 이상이면 팁
+  const effort = cake.drawings.length + (cake.decorations?.length ?? 0) + cake.text.length * DECO_TIP_MIN_EFFORT;
   return effort >= DECO_TIP_MIN_EFFORT ? DECO_TIP : 0;
 }
 

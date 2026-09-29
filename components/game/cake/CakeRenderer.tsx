@@ -5,6 +5,7 @@ import type { CakeData, MaterialRegistry } from "@/lib/gameState";
 import { findMaterial } from "@/lib/materials";
 import { BATTER_TARGET, getBakedColor, getBakedRatio } from "@/lib/gameLogic";
 import { FROSTING_GRID, ON_CAKE_CELLS, SIDE_SEGMENTS, sideThickness } from "@/lib/frosting";
+import { rainbowColor } from "@/lib/decoration";
 
 // 케이크를 데이터만 보고 다시 그리는 선언적 렌더러 모음 (cake-tycoon-prompt.md 16장).
 // - CakeTopView: 위에서 내려다본 평면. 데코 단계(Top View 연출)와 입체 케이크 윗면의 원본으로 쓴다.
@@ -317,23 +318,69 @@ function FlatToppings({ cake, materials }: { cake: CakeData; materials: Material
   });
 }
 
-// 자유 그림은 Canvas 대신 같은 % 좌표계의 SVG polyline으로, 텍스트는 DOM으로 다시 그린다 (16장 "데이터에서 다시 그리기")
+// 자유 그림 획 하나를 SVG로 (DrawingCanvas의 drawStroke와 같은 규칙: 점선 / 무지개 / 반짝이)
+function StrokeSvg({ stroke }: { stroke: CakeData["drawings"][number] }) {
+  const width = (stroke.size / TOP_VIEW_PX) * 100;
+  if (stroke.brushType === "rainbow") {
+    return (
+      <g strokeWidth={width} strokeLinecap="round" fill="none">
+        {stroke.points.slice(1).map((point, index) => (
+          <line
+            key={index}
+            x1={stroke.points[index].x}
+            y1={stroke.points[index].y}
+            x2={point.x}
+            y2={point.y}
+            stroke={rainbowColor(index + 1)}
+          />
+        ))}
+      </g>
+    );
+  }
+  return (
+    <g>
+      <polyline
+        points={stroke.points.map((point) => `${point.x},${point.y}`).join(" ")}
+        fill="none"
+        stroke={stroke.color}
+        strokeWidth={width}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={stroke.brushType === "dashed" ? `${width * 1.2} ${width * 2.2}` : undefined}
+      />
+      {stroke.brushType === "sparkle" &&
+        stroke.points
+          .filter((_, index) => index % 3 === 0)
+          .map((point, index) => (
+            <circle key={index} cx={point.x} cy={point.y} r={Math.max(0.45, width * 0.32)} fill="rgba(255,255,255,0.95)" />
+          ))}
+    </g>
+  );
+}
+
+// 자유 그림은 Canvas 대신 같은 % 좌표계의 SVG로, 텍스트·스티커는 DOM으로 다시 그린다 (16장 "데이터에서 다시 그리기")
 function DecorationLayer({ cake }: { cake: CakeData }) {
   return (
     <>
       <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
         {cake.drawings.map((stroke, index) => (
-          <polyline
-            key={index}
-            points={stroke.points.map((point) => `${point.x},${point.y}`).join(" ")}
-            fill="none"
-            stroke={stroke.color}
-            strokeWidth={(stroke.size / TOP_VIEW_PX) * 100}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <StrokeSvg key={index} stroke={stroke} />
         ))}
       </svg>
+      {(cake.decorations ?? []).map((sticker, index) => (
+        <span
+          key={`sticker-${index}`}
+          className="absolute text-2xl leading-none"
+          style={{
+            left: `${sticker.x}%`,
+            top: `${sticker.y}%`,
+            transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg) scale(${sticker.scale})`,
+          }}
+          aria-hidden
+        >
+          {sticker.emoji}
+        </span>
+      ))}
       {cake.text.map((text, index) => (
         <span
           key={index}

@@ -78,7 +78,7 @@ export type CakeDrawing = {
   points: { x: number; y: number }[];
   color: string;
   size: number;
-  brushType?: string; // Phase 1 미사용, 나중 브러시 종류 확장용
+  brushType?: 'basic' | 'dashed' | 'rainbow' | 'sparkle'; // 펜 종류 (없으면 기본) — lib/decoration.ts BRUSHES
 };
 
 export type CakeTopping = {
@@ -87,11 +87,14 @@ export type CakeTopping = {
   y: number;
 };
 
+// 케이크 위에 붙이는 장식. 지금은 이모지 스티커 하나뿐 (좌표는 %, 텍스트처럼 끌어 옮기고 크기·회전을 바꾼다)
 export type CakeDecoration = {
-  type: string;
+  type: 'sticker';
+  emoji: string;
   x: number;
   y: number;
-  [key: string]: unknown;
+  scale: number;
+  rotation: number;
 };
 
 export type CakeData = {

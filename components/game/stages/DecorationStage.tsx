@@ -1,14 +1,23 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import type { CakeJob, CakeDrawing, CakeText, MaterialRegistry } from "@/lib/gameState";
-import { eraseStrokesAt } from "@/lib/decoration";
+import type { CakeDecoration, CakeJob, CakeDrawing, CakeText, MaterialRegistry } from "@/lib/gameState";
+import { BRUSHES, eraseStrokesAt, STICKER_SCALE, STICKERS, type BrushType, type StampShape } from "@/lib/decoration";
+import { sounds } from "@/lib/sound";
 import { CakeTopView } from "../cake/CakeRenderer";
 import { DrawingCanvas, type DrawingTool } from "../cake/DrawingCanvas";
+import { StickerOverlay } from "../cake/StickerOverlay";
 import { TextOverlay } from "../cake/TextOverlay";
 import { FitBox, Scaled } from "../FitBox";
 
-export type DecorationData = { drawings: CakeDrawing[]; text: CakeText[] };
+export type DecorationData = { drawings: CakeDrawing[]; text: CakeText[]; decorations: CakeDecoration[] };
+
+// 모양 도장 (그리기 모드): 누른 자리에 지금 펜 색·굵기·종류로 찍힌다
+const STAMPS: { shape: StampShape; label: string; icon: string }[] = [
+  { shape: "heart", label: "하트 도장", icon: "♡" },
+  { shape: "star", label: "별 도장", icon: "☆" },
+  { shape: "circle", label: "동그라미 도장", icon: "○" },
+];
 
 type DecorationStageProps = {
   colors: string[]; // 펜·글자 색 (lib/progress.ts getPenColors)
@@ -18,7 +27,7 @@ type DecorationStageProps = {
   onFinish: () => void;
 };
 
-type Mode = "draw" | "text";
+type Mode = "draw" | "sticker" | "text";
 
 const PEN_SIZES = [
   { size: 2, label: "가는 펜" },
@@ -38,14 +47,18 @@ const TEXT_ROTATION_STEP = 15;
 
 // 데코레이션 단계. 진입 시 카메라가 위로 이동해 케이크를 완전히 내려다보는 Top View로 전환되는
 // 연출이 핵심 차별화 요소라 반드시 구현한다 (cake-tycoon-prompt.md 4장 — 생략 대상 아님).
-// 도구: 자유 그림(펜 색상/크기, 지우개, 전체 지우기, 실행 취소/다시 실행 — 5장) +
+// 도구: 자유 그림(펜 색상/크기/종류, 모양 도장, 지우개, 전체 지우기, 실행 취소/다시 실행 — 5장) +
+// 스티커(이모지 붙이기·옮기기·크기·회전 — 4장 "스티커 배치") +
 // 텍스트(추가, 드래그 이동, 크기/회전/색상/폰트 버튼 — 6장 "Phase 1은 버튼 방식").
 export function DecorationStage({ job, materials, colors: COLORS, onChange, onFinish }: DecorationStageProps) {
   const [isTopView, setIsTopView] = useState(false);
   const [mode, setMode] = useState<Mode>("draw");
   const [color, setColor] = useState(COLORS[0]);
   const [penSize, setPenSize] = useState(PEN_SIZES[1].size);
+  const [brush, setBrush] = useState<BrushType>("basic");
   const [tool, setTool] = useState<DrawingTool>("pen");
+  const [placingSticker, setPlacingSticker] = useState<string | null>(STICKERS[0]);
+  const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null);
   const [selectedTextIndex, setSelectedTextIndex] = useState<number | null>(null);
   const [textDraft, setTextDraft] = useState("");
   // 실행 취소/다시 실행 히스토리. 제작 화면을 나갔다 오면 초기화된다 (케이크 데이터 자체는 유지).
@@ -57,8 +70,21 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
     return () => clearTimeout(timer);
   }, []);
 
-  const current: DecorationData = { drawings: job.cake.drawings, text: job.cake.text };
+  const current: DecorationData = {
+    drawings: job.cake.drawings,
+    text: job.cake.text,
+    decorations: job.cake.decorations ?? [],
+  };
   const selectedText = selectedTextIndex !== null ? job.cake.text[selectedTextIndex] : undefined;
+  const selectedSticker = selectedStickerIndex !== null ? current.decorations[selectedStickerIndex] : undefined;
+
+  const updateSelectedSticker = (updater: (sticker: CakeDecoration) => CakeDecoration) => {
+    if (selectedStickerIndex === null) return;
+    commit({
+      ...current,
+      decorations: current.decorations.map((sticker, index) => (index === selectedStickerIndex ? updater(sticker) : sticker)),
+    });
+  };
 
   // 지금 상태를 실행 취소 지점으로 저장한다. 드래그/지우개처럼 연속으로 바뀌는 조작은 시작할 때 한 번만 호출한다.
   const pushHistory = () => {
@@ -78,6 +104,7 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
     setRedoStack((stack) => [...stack, current]);
     onChange(previous);
     setSelectedTextIndex(null);
+    setSelectedStickerIndex(null);
   };
 
   const redo = () => {
@@ -87,6 +114,7 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
     setUndoStack((stack) => [...stack, current]);
     onChange(next);
     setSelectedTextIndex(null);
+    setSelectedStickerIndex(null);
   };
 
   const updateSelectedText = (updater: (text: CakeText) => CakeText) => {
@@ -115,10 +143,11 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
       return;
     }
     setColor(swatch);
-    setTool("pen");
+    // 지우개였으면 펜으로 돌아간다 (모양 도장은 그대로 — 색만 바꿔 찍을 수 있게)
+    if (tool === "eraser") setTool("pen");
   };
 
-  const activeColor = mode === "text" ? selectedText?.color : tool === "pen" ? color : undefined;
+  const activeColor = mode === "text" ? selectedText?.color : tool !== "eraser" ? color : undefined;
 
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center gap-6 overflow-hidden px-6 py-3 short:gap-3 short:px-3 short:py-1.5">
@@ -136,6 +165,7 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
                   drawings={job.cake.drawings}
                   color={color}
                   size={penSize}
+                  brush={brush}
                   tool={tool}
                   enabled={mode === "draw"}
                   onStrokeComplete={(stroke) => commit({ ...current, drawings: [...current.drawings, stroke] })}
@@ -144,6 +174,29 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
                     const remaining = eraseStrokesAt(job.cake.drawings, point, ERASER_RADIUS);
                     if (remaining.length !== job.cake.drawings.length) onChange({ ...current, drawings: remaining });
                   }}
+                />
+                <StickerOverlay
+                  stickers={current.decorations}
+                  enabled={mode === "sticker"}
+                  placing={placingSticker}
+                  selectedIndex={selectedStickerIndex}
+                  onSelect={setSelectedStickerIndex}
+                  onPlace={(x, y) => {
+                    if (!placingSticker) return;
+                    sounds.pop();
+                    commit({
+                      ...current,
+                      decorations: [...current.decorations, { type: "sticker", emoji: placingSticker, x, y, scale: 1, rotation: 0 }],
+                    });
+                    setSelectedStickerIndex(current.decorations.length);
+                  }}
+                  onMoveStart={pushHistory}
+                  onMove={(index, x, y) =>
+                    onChange({
+                      ...current,
+                      decorations: current.decorations.map((sticker, i) => (i === index ? { ...sticker, x, y } : sticker)),
+                    })
+                  }
                 />
                 <TextOverlay
                   texts={job.cake.text}
@@ -169,10 +222,89 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
           <ToolButton pressed={mode === "draw"} onClick={() => setMode("draw")} wide>
             ✏️ 그리기
           </ToolButton>
+          <ToolButton pressed={mode === "sticker"} onClick={() => setMode("sticker")} wide>
+            🌟 스티커
+          </ToolButton>
           <ToolButton pressed={mode === "text"} onClick={() => setMode("text")} wide>
             🔤 글자
           </ToolButton>
         </div>
+
+        {mode === "sticker" && (
+          <>
+            <div role="radiogroup" aria-label="붙일 스티커" className="grid grid-cols-8 gap-1 short:gap-0.5">
+              {STICKERS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  role="radio"
+                  aria-checked={placingSticker === emoji}
+                  aria-label={`스티커 ${emoji}`}
+                  onClick={() => setPlacingSticker(emoji)}
+                  className={`flex aspect-square items-center justify-center rounded-lg text-lg leading-none transition-transform active:scale-90 short:text-base ${
+                    placingSticker === emoji ? "bg-[var(--theme-accent)] shadow-sm" : "bg-white/80"
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            {selectedSticker ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <ToolButton
+                  label="스티커 작게"
+                  disabled={selectedSticker.scale <= STICKER_SCALE.min}
+                  onClick={() =>
+                    updateSelectedSticker((sticker) => ({
+                      ...sticker,
+                      scale: Math.max(STICKER_SCALE.min, sticker.scale - STICKER_SCALE.step),
+                    }))
+                  }
+                >
+                  −
+                </ToolButton>
+                <ToolButton
+                  label="스티커 크게"
+                  disabled={selectedSticker.scale >= STICKER_SCALE.max}
+                  onClick={() =>
+                    updateSelectedSticker((sticker) => ({
+                      ...sticker,
+                      scale: Math.min(STICKER_SCALE.max, sticker.scale + STICKER_SCALE.step),
+                    }))
+                  }
+                >
+                  +
+                </ToolButton>
+                <ToolButton
+                  label="스티커 왼쪽으로 회전"
+                  onClick={() => updateSelectedSticker((sticker) => ({ ...sticker, rotation: sticker.rotation - 15 }))}
+                >
+                  ⟲
+                </ToolButton>
+                <ToolButton
+                  label="스티커 오른쪽으로 회전"
+                  onClick={() => updateSelectedSticker((sticker) => ({ ...sticker, rotation: sticker.rotation + 15 }))}
+                >
+                  ⟳
+                </ToolButton>
+                <ToolButton
+                  label="선택한 스티커 떼기"
+                  onClick={() => {
+                    commit({
+                      ...current,
+                      decorations: current.decorations.filter((_, index) => index !== selectedStickerIndex),
+                    });
+                    setSelectedStickerIndex(null);
+                  }}
+                >
+                  🗑️
+                </ToolButton>
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--theme-text)]/70">스티커를 고르고 케이크를 톡 누르면 붙어요</p>
+            )}
+          </>
+        )}
 
         {mode === "text" && (
           <form onSubmit={handleAddText} className="flex gap-1.5">
@@ -235,6 +367,44 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
               🧽 지우개
             </ToolButton>
           </div>
+        )}
+
+        {mode === "draw" && (
+          <>
+            {/* 모양 도장: 누른 자리에 찍힌다 */}
+            <div role="group" aria-label="모양 도장" className="flex items-center gap-1.5">
+              {STAMPS.map((stamp) => (
+                <ToolButton
+                  key={stamp.shape}
+                  label={stamp.label}
+                  pressed={tool === stamp.shape}
+                  onClick={() => setTool(stamp.shape)}
+                >
+                  <span className="text-base leading-none">{stamp.icon}</span>
+                </ToolButton>
+              ))}
+              <span className="text-[11px] text-[var(--theme-text)]/60">톡 누르면 찍혀요</span>
+            </div>
+            {/* 펜 종류 */}
+            <div role="radiogroup" aria-label="펜 종류" className="flex items-center gap-1.5">
+              {BRUSHES.map((option) => (
+                <button
+                  key={option.type}
+                  type="button"
+                  role="radio"
+                  aria-checked={brush === option.type}
+                  aria-label={option.label}
+                  title={option.label}
+                  onClick={() => setBrush(option.type)}
+                  className={`flex min-h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold shadow-sm transition-transform active:scale-95 ${
+                    brush === option.type ? "bg-[var(--theme-accent)] text-white" : "bg-white/80 text-[var(--theme-text)]"
+                  }`}
+                >
+                  {option.emoji}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {mode === "text" && selectedText && (
