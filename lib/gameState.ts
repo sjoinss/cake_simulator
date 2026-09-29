@@ -10,7 +10,8 @@ export type Material = {
   name: string;
   color: string;
   emoji: string;
-  image?: string; // 재료 그림 경로 (예: /images/materials/filling_strawberry.png). 없으면 CSS 병/그릇 + 이모지로 그린다
+  image?: string; // 선반에 놓이는 모습 전체를 바꾸는 그림 (예: 크림 짤주머니). 없으면 CSS 병/그릇/짤주머니로 그린다
+  icon?: string; // 이모지 대신 쓰는 작은 그림 (그릇 위, 케이크 위 토핑, 주문서 등). 없으면 이모지
   isCustom: boolean;
   retired?: boolean; // 플레이어가 지운 커스텀 재료. 기존 주문/케이크 표시용으로만 남고 선반·새 주문에는 안 나온다
   unlockRank: number; // 이 랭크에 도달하면 자동 해금. 0 = 처음부터 사용 가능
@@ -87,10 +88,12 @@ export type CakeTopping = {
   y: number;
 };
 
-// 케이크 위에 붙이는 장식. 지금은 이모지 스티커 하나뿐 (좌표는 %, 텍스트처럼 끌어 옮기고 크기·회전을 바꾼다)
+// 케이크 위에 붙이는 장식. 지금은 스티커 하나뿐 — 그림(image) 또는 이모지(emoji)
+// (좌표는 %, 텍스트처럼 끌어 옮기고 크기·회전을 바꾼다)
 export type CakeDecoration = {
   type: 'sticker';
-  emoji: string;
+  emoji?: string;
+  image?: string;
   x: number;
   y: number;
   scale: number;

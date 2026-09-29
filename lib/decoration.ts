@@ -67,8 +67,39 @@ export const BRUSHES: { type: BrushType; label: string; emoji: string }[] = [
 export const rainbowColor = (segment: number) => `hsl(${(segment * 14) % 360} 85% 62%)`;
 
 // ---- 스티커 (CakeDecoration type "sticker") ----
-// 윈도우 10에서도 보이는 이모지만
-export const STICKERS = ['❤️', '💕', '⭐', '✨', '🌸', '🌷', '🎀', '🦋', '🍒', '🎂', '🐰', '🐻', '👑', '💎', '🎈', '🌈'];
+// 그림 스티커(public/images/assets/stickers — 파스텔 에셋) + 이모지 스티커(윈도우 10에서도 보이는 것만).
+// id는 저장되는 값이라 바꾸지 말 것 (그림은 image, 이모지는 emoji로 저장된다)
+export type StickerOption = { id: string; label: string; image?: string; emoji?: string };
+const stickerImage = (name: string, label: string): StickerOption => ({
+  id: name,
+  label,
+  image: `/images/assets/stickers/${name}.png`,
+});
+export const STICKERS: StickerOption[] = [
+  stickerImage('swirl_pink', '분홍 크림'),
+  stickerImage('swirl_vanilla', '바닐라 크림'),
+  stickerImage('swirl_chocolate', '초코 크림'),
+  stickerImage('swirl_mint', '민트 크림'),
+  stickerImage('swirl_lavender', '라벤더 크림'),
+  stickerImage('swirl_yellow', '노랑 크림'),
+  stickerImage('flowers_pink', '분홍 꽃'),
+  stickerImage('flower_blue', '파랑 꽃'),
+  stickerImage('bow_pink', '분홍 리본'),
+  stickerImage('bow_lavender', '보라 리본'),
+  stickerImage('bow_blue', '파랑 리본'),
+  stickerImage('bow_gingham', '체크 리본'),
+  stickerImage('crown', '왕관'),
+  stickerImage('rainbow', '무지개'),
+  stickerImage('bunny', '토끼'),
+  stickerImage('bear', '곰'),
+  stickerImage('heart', '하트'),
+  stickerImage('chocolate_heart', '초코 하트'),
+  stickerImage('strawberry_half', '딸기 반쪽'),
+  stickerImage('star_pick', '별 픽'),
+  stickerImage('heart_pick', '하트 픽'),
+  stickerImage('bow_pick', '리본 픽'),
+  ...['✨', '⭐', '💕', '🦋', '🎂', '🎈'].map((emoji) => ({ id: emoji, label: emoji, emoji })),
+];
 export const STICKER_SCALE = { min: 0.6, max: 2.2, step: 0.2 };
 
 // 지우개: 픽셀 단위로 긁어내는 대신, 지우개가 닿은 획을 통째로 지운다.

@@ -4,6 +4,7 @@ import { findMaterial } from './materials';
 
 export type OrderStep = {
   emoji: string;
+  icon?: string; // 재료 그림이 있으면 이모지 대신 (MaterialGlyph)
   label: string;
   badge?: string; // 이모지만 보여주는 좁은 곳(주문서 티켓 등)에서도 꼭 보여야 하는 짧은 글자 (예: 크림 양)
 };
@@ -13,16 +14,16 @@ export function getOrderSteps(order: Customer['order'], materials: MaterialRegis
   const steps: OrderStep[] = [];
 
   const cake = findMaterial(materials, order.cake);
-  if (cake) steps.push({ emoji: cake.emoji, label: cake.name });
+  if (cake) steps.push({ emoji: cake.emoji, icon: cake.icon, label: cake.name });
 
   const filling = findMaterial(materials, order.filling);
   // 필링 재료는 토핑과 이모지가 겹칠 수 있어(딸기잼/딸기) 티켓에서 구분되도록 배지를 붙인다
-  if (filling) steps.push({ emoji: filling.emoji, label: `${filling.name} 필링`, badge: '필링' });
+  if (filling) steps.push({ emoji: filling.emoji, icon: filling.icon, label: `${filling.name} 필링`, badge: '필링' });
 
   const frosting = findMaterial(materials, order.frosting);
   if (frosting) {
     const amount = CREAM_AMOUNT_LABEL[order.creamAmount];
-    steps.push({ emoji: frosting.emoji, label: `${frosting.name} ${amount}`, badge: amount });
+    steps.push({ emoji: frosting.emoji, icon: frosting.icon, label: `${frosting.name} ${amount}`, badge: amount });
   }
 
   const topping = findMaterial(materials, order.topping);
@@ -30,14 +31,14 @@ export function getOrderSteps(order: Customer['order'], materials: MaterialRegis
     const count = order.toppingCount;
     steps.push(
       count === undefined
-        ? { emoji: topping.emoji, label: topping.name }
-        : { emoji: topping.emoji, label: `${topping.name} ${count}개`, badge: `×${count}` },
+        ? { emoji: topping.emoji, icon: topping.icon, label: topping.name }
+        : { emoji: topping.emoji, icon: topping.icon, label: `${topping.name} ${count}개`, badge: `×${count}` },
     );
   }
 
   if (order.decoration) {
     const decoration = findMaterial(materials, order.decoration);
-    if (decoration) steps.push({ emoji: decoration.emoji, label: decoration.name });
+    if (decoration) steps.push({ emoji: decoration.emoji, icon: decoration.icon, label: decoration.name });
   }
 
   return steps;

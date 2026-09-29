@@ -5,6 +5,7 @@ import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
 import { CustomerTable } from "./CustomerTable";
+import { MaterialGlyph } from "@/components/game/MaterialGlyph";
 import { hasDecor, isTableOpen, tableUnlockRank } from "@/lib/progress";
 
 type CustomerSideProps = {
@@ -189,7 +190,7 @@ function getBubbleContent(
     if (!step) return null;
     return (
       <span className="flex items-center gap-1">
-        <span aria-hidden>{step.emoji}</span>
+        <MaterialGlyph material={step} size={16} />
         <span>{step.label}</span>
       </span>
     );

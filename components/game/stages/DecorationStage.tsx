@@ -2,7 +2,16 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import type { CakeDecoration, CakeJob, CakeDrawing, CakeText, MaterialRegistry } from "@/lib/gameState";
-import { BRUSHES, eraseStrokesAt, STICKER_SCALE, STICKERS, type BrushType, type StampShape } from "@/lib/decoration";
+import {
+  BRUSHES,
+  eraseStrokesAt,
+  STICKER_SCALE,
+  STICKERS,
+  type BrushType,
+  type StampShape,
+  type StickerOption,
+} from "@/lib/decoration";
+import { StickerGlyph } from "../cake/StickerGlyph";
 import { sounds } from "@/lib/sound";
 import { CakeTopView } from "../cake/CakeRenderer";
 import { DrawingCanvas, type DrawingTool } from "../cake/DrawingCanvas";
@@ -57,7 +66,7 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
   const [penSize, setPenSize] = useState(PEN_SIZES[1].size);
   const [brush, setBrush] = useState<BrushType>("basic");
   const [tool, setTool] = useState<DrawingTool>("pen");
-  const [placingSticker, setPlacingSticker] = useState<string | null>(STICKERS[0]);
+  const [placingSticker, setPlacingSticker] = useState<StickerOption>(STICKERS[0]);
   const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null);
   const [selectedTextIndex, setSelectedTextIndex] = useState<number | null>(null);
   const [textDraft, setTextDraft] = useState("");
@@ -178,15 +187,18 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
                 <StickerOverlay
                   stickers={current.decorations}
                   enabled={mode === "sticker"}
-                  placing={placingSticker}
+                  placing
                   selectedIndex={selectedStickerIndex}
                   onSelect={setSelectedStickerIndex}
                   onPlace={(x, y) => {
-                    if (!placingSticker) return;
                     sounds.pop();
+                    const { image, emoji } = placingSticker;
                     commit({
                       ...current,
-                      decorations: [...current.decorations, { type: "sticker", emoji: placingSticker, x, y, scale: 1, rotation: 0 }],
+                      decorations: [
+                        ...current.decorations,
+                        { type: "sticker", ...(image ? { image } : { emoji }), x, y, scale: 1, rotation: 0 },
+                      ],
                     });
                     setSelectedStickerIndex(current.decorations.length);
                   }}
@@ -232,20 +244,21 @@ export function DecorationStage({ job, materials, colors: COLORS, onChange, onFi
 
         {mode === "sticker" && (
           <>
-            <div role="radiogroup" aria-label="붙일 스티커" className="grid grid-cols-8 gap-1 short:gap-0.5">
-              {STICKERS.map((emoji) => (
+            <div role="radiogroup" aria-label="붙일 스티커" className="grid grid-cols-7 gap-1 short:gap-0.5">
+              {STICKERS.map((option) => (
                 <button
-                  key={emoji}
+                  key={option.id}
                   type="button"
                   role="radio"
-                  aria-checked={placingSticker === emoji}
-                  aria-label={`스티커 ${emoji}`}
-                  onClick={() => setPlacingSticker(emoji)}
-                  className={`flex aspect-square items-center justify-center rounded-lg text-lg leading-none transition-transform active:scale-90 short:text-base ${
-                    placingSticker === emoji ? "bg-[var(--theme-accent)] shadow-sm" : "bg-white/80"
+                  aria-checked={placingSticker.id === option.id}
+                  aria-label={`스티커 ${option.label}`}
+                  title={option.label}
+                  onClick={() => setPlacingSticker(option)}
+                  className={`flex aspect-square items-center justify-center rounded-lg p-0.5 leading-none transition-transform active:scale-90 ${
+                    placingSticker.id === option.id ? "bg-[var(--theme-accent)] shadow-sm" : "bg-white/80"
                   }`}
                 >
-                  {emoji}
+                  <StickerGlyph sticker={option} size={17} />
                 </button>
               ))}
             </div>
@@ -523,8 +536,9 @@ function ToolButton({ children, onClick, pressed, disabled, label, wide }: ToolB
       aria-pressed={pressed}
       aria-label={label}
       title={label}
-      className={`flex min-h-8 min-w-8 items-center justify-center rounded-full px-2.5 py-1 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:opacity-40 disabled:active:scale-100 ${
-        wide ? "flex-1" : ""
+      className={`flex min-h-8 min-w-8 items-center justify-center rounded-full py-1 font-bold shadow-sm transition-transform active:scale-95 disabled:opacity-40 disabled:active:scale-100 ${
+        // 도구 탭(그리기/스티커/글자) 셋이 한 줄에 들어가도록 좁고 줄바꿈 없이
+        wide ? "flex-1 px-1.5 text-xs whitespace-nowrap" : "px-2.5 text-sm"
       } ${pressed ? "bg-[var(--theme-accent)] text-white" : "bg-white/80 text-[var(--theme-text)]"}`}
     >
       {children}

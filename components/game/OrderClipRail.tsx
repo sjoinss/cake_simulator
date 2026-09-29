@@ -3,6 +3,7 @@ import { TABLE_COUNT } from "@/lib/gameState";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
+import { MaterialGlyph } from "./MaterialGlyph";
 
 type OrderClipRailProps = {
   customers: (Customer | null)[];
@@ -85,9 +86,7 @@ export function OrderClipRail({ customers, openBillId, onBillTap, onCloseBill }:
           <ul className="flex flex-col gap-1.5 pt-2 text-sm short:gap-0.5 short:text-xs">
             {getOrderSteps(openCustomer.order, materialRegistry).map((step) => (
               <li key={step.label} className="flex items-center gap-2">
-                <span className="text-lg leading-none" aria-hidden>
-                  {step.emoji}
-                </span>
+                <MaterialGlyph material={step} size={18} />
                 <span className="flex-1 font-medium">{step.label}</span>
               </li>
             ))}

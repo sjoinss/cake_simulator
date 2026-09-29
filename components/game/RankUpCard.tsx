@@ -2,6 +2,7 @@
 
 import { sounds } from "@/lib/sound";
 import { useMountSound } from "@/hooks/useMountSound";
+import { MaterialGlyph } from "./MaterialGlyph";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import type { MaterialCategory } from "@/lib/gameState";
 import { CUSTOM_MATERIAL_RANK, TABLE_UNLOCK_RANKS, TOPPING_COUNT_RANK } from "@/lib/progress";
@@ -57,7 +58,7 @@ export function RankUpCard({ ranks, onOpenShop, onClose }: RankUpCardProps) {
                   key={material.id}
                   className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-bold shadow-sm"
                 >
-                  <span aria-hidden>{material.emoji}</span>
+                  <MaterialGlyph material={material} size={14} />
                   {material.name}
                   <span className="font-semibold text-[var(--theme-text)]/50">{CATEGORY_LABELS[material.category]}</span>
                 </li>

@@ -6,6 +6,8 @@ import { findMaterial } from "@/lib/materials";
 import { BATTER_TARGET, getBakedColor, getBakedRatio } from "@/lib/gameLogic";
 import { FROSTING_GRID, ON_CAKE_CELLS, SIDE_SEGMENTS, sideThickness } from "@/lib/frosting";
 import { rainbowColor } from "@/lib/decoration";
+import { MaterialGlyph } from "../MaterialGlyph";
+import { StickerGlyph } from "./StickerGlyph";
 
 // 케이크를 데이터만 보고 다시 그리는 선언적 렌더러 모음 (cake-tycoon-prompt.md 16장).
 // - CakeTopView: 위에서 내려다본 평면. 데코 단계(Top View 연출)와 입체 케이크 윗면의 원본으로 쓴다.
@@ -191,11 +193,10 @@ export function Cake3D({
                 style={{
                   left: `${topping.x}%`,
                   top: `${topping.y}%`,
-                  fontSize: 24 * scale,
                   transform: "translate(-50%, -80%)",
                 }}
               >
-                {material.emoji}
+                <MaterialGlyph material={material} size={24 * scale} />
               </span>
             );
           })}
@@ -308,11 +309,11 @@ function FlatToppings({ cake, materials }: { cake: CakeData; materials: Material
     return (
       <span
         key={index}
-        className="absolute -translate-x-1/2 -translate-y-1/2 text-2xl leading-none"
+        className="absolute -translate-x-1/2 -translate-y-1/2 leading-none"
         style={{ left: `${topping.x}%`, top: `${topping.y}%` }}
         aria-hidden
       >
-        {material.emoji}
+        <MaterialGlyph material={material} size={24} />
       </span>
     );
   });
@@ -370,7 +371,7 @@ function DecorationLayer({ cake }: { cake: CakeData }) {
       {(cake.decorations ?? []).map((sticker, index) => (
         <span
           key={`sticker-${index}`}
-          className="absolute text-2xl leading-none"
+          className="absolute leading-none"
           style={{
             left: `${sticker.x}%`,
             top: `${sticker.y}%`,
@@ -378,7 +379,7 @@ function DecorationLayer({ cake }: { cake: CakeData }) {
           }}
           aria-hidden
         >
-          {sticker.emoji}
+          <StickerGlyph sticker={sticker} />
         </span>
       ))}
       {cake.text.map((text, index) => (

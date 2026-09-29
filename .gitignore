@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# GPT가 만든 원본 에셋 묶음 (자동 자르기라 파일 이름과 내용이 어긋남). 게임에는 다듬은 public/images/assets/ 만 쓴다
+/public/cake_simulator_pastel_assets/
+/scripts/assets/cleaned/
+/scripts/assets/contact-sheet.png
+/scripts/assets/contact-index.txt

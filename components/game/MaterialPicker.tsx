@@ -1,5 +1,6 @@
 import type { Material } from "@/lib/gameState";
 import { withBasePath } from "@/lib/assets";
+import { MaterialGlyph } from "./MaterialGlyph";
 import { sounds } from "@/lib/sound";
 
 export type MaterialContainer = "jar" | "bag" | "bowl";
@@ -121,7 +122,7 @@ function Jar({ material }: { material: Material }) {
       <span className="relative h-11 w-11 overflow-hidden rounded-t-md rounded-b-xl border-2 border-white/90 bg-white/40 shadow-[inset_2px_0_0_rgba(255,255,255,0.7)]">
         <span className="absolute inset-x-0 bottom-0 h-[78%]" style={{ backgroundColor: material.color }} />
         <span className="absolute top-1/2 left-1/2 flex h-5 w-6 -translate-x-1/2 -translate-y-1/3 items-center justify-center rounded-sm bg-white/90 text-xs leading-none">
-          {material.emoji}
+          <MaterialGlyph material={material} size={12} />
         </span>
       </span>
     </span>
@@ -141,7 +142,9 @@ function PipingBag({ material }: { material: Material }) {
         }}
       />
       <span className="h-3 w-2.5 bg-[#b8c0c8]" style={{ clipPath: "polygon(0 0, 100% 0, 70% 100%, 30% 100%)" }} />
-      <span className="absolute top-1 left-1/2 -translate-x-1/2 text-sm leading-none">{material.emoji}</span>
+      <span className="absolute top-1 left-1/2 -translate-x-1/2 leading-none">
+        <MaterialGlyph material={material} size={14} />
+      </span>
     </span>
   );
 }
@@ -150,7 +153,9 @@ function PipingBag({ material }: { material: Material }) {
 function Bowl({ material }: { material: Material }) {
   return (
     <span aria-hidden className="relative flex h-14 w-14 flex-col items-center justify-end">
-      <span className="absolute top-1 text-xl leading-none">{material.emoji}</span>
+      <span className="absolute top-0.5 leading-none">
+        <MaterialGlyph material={material} size={material.icon ? 26 : 20} />
+      </span>
       <span className="relative h-3 w-14 rounded-[50%]" style={{ backgroundColor: material.color }} />
       <span className="-mt-1.5 h-7 w-14 rounded-b-full bg-[#eef1f4] shadow-[inset_0_-4px_0_rgba(0,0,0,0.08),0_3px_4px_rgba(0,0,0,0.12)]" />
     </span>

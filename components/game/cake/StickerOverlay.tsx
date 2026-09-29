@@ -3,11 +3,12 @@
 import { useRef } from "react";
 import type { CakeDecoration } from "@/lib/gameState";
 import { clampToCake } from "@/lib/decoration";
+import { StickerGlyph } from "./StickerGlyph";
 
 type StickerOverlayProps = {
   stickers: CakeDecoration[];
   enabled: boolean; // 스티커 모드일 때만 누를 수 있다 (그리기·글자 모드에선 방해하지 않게)
-  placing: string | null; // 고른 스티커 — 빈 자리를 누르면 이걸 붙인다
+  placing: boolean; // 고른 스티커가 있다 — 빈 자리를 누르면 붙인다
   selectedIndex: number | null;
   onSelect: (index: number) => void;
   onPlace: (x: number, y: number) => void;
@@ -86,12 +87,12 @@ export function StickerOverlay({
           key={index}
           type="button"
           tabIndex={enabled ? 0 : -1}
-          aria-label={`스티커 ${sticker.emoji} 선택 (방향키로 이동)`}
+          aria-label={`${index + 1}번 스티커 선택 (방향키로 이동)`}
           aria-pressed={selectedIndex === index}
           onPointerDown={handleStickerDown(index)}
           onKeyDown={handleKeyDown(index)}
           onClick={() => onSelect(index)}
-          className={`absolute touch-none rounded-lg border-0 bg-transparent p-0 text-2xl leading-none select-none ${
+          className={`absolute touch-none rounded-lg border-0 bg-transparent p-0 leading-none select-none ${
             enabled ? "pointer-events-auto cursor-grab active:cursor-grabbing" : "pointer-events-none"
           } ${enabled && selectedIndex === index ? "outline-2 outline-offset-2 outline-dashed outline-[var(--theme-accent)]" : ""}`}
           style={{
@@ -100,7 +101,7 @@ export function StickerOverlay({
             transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg) scale(${sticker.scale})`,
           }}
         >
-          {sticker.emoji}
+          <StickerGlyph sticker={sticker} />
         </button>
       ))}
     </div>
