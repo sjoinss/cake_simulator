@@ -27,6 +27,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#f8d7cf",
+  // 카메라 홀(노치) 자리까지 화면을 쓴다. 조작 요소는 globals.css의 --safe-l/r/b만큼 안쪽으로 민다
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

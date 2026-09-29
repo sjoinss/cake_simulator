@@ -16,7 +16,7 @@ export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
   const install = useInstallPrompt();
 
   return (
-    <header className="relative z-20 flex h-12 shrink-0 items-center justify-between gap-3 bg-[var(--theme-secondary)] px-3 shadow-[0_2px_6px_rgba(0,0,0,0.08)] short:h-9">
+    <header className="relative z-20 flex h-12 shrink-0 items-center justify-between gap-3 bg-[var(--theme-secondary)] pr-[calc(0.75rem+var(--safe-r))] pl-[calc(0.75rem+var(--safe-l))] shadow-[0_2px_6px_rgba(0,0,0,0.08)] short:h-9">
       <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-base font-bold tracking-wide text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-sm">
         <span aria-hidden>📅</span> DAY {day}
         <span className="ml-1 text-sm font-semibold text-[var(--theme-text)]/60 short:text-xs">

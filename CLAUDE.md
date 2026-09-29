@@ -153,7 +153,7 @@
 - 아이콘 `public/icons/*.png`는 `node scripts/make-icons.mjs`가 코드로 그린다(그림 도구 없음). 디자인을 바꾸면 스크립트를 고쳐 다시 돌리고 PNG를 커밋
 - `public/sw.js`: 네트워크 우선 + 실패 시 캐시(오프라인에서도 한 번 연 게임은 켜짐). 등록은 `hooks/useInstallPrompt.ts`에서 배포본만(개발 서버 제외)
 - 상단 바 "📲 앱 설치" 버튼: 크롬이 `beforeinstallprompt`를 줄 때만 보인다(이미 설치했거나 iOS면 안 보임)
-- `viewport-fit=cover`는 일부러 안 넣음 — 넣으면 노치 폰 가로 화면에서 게임이 노치 밑으로 들어간다
+- 카메라 홀(노치)까지 전체 화면: `viewportFit: "cover"` + `globals.css`의 `--safe-l/-r/-b`(env(safe-area-inset-*)). 배경은 홀 밑까지 깔고, 상단 바·하단 탭·주문서 레일·홀 테이블·주인/금전등록기·스테이션 작업 영역과 버리기 버튼만 그만큼 안쪽으로 민다. **가장자리에 새 조작 요소를 둘 땐 이 변수를 더할 것**
 
 ### 기타 참고
 - 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상

@@ -29,7 +29,7 @@ export function OrderClipRail({ customers, openBillId, onBillTap, onCloseBill }:
   const openCustomer = sorted.find((customer) => customer.id === openBillId) ?? null;
 
   return (
-    <div className="pointer-events-none absolute top-1 right-3 z-30 flex flex-col items-end">
+    <div className="pointer-events-none absolute top-1 right-[calc(0.75rem+var(--safe-r))] z-30 flex flex-col items-end">
       {/* 금속 봉 */}
       <div
         aria-hidden

@@ -33,7 +33,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
       <StationBackdrop station={station} />
       {/* 왼쪽 아래 구석: 버리기 + (케이크가 여러 개 와 있으면) 작업할 케이크 고르기 */}
       {job && (
-        <div className="absolute bottom-2 left-2 z-20 flex items-end gap-2">
+        <div className="absolute bottom-2 left-[calc(0.5rem+var(--safe-l))] z-20 flex items-end gap-2">
           <DiscardButton orderLabel="작업 중인" onDiscard={() => discardCake(job.jobId)} />
           {(station === "cream" || station === "decorate") && jobsHere.length > 1 && (
             <div
@@ -60,7 +60,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
           )}
         </div>
       )}
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col pr-[var(--safe-r)] pl-[var(--safe-l)]">
         {station === "oven" && (
           <OvenStage
             queue={getOvenQueue(state)}

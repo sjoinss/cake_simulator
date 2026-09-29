@@ -68,6 +68,12 @@
 
   --background: var(--theme-background);
   --foreground: var(--theme-text);
+
+  /* 폰 카메라 홀(노치)·홈 바에 가리는 폭. 앱은 viewport-fit=cover로 화면 끝까지 그리고,
+     배경은 그 아래까지 깔되 버튼·글자 같은 조작 요소만 이만큼 안쪽으로 민다. 해당 없는 화면에선 0 */
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
 @theme inline {

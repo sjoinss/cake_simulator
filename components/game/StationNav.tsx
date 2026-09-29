@@ -38,7 +38,7 @@ export function StationNav({ state, onSelect }: StationNavProps) {
   return (
     <nav
       aria-label="스테이션"
-      className="relative z-20 shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] px-2 py-1.5 short:py-1"
+      className="relative z-20 shrink-0 border-t border-black/5 bg-[var(--theme-secondary)] pt-1.5 pr-[calc(0.5rem+var(--safe-r))] pb-[calc(0.375rem+var(--safe-b))] pl-[calc(0.5rem+var(--safe-l))] short:pt-1 short:pb-[calc(0.25rem+var(--safe-b))]"
     >
       <ul className="flex items-stretch gap-1.5">
         {STATIONS.map(({ station, emoji, label }) => {

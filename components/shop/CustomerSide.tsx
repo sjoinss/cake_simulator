@@ -32,7 +32,7 @@ export function CustomerSide({
   return (
     <section aria-label="손님 공간" className="relative flex flex-1 basis-3/5 overflow-hidden">
       <DiningRoom />
-      <div className="relative flex flex-1 items-end justify-around gap-2 px-3 pb-[4%]">
+      <div className="relative flex flex-1 items-end justify-around gap-2 pr-[calc(0.75rem+var(--safe-r))] pl-3 pb-[4%]">
         {tables.map((customer, index) => {
           // 주문이 확정된 손님 머리 위에는 주문 번호를 항상 띄운다(먹는 동안까지). 주문 내용은 주문서 레일에서 언제든 볼 수 있다.
           // 케이크는 주문과 묶여 있지 않아서, 주문을 받고 아직 케이크를 못 받은 손님이면 누구에게든 줄 수 있다.

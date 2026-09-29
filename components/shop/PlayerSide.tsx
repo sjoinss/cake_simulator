@@ -52,7 +52,7 @@ export function PlayerSide({ counter }: PlayerSideProps) {
       </div>
 
       {/* 주인 캐릭터: 왼쪽으로 치우쳐 서 있고, 앞(계산대 위)에 금전등록기가 놓인다. 오른쪽은 케이크 받침대 자리 */}
-      <div className="relative flex min-h-0 flex-1 items-end pl-[calc(24%-4.5rem)] short:pl-[calc(24%-3rem)]">
+      <div className="relative flex min-h-0 flex-1 items-end pl-[calc(24%-4.5rem+var(--safe-l))] short:pl-[calc(24%-3rem+var(--safe-l))]">
         <ChefCharacter />
       </div>
 
@@ -72,7 +72,7 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         />
 
         {/* 금전등록기: 주인 캐릭터 바로 앞 (계산대 상판 위) */}
-        <div className="absolute bottom-[52%] left-[24%] origin-bottom -translate-x-1/2 short:scale-[0.75]">
+        <div className="absolute bottom-[52%] left-[calc(24%+var(--safe-l))] origin-bottom -translate-x-1/2 short:scale-[0.75]">
           <CashRegister />
         </div>
 
