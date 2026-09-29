@@ -27,7 +27,7 @@ import {
   upgradeLevel,
   type UpgradeId,
 } from "@/lib/progress";
-import { scoreServedCake, type ServeResult } from "@/lib/scoring";
+import { scoreServedCake, type CustomerMood, type ServeResult } from "@/lib/scoring";
 import { findMaterial, getMaterialRegistry } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
 import { sounds } from "@/lib/sound";
@@ -56,6 +56,9 @@ const SAVE_DEBOUNCE_MS = 400;
 // 결과 카드에 보여줄 정보. 손님은 곧 퇴장하고 케이크도 정리되므로 주문 번호/케이크를 여기에 복사해둔다.
 export type ServeResultCard = ServeResult & { orderNumber: number | null; cake: CakeData };
 
+// 서빙받고 먹는(또는 화난) 손님 테이블 위에 보여줄 것
+export type ServedCakeView = { cake: CakeData; mood: CustomerMood };
+
 // 케이크 한 개를 바꾸는 헬퍼
 const mapCake = (state: GameState, jobId: string, updater: (job: CakeJob) => CakeJob): GameState => ({
   ...state,
@@ -73,7 +76,7 @@ export function useGameState() {
   // 다시 마운트돼도 이미 있던 손님까지 매번 애니메이션이 재생되지 않도록, DOM 마운트가 아니라 이 상태로 판단한다.
   const [justArrivedIds, setJustArrivedIds] = useState<ReadonlySet<string>>(() => new Set());
   // 서빙 완료 후 먹는 중인 손님의 케이크(테이블 위에 표시). 케이크는 주방 목록에서 빠지므로 따로 보관한다.
-  const [servedCakes, setServedCakes] = useState<Readonly<Record<string, CakeData>>>({});
+  const [servedCakes, setServedCakes] = useState<Readonly<Record<string, ServedCakeView>>>({});
   const [leavingIds, setLeavingIds] = useState<ReadonlySet<string>>(() => new Set());
   const [serveResult, setServeResult] = useState<ServeResultCard | null>(null);
   // 방금 오른 랭크들 (랭크업 카드). 서빙 결과 카드를 닫은 뒤에 뜬다
@@ -326,13 +329,15 @@ export function useGameState() {
       const servedAt = Date.now();
       const result = scoreServedCake(job.cake, customer.order, customer.orderedAt ?? servedAt, servedAt);
       // 서빙 점수만큼 경험치 (랭크업은 결과 카드를 닫은 뒤 카드로 알린다)
-      const { reachedRanks } = addExp(state.player, result.total);
+      // 망친 케이크는 경험치가 없다
+      const gainedExp = result.failReason ? 0 : result.total;
+      const { reachedRanks } = addExp(state.player, gainedExp);
 
       setState((prev) => {
         const tables = [...prev.tables];
         const target = tables[tableIndex];
         if (target?.id === customer.id) tables[tableIndex] = { ...target, status: "served" };
-        const leveled = addExp(prev.player, result.total).player;
+        const leveled = addExp(prev.player, gainedExp).player;
         return {
           ...prev,
           tables,
@@ -362,8 +367,9 @@ export function useGameState() {
           },
         };
       });
-      sounds.coin();
-      setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
+      if (result.failReason) sounds.fail();
+      else sounds.coin();
+      setServedCakes((prev) => ({ ...prev, [customer.id]: { cake: job.cake, mood: result.mood } }));
       setServeResult({ ...result, orderNumber: customer.orderNumber, cake: job.cake });
       if (reachedRanks.length > 0) {
         setRankUps((prev) => [...prev, ...reachedRanks]);

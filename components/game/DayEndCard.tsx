@@ -6,6 +6,7 @@ import { useMountSound } from "@/hooks/useMountSound";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import type { DayProgress, ServedCakeRecord } from "@/lib/gameState";
 import { ALBUM_NAME_MAX } from "@/lib/album";
+import { formatMoney } from "@/lib/money";
 import { Polaroid } from "./album/Polaroid";
 
 export type AlbumPick = { record: ServedCakeRecord; name: string };
@@ -46,7 +47,7 @@ export function DayEndCard({ day, today, onNextDay, onOpenShop }: DayEndCardProp
             <div className="flex flex-col gap-0.5 rounded-xl bg-white/80 py-2">
               <dt className="text-xs text-[var(--theme-text)]/60">번 돈</dt>
               <dd className="text-xl font-extrabold text-[var(--theme-accent)] tabular-nums short:text-lg">
-                ${today.money}
+                {formatMoney(today.money)}
               </dd>
             </div>
             <div className="flex flex-col gap-0.5 rounded-xl bg-white/80 py-2">

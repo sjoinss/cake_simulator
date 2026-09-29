@@ -3,6 +3,7 @@ import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { useIsShort } from "@/hooks/useIsShort";
 import { formatOrderNumber } from "@/lib/station";
+import { formatMoney } from "@/lib/money";
 
 type ServeResultCardProps = {
   result: ServeResultCardData;
@@ -29,9 +30,14 @@ export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
         className="animate-result-pop flex max-h-full w-96 max-w-full flex-col gap-3 overflow-y-auto rounded-2xl bg-white p-5 text-[var(--theme-text)] shadow-[0_8px_24px_rgba(0,0,0,0.2)] short:gap-1.5 short:p-3"
       >
         <div className="text-center">
-          <h2 id="serve-result-title" className="text-xl font-extrabold tracking-wide short:text-base">
-            CAKE COMPLETE!
+          <h2
+            id="serve-result-title"
+            className={`text-xl font-extrabold tracking-wide short:text-base ${result.failReason ? "text-red-500" : ""}`}
+          >
+            {result.failReason ? "CAKE FAIL… 😠" : "CAKE COMPLETE!"}
           </h2>
+          {/* 망친 케이크: 손님이 화난 이유 */}
+          {result.failReason && <p className="text-sm font-bold text-red-500 short:text-xs">{result.failReason}</p>}
           <p className="text-sm opacity-70 short:text-xs">
             {result.orderNumber != null ? `${formatOrderNumber(result.orderNumber)} 주문` : "손님의 케이크"}
           </p>
@@ -61,8 +67,17 @@ export function ServeResultCard({ result, onClose }: ServeResultCardProps) {
 
         {/* 짧은 화면에선 금액과 확인 버튼을 한 줄에 둔다 */}
         <div className="flex flex-col gap-3 short:flex-row short:items-center short:justify-between short:gap-2">
-          <p className="text-center text-2xl font-extrabold text-[var(--theme-accent)] short:text-lg">
-            + ${result.money}
+          <p
+            className={`text-center text-2xl font-extrabold short:text-lg ${
+              result.money < 0 ? "text-red-500" : "text-[var(--theme-accent)]"
+            }`}
+          >
+            {result.money < 0 ? formatMoney(result.money) : `+ ${formatMoney(result.money)}`}
+            {result.money < 0 && (
+              <span className="ml-2 align-middle text-sm font-bold text-[var(--theme-text)]/70 short:text-xs">
+                재료비 손해 · 경험치 없음
+              </span>
+            )}
             {result.tip > 0 && (
               <span className="ml-2 align-middle text-sm font-bold text-[var(--theme-text)]/70 short:text-xs">
                 데코 팁 +${result.tip}

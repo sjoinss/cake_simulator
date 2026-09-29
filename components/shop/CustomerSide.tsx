@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { CakeData, Customer, MaterialRegistry } from "@/lib/gameState";
+import type { Customer, MaterialRegistry } from "@/lib/gameState";
+import type { ServedCakeView } from "@/hooks/useGameState";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getOrderSteps } from "@/lib/order";
 import { formatOrderNumber } from "@/lib/station";
@@ -13,7 +14,7 @@ type CustomerSideProps = {
   orderingCustomerId: string | null;
   orderingStepIndex: number;
   justArrivedIds: ReadonlySet<string>;
-  servedCakes: Readonly<Record<string, CakeData>>;
+  servedCakes: Readonly<Record<string, ServedCakeView>>;
   leavingIds: ReadonlySet<string>;
   isDraggingCake: boolean; // 계산대 케이크를 끌고 있는 중
   hoverTableIndex: number | null; // 드래그 중인 케이크가 올라가 있는 테이블
@@ -54,7 +55,8 @@ export function CustomerSide({
               shouldAnimateEntrance={!!customer && justArrivedIds.has(customer.id)}
               onTap={() => onCustomerTap(index)}
               orderTag={customer?.orderNumber != null ? formatOrderNumber(customer.orderNumber) : null}
-              servedCake={customer ? (servedCakes[customer.id] ?? null) : null}
+              servedCake={customer ? (servedCakes[customer.id]?.cake ?? null) : null}
+              mood={customer ? (servedCakes[customer.id]?.mood ?? null) : null}
               isLeaving={!!customer && leavingIds.has(customer.id)}
               dropState={dropState}
               lockedRank={isTableOpen(rank, index) ? null : tableUnlockRank(index)}

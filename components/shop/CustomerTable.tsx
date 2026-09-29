@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CakeData, Customer } from "@/lib/gameState";
+import type { CustomerMood } from "@/lib/scoring";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { SpeechBubble } from "./SpeechBubble";
@@ -13,10 +14,14 @@ type CustomerTableProps = {
   onTap: () => void;
   orderTag: string | null; // 머리 위에 띄우는 주문 번호 ("#1")
   servedCake: CakeData | null; // 서빙 완료 후 먹는 중인 케이크 (테이블 위에 표시)
+  mood: CustomerMood | null; // 받은 케이크에 대한 반응 (망친 케이크면 화남)
   isLeaving: boolean; // 먹고 나서 퇴장 애니메이션 재생 중
   dropState: "available" | "hover" | null; // 케이크를 끄는 중: available = 줄 수 있는 손님, hover = 지금 이 테이블 위에 있음
   lockedRank: number | null; // 아직 안 열린 테이블이면 열리는 랭크 (13-3)
 };
+
+// 받은 케이크에 대한 얼굴 (그림을 넣었으면 그림을 쓴다 — 화난 손님은 먹는 그림 대신 평소 그림)
+const MOOD_FACES: Record<CustomerMood, string> = { happy: "😋", meh: "😐", angry: "😠" };
 
 export function CustomerTable({
   tableIndex,
@@ -26,13 +31,14 @@ export function CustomerTable({
   onTap,
   orderTag,
   servedCake,
+  mood,
   isLeaving,
   dropState,
   lockedRank,
 }: CustomerTableProps) {
   const materialRegistry = useMaterialRegistry();
   const { getCustomerImage } = useCustomImages();
-  const customerImage = customer ? getCustomerImage(customer.look, servedCake ? "eating" : "idle") : null;
+  const customerImage = customer ? getCustomerImage(customer.look, servedCake && mood !== "angry" ? "eating" : "idle") : null;
   return (
     <div
       aria-label={
@@ -99,7 +105,7 @@ export function CustomerTable({
                 className="h-full w-full object-contain object-bottom"
               />
             ) : servedCake ? (
-              "😋"
+              MOOD_FACES[mood ?? "happy"]
             ) : (
               "🧑"
             )}

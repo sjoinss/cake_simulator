@@ -3,6 +3,7 @@
 import { CUSTOMERS_PER_DAY, type Player } from "@/lib/gameState";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { RankBadge } from "./RankBadge";
+import { formatMoney } from "@/lib/money";
 import { SoundToggle } from "./SoundToggle";
 
 type TopBarProps = {
@@ -63,7 +64,7 @@ export function TopBar({ day, servedToday, player, onOpenShop, onOpenAlbum, onOp
           <span aria-hidden>🛒</span> 상점
         </button>
         <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-base font-bold tracking-wide text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-sm">
-          <span aria-hidden>💰</span> ${player.money.toLocaleString()}
+          <span aria-hidden>💰</span> <span className={player.money < 0 ? "text-red-600" : ""}>{formatMoney(player.money)}</span>
         </span>
       </div>
     </header>

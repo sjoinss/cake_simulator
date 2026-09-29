@@ -5,6 +5,7 @@ import type { MaterialCategory, Player } from "@/lib/gameState";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { DECOR_ITEMS, hasDecor, isMaterialOwned, materialPrice, UPGRADES, upgradeLevel, type UpgradeId } from "@/lib/progress";
 import { sounds } from "@/lib/sound";
+import { formatMoney } from "@/lib/money";
 import { MaterialIcon, type MaterialContainer } from "./MaterialPicker";
 import { RankBadge } from "./RankBadge";
 
@@ -55,7 +56,7 @@ export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onBuyDecor, onCl
           <div className="flex items-center gap-2">
             <RankBadge player={player} />
             <span className="rounded-full bg-white px-3 py-0.5 text-sm font-bold tabular-nums shadow-sm">
-              💰 ${player.money.toLocaleString()}
+              💰 {formatMoney(player.money)}
             </span>
             <button
               type="button"

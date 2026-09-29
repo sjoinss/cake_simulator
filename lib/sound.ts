@@ -250,6 +250,14 @@ export const sounds = {
     tone(c, 1319, t + 0.08, 0.35, { type: 'square', volume: 0.06 });
     tone(c, 2637, t + 0.08, 0.3, { volume: 0.05 });
   },
+  // 망친 케이크: 뿌우-웅 (슬프게 내려가는 두 음)
+  fail() {
+    const c = sfx();
+    if (!c) return;
+    const t = c.currentTime;
+    tone(c, 330, t, 0.3, { type: 'triangle', glideTo: 300, volume: 0.16 });
+    tone(c, 262, t + 0.3, 0.55, { type: 'triangle', glideTo: 196, volume: 0.16 });
+  },
   // 버리기: 뿅 내려감
   trash() {
     const c = sfx();

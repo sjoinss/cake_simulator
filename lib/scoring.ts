@@ -1,5 +1,6 @@
 import type { CakeData, Customer } from "./gameState";
 import { CREAM_TARGET_THICKNESS, FILLING_TARGET_THICKNESS, scoreFrostingLayer, scoreSpread } from "./frosting";
+import { getBakingElapsedRatio, OVEN_IDEAL_START_RATIO } from "./gameLogic";
 
 // ---- ⑤ 서빙 결과 채점 (cake-tycoon-prompt.md 12장) ----
 // Phase 1은 각 항목을 0~100으로 단순 계산하고, 총점은 단순 평균 (가중치 없음).
@@ -12,6 +13,18 @@ const SPEED_MIN_SCORE = 40;
 // 데코는 플레이어 재미용이라 점수에 넣지 않는다. 적당히 꾸미면(그림 2획 이상 또는 글자) 팁을 조금 더 받는다.
 const DECO_TIP = 3;
 const DECO_TIP_MIN_EFFORT = 2;
+// 받는 돈: 총점 30점을 0으로 보고 100점이면 CAKE_PRICE. 50점 → $9, 70점 → $17, 100점 → $30 (잘 만들수록 확 오른다)
+const PRICE_ZERO_SCORE = 30;
+// 망친 케이크 (사용자 요청: 덜 익은 시트에 크림 대충 발라도 좋아하며 돈을 줬음).
+// 아래 중 하나라도 걸리면 손님이 화내고 돈을 못 받고 재료비만큼 잃는다. 경험치·팁도 없다
+const FAIL_PENALTY = 10;
+const FAIL_ACCURACY = 50; // 주문 재료 절반 이상 틀림
+const FAIL_DONENESS = 50; // 굽기 점수 (덜 익음 ≈ 28초 전에 꺼냄 / 탐)
+const FAIL_LAYER = 40; // 필링·크림 각각 (범위·균일도·양 평균)
+const FAIL_TOTAL = 50;
+const MEH_TOTAL = 70; // 이보다 낮으면 먹긴 하지만 시큰둥 (😐)
+
+export type CustomerMood = "happy" | "meh" | "angry";
 
 export type ServeResult = {
   accuracy: number; // 주문 정확도: 주문한 재료와 일치하는지
@@ -19,7 +32,9 @@ export type ServeResult = {
   speed: number; // 속도: 주문 확정 ~ 서빙까지 손님이 기다린 시간
   total: number;
   money: number;
-  tip: number; // 데코 팁. 돈에 더해지고 player.tipTotal(랭크업 경험치)에도 쌓인다
+  tip: number; // 데코 팁. 돈에 더해지고 player.tipTotal에도 쌓인다
+  failReason: string | null; // 망친 케이크면 이유 (money는 음수, 경험치 없음)
+  mood: CustomerMood;
 };
 
 type OrderSpec = Customer["order"];
@@ -45,19 +60,37 @@ export function scoreAccuracy(cake: CakeData, order: OrderSpec): number {
 }
 
 // 케이크는 주문과 묶여 있지 않아서, 필링/크림 점수는 서빙받은 손님의 주문(크림 양) 기준으로 이 자리에서 계산한다
-export function scoreQuality(cake: CakeData, order: OrderSpec): number {
+function scoreLayers(cake: CakeData, order: OrderSpec) {
   const filling = scoreSpread(cake.filling.cells, FILLING_TARGET_THICKNESS);
   const frosting = scoreFrostingLayer(
     cake.frosting.cells,
     cake.frosting.side,
     CREAM_TARGET_THICKNESS[order.creamAmount],
   );
-  return average([
-    cake.batter.score,
-    cake.baking.doneness,
-    average([filling.coverage, filling.evenness, filling.amount]),
-    average([frosting.coverage, frosting.evenness, frosting.amount]),
-  ]);
+  return {
+    filling: average([filling.coverage, filling.evenness, filling.amount]),
+    frosting: average([frosting.coverage, frosting.evenness, frosting.amount]),
+  };
+}
+
+export function scoreQuality(cake: CakeData, order: OrderSpec): number {
+  const layers = scoreLayers(cake, order);
+  return average([cake.batter.score, cake.baking.doneness, layers.filling, layers.frosting]);
+}
+
+// 망친 케이크인지 — 손님이 화내는 이유를 돌려준다 (결과 카드에 그대로 보여줌)
+function findFailReason(cake: CakeData, order: OrderSpec, accuracy: number, total: number): string | null {
+  if (accuracy < FAIL_ACCURACY) return "주문이랑 전혀 다른 케이크예요";
+  if (cake.baking.doneness < FAIL_DONENESS) {
+    const { startTime, endTime, duration } = cake.baking;
+    const ratio = startTime && endTime ? getBakingElapsedRatio(startTime, duration, endTime) : 0;
+    return ratio < OVEN_IDEAL_START_RATIO ? "시트가 덜 익었어요" : "시트가 탔어요";
+  }
+  const layers = scoreLayers(cake, order);
+  if (layers.filling < FAIL_LAYER) return "필링이 엉망이에요";
+  if (layers.frosting < FAIL_LAYER) return "크림이 엉망이에요";
+  if (total < FAIL_TOTAL) return "전체적으로 너무 아쉬운 케이크예요";
+  return null;
 }
 
 export function getDecorationTip(cake: CakeData): number {
@@ -77,12 +110,17 @@ export function scoreServedCake(cake: CakeData, order: OrderSpec, orderedAt: num
   const quality = scoreQuality(cake, order);
   const speed = scoreSpeed(servedAt - orderedAt);
   const total = average([accuracy, quality, speed]);
+  const failReason = findFailReason(cake, order, accuracy, total);
   return {
     accuracy,
     quality,
     speed,
     total,
-    money: Math.round((CAKE_PRICE * total) / 100),
-    tip: getDecorationTip(cake),
+    money: failReason
+      ? -FAIL_PENALTY
+      : Math.round((CAKE_PRICE * Math.max(0, total - PRICE_ZERO_SCORE)) / (100 - PRICE_ZERO_SCORE)),
+    tip: failReason ? 0 : getDecorationTip(cake),
+    failReason,
+    mood: failReason ? "angry" : total < MEH_TOTAL ? "meh" : "happy",
   };
 }
