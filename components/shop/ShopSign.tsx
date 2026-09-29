@@ -15,7 +15,7 @@ const subscribe = (onChange: () => void) => {
     window.removeEventListener("storage", onChange);
   };
 };
-const readName = () => {
+export const readShopName = () => {
   try {
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_NAME;
   } catch {
@@ -33,7 +33,7 @@ const writeName = (name: string) => {
 
 // 차양 아래 매달린 작은 나무 간판. 펜(✏️)을 누르면 이름을 고칠 수 있고, 펜이 체크(✔)로 바뀌어 누르면 확정된다.
 export function ShopSign() {
-  const name = useSyncExternalStore(subscribe, readName, () => DEFAULT_NAME);
+  const name = useSyncExternalStore(subscribe, readShopName, () => DEFAULT_NAME);
   const [draft, setDraft] = useState<string | null>(null); // null이 아니면 수정 중
   const isEditing = draft !== null;
 

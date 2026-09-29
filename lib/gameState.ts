@@ -155,12 +155,24 @@ export type DayProgress = {
   served: number; // 오늘 서빙을 마친 손님 수
   money: number; // 오늘 번 돈
   scoreTotal: number; // 오늘 서빙 총점 합 (결산의 평균 점수용)
+  cakes: ServedCakeRecord[]; // 오늘 서빙한 케이크들 — 하루가 끝나면 이 중에서 골라 케이크 앨범에 담는다
+};
+
+// 서빙한 케이크 한 개의 기록 (케이크 모양 + 그때 받은 점수)
+export type ServedCakeRecord = {
+  id: string;
+  day: number;
+  orderNumber: number | null;
+  servedAt: number;
+  cake: CakeData;
+  scores: { accuracy: number; quality: number; speed: number; total: number };
+  tip: number; // 데코 팁을 받았는지 (카드에 스티커로)
 };
 
 // 하루에 받는 손님 수. 이만큼 다 서빙하고 마지막 손님이 나가면 하루가 끝나고 결산 카드가 뜬다
 export const CUSTOMERS_PER_DAY = 10;
 
-export const createDayProgress = (): DayProgress => ({ customers: 0, served: 0, money: 0, scoreTotal: 0 });
+export const createDayProgress = (): DayProgress => ({ customers: 0, served: 0, money: 0, scoreTotal: 0, cakes: [] });
 
 export const TABLE_COUNT = 3;
 export const OVEN_SLOT_COUNT = 2;

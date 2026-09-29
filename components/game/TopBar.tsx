@@ -10,11 +10,12 @@ type TopBarProps = {
   servedToday: number; // 오늘 서빙을 마친 손님 수 (CUSTOMERS_PER_DAY명이면 하루 마감)
   player: Player;
   onOpenShop: () => void;
+  onOpenAlbum: () => void; // 케이크 앨범
   onOpenDecor: () => void; // "가게 꾸미기" 창 열기
 };
 
 // 모든 화면 공통 상단 바: DAY + 오늘 손님 진행, 랭크 / 상점, 꾸미기, 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
-export function TopBar({ day, servedToday, player, onOpenShop, onOpenDecor }: TopBarProps) {
+export function TopBar({ day, servedToday, player, onOpenShop, onOpenAlbum, onOpenDecor }: TopBarProps) {
   // 크롬이 설치 가능하다고 알려줄 때만 "앱 설치" 버튼이 보인다 (이미 설치한 앱 안에선 안 보임)
   const install = useInstallPrompt();
 
@@ -29,6 +30,15 @@ export function TopBar({ day, servedToday, player, onOpenShop, onOpenDecor }: To
       <RankBadge player={player} />
       <div className="ml-auto flex items-center gap-2">
         <SoundToggle />
+        <button
+          type="button"
+          onClick={onOpenAlbum}
+          aria-label="케이크 앨범"
+          title="케이크 앨범"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-base shadow-sm transition-transform active:scale-95 short:h-6 short:w-6 short:text-sm"
+        >
+          <span aria-hidden>📔</span>
+        </button>
         {install && (
           <button
             type="button"

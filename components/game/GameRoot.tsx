@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { unlockAudio } from "@/lib/sound";
+import { sounds, unlockAudio } from "@/lib/sound";
+import { addToAlbum } from "@/lib/album";
+import { readShopName } from "@/components/shop/ShopSign";
+import { AlbumView } from "./album/AlbumView";
 import { useGameState } from "@/hooks/useGameState";
 import { ShopScreen } from "@/components/shop/ShopScreen";
 import { StationScreen } from "./StationScreen";
@@ -24,6 +27,7 @@ export function GameRoot() {
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const [isDecorOpen, setIsDecorOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isAlbumOpen, setIsAlbumOpen] = useState(false);
 
   // 브라우저는 사용자가 한 번 누르기 전엔 소리를 막는다: 첫 입력 때 오디오를 깨우고 배경음악을 시작한다
   useEffect(() => {
@@ -47,6 +51,7 @@ export function GameRoot() {
           servedToday={state.today.served}
           player={state.player}
           onOpenShop={() => setIsShopOpen(true)}
+          onOpenAlbum={() => setIsAlbumOpen(true)}
           onOpenDecor={() => setIsDecorOpen(true)}
         />
         <div className="relative flex min-h-0 flex-1 flex-col">
@@ -67,7 +72,12 @@ export function GameRoot() {
         <TutorialCoach
           state={state}
           paused={
-            !!gameState.serveResult || gameState.rankUps.length > 0 || gameState.isDayOver || isShopOpen || isDecorOpen
+            !!gameState.serveResult ||
+            gameState.rankUps.length > 0 ||
+            gameState.isDayOver ||
+            isShopOpen ||
+            isDecorOpen ||
+            isAlbumOpen
           }
           onFinish={gameState.finishTutorial}
         />
@@ -93,10 +103,17 @@ export function GameRoot() {
           <DayEndCard
             day={state.player.day}
             today={state.today}
-            onNextDay={gameState.startNextDay}
+            onNextDay={(picks) => {
+              // 고른 케이크를 앨범에 담고 다음 날로 (저장 공간이 없으면 넘어가지 않는다)
+              if (!addToAlbum(picks, readShopName())) return false;
+              if (picks.length > 0) sounds.sparkle();
+              gameState.startNextDay();
+              return true;
+            }}
             onOpenShop={() => setIsShopOpen(true)}
           />
         )}
+        {isAlbumOpen && <AlbumView onClose={() => setIsAlbumOpen(false)} />}
         {/* 결산 카드 위에서도 열 수 있게 맨 뒤에 둔다 */}
         {isShopOpen && (
           <ShopMenu

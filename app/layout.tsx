@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Nanum_Pen_Script } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+// 케이크 앨범 카드의 손글씨 이름 (--font-hand)
+const handwriting = Nanum_Pen_Script({
+  weight: "400",
+  variable: "--font-hand",
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
@@ -38,7 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       data-theme="pink"
       // 저장된 테마를 브라우저에서 바로 입히므로(lib/theme.ts) 서버 값(pink)과 달라도 된다
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${handwriting.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

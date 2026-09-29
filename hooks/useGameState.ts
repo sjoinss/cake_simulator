@@ -346,6 +346,18 @@ export function useGameState() {
             served: prev.today.served + 1,
             money: prev.today.money + result.money + result.tip,
             scoreTotal: prev.today.scoreTotal + result.total,
+            cakes: [
+              ...prev.today.cakes,
+              {
+                id: `served_${servedAt}_${customer.id}`,
+                day: prev.player.day,
+                orderNumber: customer.orderNumber,
+                servedAt,
+                cake: job.cake,
+                scores: { accuracy: result.accuracy, quality: result.quality, speed: result.speed, total: result.total },
+                tip: result.tip,
+              },
+            ],
           },
         };
       });
