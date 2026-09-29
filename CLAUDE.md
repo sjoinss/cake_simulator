@@ -253,13 +253,11 @@
 - 브라우저 확인(백그라운드 탭이라 DOM으로): 하트 도장·무지개 별·반짝이 선·스티커 2개 저장, 스티커 크게, 완성 후 계산대 케이크에 선·무지개 마디 10개·반짝이 점 4개·스티커 2개 그려짐. **육안 확인은 못 함**
 
 ### [x] 파스텔 그림 에셋 적용 (사용자가 GPT로 만든 public/cake_simulator_pastel_assets)
-- ⚠️ 원본은 한 장짜리 시트를 자동으로 잘라서 **파일 이름과 내용이 어긋나고**(cherries.png가 라즈베리 등) 옆 그림 조각이 붙어 있었다 → 원본 폴더는 \`.gitignore\`(배포 안 함), 다듬은 36장만 \`public/images/assets/{toppings,creams,stickers}\`에
-- \`scripts/assets/\`: \`png-tools.cjs\`(PNG 읽기/쓰기·덩어리 찾기 — 이 컴퓨터엔 이미지 도구가 없음), \`clean-assets.cjs\`(가장 큰 덩어리 + 가장자리에 안 닿는 조각만 남기고 자르기 + contact-sheet.png로 한 장 확인), \`build-assets.cjs\`(눈으로 맞춘 대응표로 이름 붙여 복사, 곰은 옆 뿌리기 제거), \`draw-kiwi.cjs\`(키위는 원본이 전부 잘려서 직접 그림)
-- \`Material.icon\`(작은 그림, 이모지 대신) / \`Material.image\`(선반 모습 전체). \`MaterialGlyph\`가 icon이면 그림, 아니면 이모지 — 선반 그릇 위, 케이크 위 토핑, 주문 말풍선·주문서, 랭크업 카드
-- 적용: 토핑 4종 icon, 크림 4종 image(색깔 짤주머니), **새 토핑 6종**(블루베리·라즈베리 랭크 8, 청포도·복숭아 9, 망고·마시멜로 10 — 후반 해금), 그림 스티커 22종(크림 장식 6색, 꽃, 리본 4, 왕관, 무지개, 토끼, 곰, 하트, 초코 하트, 딸기 반쪽, 별/하트/리본 픽) + 이모지 스티커 6
-- 스티커 데이터: \`CakeDecoration\`의 \`image\` 또는 \`emoji\`, 목록 \`STICKERS\`(\`StickerOption\` id는 저장값이라 바꾸지 말 것), 그리기 \`StickerGlyph\`
-- 안 쓴 것: 크림 테두리(보더) 장식, 초·생일 팻말(잘림), 바나나·레몬 등 잘린 과일, 나머지 짤주머니 색
-- 브라우저 확인(스크린샷): 토핑 선반 10종·케이크 위 토핑·상점 크림 짤주머니·스티커 팔레트·케이크에 붙인 그림 스티커
+- 원본 개별 PNG는 자동 자르기라 이름·내용이 어긋나고 **가장자리가 잘려 있었다**(사용자 제보: 짤주머니·토핑이 잘려 보임) → 원본 폴더는 `.gitignore`, 그림은 **미리보기 시트 JPG에서 직접 다시 뽑는다**
+- `scripts/assets/extract-from-sheet.cjs`: sharp(next 의존성)로 시트를 읽어 흰/연회색 체크무늬 배경을 가장자리부터 지우고(갇힌 체크 틈도), 덩어리마다 여백 두고 잘라 `sheet-parts/NNN.png` + `sheet-contact.png`(12열 격자) 생성 → `build-from-sheet.cjs`의 번호 대응표로 `public/images/assets/{toppings,creams,stickers}`에 복사 (47장). `png-tools.cjs`는 PNG 쓰기용
+- `Material.icon`(작은 그림, 이모지 대신 — `MaterialGlyph`) / `Material.image`(선반 모습 전체). 토핑 4종 icon, 크림 4종 짤주머니 image, **새 토핑 6종**(블루베리·라즈베리 랭크 8, 청포도·복숭아 9, 망고·마시멜로 10)
+- 스티커 `STICKERS` 33종 그림 + 이모지 3 (초 4색, 생일 팻말, 왕관 2, 곰·토끼·픽, 크림 장식 6색 등). `CakeDecoration`의 `image`/`emoji`, 그리기 `StickerGlyph`. 파일 경로가 저장값이라 이름 바꾸지 말 것
+- 브라우저 확인(스크린샷): 토핑 선반 10종·케이크 위 토핑·상점 짤주머니·스티커 팔레트 모두 온전함
 
 ### 기획서(cake-tycoon-prompt.md) 대비 남은 것 (2026-09-29 대조)
 - 안 한 것(사용자 결정으로 뺌): 손님 인내심 게이지, 손님 성격·단골·취향, 제작 화면에 "누구 주문" 표시, 계산대 케이크 여러 개, 데코 점수(팁으로 대신)

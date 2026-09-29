@@ -153,8 +153,9 @@ function PipingBag({ material }: { material: Material }) {
 function Bowl({ material }: { material: Material }) {
   return (
     <span aria-hidden className="relative flex h-14 w-14 flex-col items-center justify-end">
-      <span className="absolute top-0.5 leading-none">
-        <MaterialGlyph material={material} size={material.icon ? 26 : 20} />
+      {/* 그림 토핑은 그릇에 소복이 담긴 것처럼 조금 크게, 그릇 입구에 살짝 걸치게 */}
+      <span className={`absolute leading-none ${material.icon ? "-top-1.5" : "top-0.5"}`}>
+        <MaterialGlyph material={material} size={material.icon ? 32 : 20} />
       </span>
       <span className="relative h-3 w-14 rounded-[50%]" style={{ backgroundColor: material.color }} />
       <span className="-mt-1.5 h-7 w-14 rounded-b-full bg-[#eef1f4] shadow-[inset_0_-4px_0_rgba(0,0,0,0.08),0_3px_4px_rgba(0,0,0,0.12)]" />

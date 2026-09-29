@@ -45,3 +45,6 @@ next-env.d.ts
 /scripts/assets/cleaned/
 /scripts/assets/contact-sheet.png
 /scripts/assets/contact-index.txt
+/scripts/assets/sheet-parts/
+/scripts/assets/sheet-contact.png
+/scripts/assets/sheet-index.txt
