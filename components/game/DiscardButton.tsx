@@ -20,7 +20,7 @@ export function DiscardButton({ orderLabel, onDiscard, compact }: DiscardButtonP
         aria-label={`${orderLabel} 케이크 버리기 확인`}
         className="flex flex-wrap items-center justify-center gap-1"
       >
-        <span className="text-xs font-bold whitespace-nowrap text-red-600">버리고 처음부터?</span>
+        <span className="text-xs font-bold whitespace-nowrap text-red-600">버릴까요?</span>
         <button
           type="button"
           onClick={() => {
@@ -46,7 +46,7 @@ export function DiscardButton({ orderLabel, onDiscard, compact }: DiscardButtonP
     <button
       type="button"
       onClick={() => setConfirming(true)}
-      aria-label={`${orderLabel} 케이크 버리고 처음부터 다시 만들기`}
+      aria-label={`${orderLabel} 케이크 버리기`}
       className="flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 text-xs font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95"
     >
       🗑️{!compact && " 버리기"}
