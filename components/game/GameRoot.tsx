@@ -12,6 +12,8 @@ import { DecorSettings } from "./DecorSettings";
 import { DayEndCard } from "./DayEndCard";
 import { ShopMenu } from "./ShopMenu";
 import { RankUpCard } from "./RankUpCard";
+import { TutorialCoach } from "./TutorialCoach";
+import { getTutorialStep } from "@/lib/tutorial";
 
 // 매장과 모든 제작 스테이션이 같은 게임 상태를 공유해야 해서, useGameState는 이 최상위 컴포넌트에서만 호출한다.
 // 오른쪽 위 주문서 집게 레일과 하단 스테이션 탭은 어느 화면에서든 항상 보인다 (Papa's 방식).
@@ -22,6 +24,9 @@ export function GameRoot() {
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const [isDecorOpen, setIsDecorOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+
+  // 첫 플레이 안내가 가리키는 스테이션 (그 탭을 깜빡인다). 어느 탭인지는 시간과 무관해서 now는 아무 값이나 된다
+  const tutorialStation = getTutorialStep(state, 0)?.station ?? null;
 
   // 빌지를 누르면 주문서를 펼치고, 다시 누르면 접는다 (케이크는 주문과 묶여 있지 않아서 작업 대상 선택과는 무관)
   const handleBillTap = (customerId: string) => setOpenBillId((prev) => (prev === customerId ? null : customerId));
@@ -48,8 +53,9 @@ export function GameRoot() {
             onBillTap={handleBillTap}
             onCloseBill={() => setOpenBillId(null)}
           />
+          <TutorialCoach state={state} onFinish={gameState.finishTutorial} />
         </div>
-        <StationNav state={state} onSelect={gameState.setStation} />
+        <StationNav state={state} highlight={tutorialStation} onSelect={gameState.setStation} />
         {isDecorOpen && (
           <DecorSettings
             rank={state.player.rank}

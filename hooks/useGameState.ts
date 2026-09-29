@@ -35,8 +35,17 @@ import { clearSave, loadGame, saveGame } from "@/lib/save";
 // cake-tycoon-prompt.md 3장 "손님 등장 애니메이션 및 주문 흐름" 기준.
 // ShopScreen의 로컬 useState만으로는 손님 배정/주문 진행 타이머를 감당하기 어려워 이 훅으로 분리했다.
 const ORDER_STEP_DURATION_MS = 900;
+// 손님은 한 명씩 띄엄띄엄 온다 (실제 가게처럼). 가게 문을 열면 첫 손님은 바로 오고,
+// 그다음부터는 ARRIVAL_GAP 사이 무작위 간격으로 빈 테이블에 한 명씩. 자리가 꽉 차 있으면 자리가 날 때까지 기다린다.
+// 자리가 났는데 다음 손님 예정이 없거나 가게가 텅 비었으면 REFILL_GAP 뒤에 온다. 전부 임시값 — 플레이하며 조정
 const FIRST_CUSTOMER_DELAY_MS = 500;
-const NEXT_CUSTOMER_GAP_MS = 1000;
+const ARRIVAL_GAP_MIN_MS = 25_000;
+const ARRIVAL_GAP_MAX_MS = 40_000;
+const REFILL_GAP_MIN_MS = 5_000;
+const REFILL_GAP_MAX_MS = 10_000;
+// 첫 플레이 안내 중에는 첫 손님 한 명만 받는다. 그동안 이 간격으로 다시 확인한다
+const TUTORIAL_RECHECK_MS = 3_000;
+const randomBetween = (min: number, max: number) => min + Math.random() * (max - min);
 const ENTER_ANIMATION_MS = 600;
 // ⑤ 서빙 후: 손님이 테이블 위 케이크를 잠시 "먹는" 연출 → 퇴장 애니메이션 → 테이블 비움 → 다음 손님 등장
 const EATING_DURATION_MS = 3000;
@@ -69,6 +78,8 @@ export function useGameState() {
   // 방금 오른 랭크들 (랭크업 카드). 서빙 결과 카드를 닫은 뒤에 뜬다
   const [rankUps, setRankUps] = useState<number[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // 다음 손님 도착 예약 (항상 하나만)
+  const arrivalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const schedule = useCallback((callback: () => void, delay: number) => {
     timers.current.push(setTimeout(callback, delay));
@@ -78,6 +89,8 @@ export function useGameState() {
     const activeTimers = timers.current;
     return () => {
       activeTimers.forEach(clearTimeout);
+      if (arrivalTimer.current) clearTimeout(arrivalTimer.current);
+      arrivalTimer.current = null;
     };
   }, []);
 
@@ -125,15 +138,36 @@ export function useGameState() {
     [schedule],
   );
 
-  // 가게 문을 열 때(첫 마운트, 다음 날 시작) 빈 테이블에 순서대로 손님을 배정한다.
-  const seatOpeningCustomers = useCallback(() => {
-    Array.from({ length: TABLE_COUNT }, (_, tableIndex) => tableIndex).forEach((tableIndex, order) => {
-      schedule(() => assignCustomer(tableIndex), FIRST_CUSTOMER_DELAY_MS + order * NEXT_CUSTOMER_GAP_MS);
-    });
-  }, [schedule, assignCustomer]);
+  // 다음 손님 도착을 예약한다 (이미 예약돼 있으면 새 시각으로 바꾼다). 도착하면 무작위 빈 테이블에 앉고
+  // 그다음 손님을 또 예약한다. 빈자리가 없으면 멈추고, 자리가 나면 serveCake 쪽에서 다시 부른다.
+  const scheduleArrival = useCallback(
+    (delay: number) => {
+      const wait = (ms: number) => {
+        if (arrivalTimer.current) clearTimeout(arrivalTimer.current);
+        arrivalTimer.current = setTimeout(() => {
+          arrivalTimer.current = null;
+          const current = stateRef.current;
+          if (current.today.customers >= CUSTOMERS_PER_DAY) return;
+          const emptyTables = current.tables.flatMap((table, index) => (table ? [] : [index]));
+          if (emptyTables.length === 0) return;
+          if (!current.tutorialDone && emptyTables.length < TABLE_COUNT) {
+            wait(TUTORIAL_RECHECK_MS);
+            return;
+          }
+          assignCustomer(emptyTables[Math.floor(Math.random() * emptyTables.length)]);
+          wait(randomBetween(ARRIVAL_GAP_MIN_MS, ARRIVAL_GAP_MAX_MS));
+        }, ms);
+      };
+      wait(delay);
+    },
+    [assignCustomer],
+  );
+
+  // 가게 문을 열 때(첫 마운트, 다음 날 시작, 초기화) 첫 손님부터 받기 시작한다
+  const openShop = useCallback(() => scheduleArrival(FIRST_CUSTOMER_DELAY_MS), [scheduleArrival]);
 
   useEffect(() => {
-    seatOpeningCustomers();
+    openShop();
     // 최초 마운트 시 한 번만 실행
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -324,15 +358,21 @@ export function useGameState() {
             delete next[customer.id];
             return next;
           });
-          schedule(() => assignCustomer(tableIndex), NEXT_CUSTOMER_GAP_MS);
+          // 자리가 났다: 다음 손님 예정이 없거나 가게가 텅 비었으면 곧 새 손님이 온다
+          const isShopEmpty = stateRef.current.tables.every((table, index) => index === tableIndex || !table);
+          if (!arrivalTimer.current || isShopEmpty) {
+            scheduleArrival(randomBetween(REFILL_GAP_MIN_MS, REFILL_GAP_MAX_MS));
+          }
         }, LEAVE_ANIMATION_MS);
       }, EATING_DURATION_MS);
     },
-    [state.cakes, state.tables, state.player, schedule, assignCustomer],
+    [state.cakes, state.tables, state.player, schedule, scheduleArrival],
   );
 
   const dismissServeResult = useCallback(() => setServeResult(null), []);
   const dismissRankUp = useCallback(() => setRankUps([]), []);
+  // 첫 플레이 안내를 끝내거나 건너뛴다 (진행 초기화하면 다시 나온다)
+  const finishTutorial = useCallback(() => setState((prev) => ({ ...prev, tutorialDone: true })), []);
 
   // 상점: 랭크로 열린 재료를 돈을 내고 산다. 산 재료는 바로 선반에 올라가고 새 손님 주문에도 나온다
   const buyMaterial = useCallback((materialId: string) => {
@@ -392,9 +432,9 @@ export function useGameState() {
       })
     );
     setServeResult(null);
-    // 손님 배정은 0.5초 뒤부터라 그 사이 stateRef가 새 날 상태로 바뀐다
-    seatOpeningCustomers();
-  }, [seatOpeningCustomers]);
+    // 첫 손님은 0.5초 뒤에 오므로 그 사이 stateRef가 새 날 상태로 바뀐다
+    openShop();
+  }, [openShop]);
 
   // 진행 초기화: 저장을 지우고 DAY 1부터 새로 시작한다. 예약돼 있던 타이머(먹기/퇴장 등)도 모두 멈춘다.
   // (꾸미기 그림과 가게 이름은 그대로 둔다)
@@ -411,8 +451,8 @@ export function useGameState() {
     setLeavingIds(new Set());
     setServeResult(null);
     setRankUps([]);
-    seatOpeningCustomers();
-  }, [seatOpeningCustomers]);
+    openShop();
+  }, [openShop]);
 
   return {
     state,
@@ -438,6 +478,7 @@ export function useGameState() {
     dismissServeResult,
     rankUps,
     dismissRankUp,
+    finishTutorial,
     buyMaterial,
     buyUpgrade,
   };

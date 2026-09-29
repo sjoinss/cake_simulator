@@ -148,6 +148,7 @@ export type GameState = {
   ovenSlots: (string | null)[]; // 오븐 칸마다 들어 있는 케이크 id
   nextOrderNumber: number; // 다음 주문에 붙일 번호. 하루가 시작될 때 1로 리셋한다
   today: DayProgress; // 오늘 하루 진행 (손님 CUSTOMERS_PER_DAY명을 다 서빙하면 하루가 끝난다)
+  tutorialDone: boolean; // 첫 플레이 안내(lib/tutorial.ts)를 끝냈거나 건너뛰었는지
 };
 
 export type DayProgress = {
@@ -189,5 +190,6 @@ export function createInitialGameState(): GameState {
     ovenSlots: Array.from({ length: OVEN_SLOT_COUNT }, () => null),
     nextOrderNumber: 1,
     today: createDayProgress(),
+    tutorialDone: false,
   };
 }

@@ -49,6 +49,9 @@ export function loadGame(): GameState | null {
     today: { ...createDayProgress(), ...saved.today },
     selectedCakeIds: { ...initial.selectedCakeIds, ...saved.selectedCakeIds },
     station: 'order',
+    // 튜토리얼이 생기기 전 저장이면, 이미 플레이해 본 사람에게는 다시 보여주지 않는다
+    tutorialDone:
+      saved.tutorialDone ?? (saved.player?.day > 1 || saved.today?.served > 0 || saved.player?.rank > 1),
   };
 
   // 다음 랭크 기준은 숫자를 조정해도 맞도록 매번 다시 계산하고, 오븐 칸 수는 산 업그레이드에 맞춘다
