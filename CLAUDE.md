@@ -147,6 +147,14 @@
 - UI: "가게 꾸미기" 창의 **그림 | 재료 | 테마** 탭 중 테마(`components/game/ThemePicker.tsx`) — 차양처럼 줄무늬 동그라미 7개, 누르면 바로 적용
 - 브라우저 확인: 스카이/옐로에서 매장(차양·벽·천·벽지·패널·탭)과 필링·크림 작업대 색이 함께 바뀜, 새로고침 후 유지, 콘솔 에러 없음, `next build` 통과
 
+### [x] 앱으로 설치 (PWA, 사용자 요청: 폰 홈 화면에 앱으로, 상태 표시줄 없이 전체 화면)
+- `app/manifest.ts` → 빌드 때 `manifest.webmanifest`: `display: "fullscreen"`(안드로이드는 상태 표시줄·주소창 없이), `orientation: "landscape"`. 매니페스트 안 경로엔 basePath가 안 붙어서 `PAGES_BASE_PATH`를 직접 붙인다 (`app/layout.tsx` 아이콘 경로도 마찬가지)
+- iOS는 fullscreen을 지원 안 함 → `appleWebApp`(capable + black-translucent) 메타. 가로 화면에선 iOS도 상태 표시줄이 안 보인다. iOS는 설치 버튼이 없어 사파리 공유 → "홈 화면에 추가"로만 설치
+- 아이콘 `public/icons/*.png`는 `node scripts/make-icons.mjs`가 코드로 그린다(그림 도구 없음). 디자인을 바꾸면 스크립트를 고쳐 다시 돌리고 PNG를 커밋
+- `public/sw.js`: 네트워크 우선 + 실패 시 캐시(오프라인에서도 한 번 연 게임은 켜짐). 등록은 `hooks/useInstallPrompt.ts`에서 배포본만(개발 서버 제외)
+- 상단 바 "📲 앱 설치" 버튼: 크롬이 `beforeinstallprompt`를 줄 때만 보인다(이미 설치했거나 iOS면 안 보임)
+- `viewport-fit=cover`는 일부러 안 넣음 — 넣으면 노치 폰 가로 화면에서 게임이 노치 밑으로 들어간다
+
 ### 기타 참고
 - 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
 - 브라우저 자동화: hidden 탭에서 rAF를 흉내 낼 땐 **누르고 있는 동안만** 가짜 rAF를 켤 것(`window.__fake` 플래그). 항상 켜두면 다른 rAF 루프까지 MessageChannel로 계속 돌아 스크린샷 캡처가 타임아웃난다. 캔버스가 있는 화면은 캡처가 가끔 30초 타임아웃 — 한 번 더 시도하면 대개 된다

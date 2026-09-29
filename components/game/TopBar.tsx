@@ -1,4 +1,7 @@
+"use client";
+
 import { CUSTOMERS_PER_DAY } from "@/lib/gameState";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 type TopBarProps = {
   day: number;
@@ -9,6 +12,9 @@ type TopBarProps = {
 
 // 모든 화면 공통 상단 바: DAY + 오늘 손님 진행 / 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
 export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
+  // 크롬이 설치 가능하다고 알려줄 때만 "앱 설치" 버튼이 보인다 (이미 설치한 앱 안에선 안 보임)
+  const install = useInstallPrompt();
+
   return (
     <header className="relative z-20 flex h-12 shrink-0 items-center justify-between gap-3 bg-[var(--theme-secondary)] px-3 shadow-[0_2px_6px_rgba(0,0,0,0.08)] short:h-9">
       <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-base font-bold tracking-wide text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-sm">
@@ -18,6 +24,15 @@ export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
         </span>
       </span>
       <div className="flex items-center gap-2">
+        {install && (
+          <button
+            type="button"
+            onClick={install}
+            className="flex items-center gap-1 rounded-full bg-white/70 px-3 py-1.5 text-sm font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95 short:py-0.5 short:text-xs"
+          >
+            <span aria-hidden>📲</span> 앱 설치
+          </button>
+        )}
         <button
           type="button"
           onClick={onOpenDecor}
