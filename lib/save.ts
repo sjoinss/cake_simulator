@@ -1,4 +1,11 @@
-import { createDayProgress, createInitialGameState, type GameState } from './gameState';
+import {
+  createDayProgress,
+  createInitialGameState,
+  type Customer,
+  type GameState,
+  type MaterialCategory,
+} from './gameState';
+import { getMaterialRegistry, getUnlockedMaterials } from './materials';
 import { expToNextRank, getOvenSlotCount } from './progress';
 
 // 진행 상황 저장 (cake-tycoon-prompt.md 15장): 게임 상태 객체(GameState) 전체를 localStorage에 직렬화한다.
@@ -24,6 +31,27 @@ export function clearSave() {
   } catch {
     // 무시
   }
+}
+
+// 손님 주문에 지금 선반에 없는 재료가 있으면(상점이 생기기 전 저장, 지운 커스텀 재료 등) 같은 종류의 가진 재료로 바꾼다.
+// 그대로 두면 그 주문은 만들 수가 없다 (사용자 제보: 예전 저장의 말차 주문)
+const ORDER_FIELDS: [keyof Customer['order'], MaterialCategory][] = [
+  ['cake', 'base'],
+  ['filling', 'filling'],
+  ['frosting', 'cream'],
+  ['topping', 'topping'],
+];
+function withMakeableOrder(customer: Customer, owned: readonly string[]): Customer {
+  const registry = getMaterialRegistry();
+  let order = customer.order;
+  for (const [field, category] of ORDER_FIELDS) {
+    const available = getUnlockedMaterials(registry, category, owned);
+    const current = order[field];
+    if (available.length > 0 && !available.some((material) => material.id === current)) {
+      order = { ...order, [field]: available[Math.floor(Math.random() * available.length)].id };
+    }
+  }
+  return order === customer.order ? customer : { ...customer, order };
 }
 
 // 저장된 게임을 불러온다. 없거나 깨졌으면 null.
@@ -65,7 +93,7 @@ export function loadGame(): GameState | null {
     if (customer.status === 'ordering') return { ...customer, status: 'waiting' as const };
     // 다 먹고 나가던 손님은 이미 돈을 냈으니 자리를 비운다
     if (customer.status === 'served') return null;
-    return customer;
+    return withMakeableOrder(customer, state.player.unlockedItems);
   });
 
   return state;
