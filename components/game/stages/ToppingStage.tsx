@@ -8,6 +8,7 @@ import { MaterialPicker } from "../MaterialPicker";
 import { FitBox } from "../FitBox";
 import { BUTTON_PRIMARY, HINT, IDLE_NOTE, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
 import { CakeBoard } from "../cake/CakeBoard";
+import { sounds } from "@/lib/sound";
 
 type ToppingStageProps = {
   job: CakeJob;
@@ -40,6 +41,8 @@ export function ToppingStage({ job, materials, owned, onToggleTopping, onNext, i
     const snappedY = (Math.floor(py * GRID_SIZE) + 0.5) * SNAP_STEP;
     const occupied = job.cake.toppings.some((t) => Math.abs(t.x - snappedX) < 1 && Math.abs(t.y - snappedY) < 1);
     if (!selectedId && !occupied) return; // 재료를 안 골랐으면 빼기만 가능
+    if (occupied) sounds.unpop();
+    else sounds.pop();
     onToggleTopping(selectedId ?? "", snappedX, snappedY);
   };
 
@@ -99,7 +102,10 @@ export function ToppingStage({ job, materials, owned, onToggleTopping, onNext, i
           <button
             type="button"
             data-tutorial="topping-done"
-            onClick={onNext}
+            onClick={() => {
+              sounds.done();
+              onNext();
+            }}
             disabled={idle || job.cake.toppings.length === 0}
             className={BUTTON_PRIMARY}
           >

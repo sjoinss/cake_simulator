@@ -1,5 +1,6 @@
 import type { Material } from "@/lib/gameState";
 import { withBasePath } from "@/lib/assets";
+import { sounds } from "@/lib/sound";
 
 export type MaterialContainer = "jar" | "bag" | "bowl";
 
@@ -45,7 +46,10 @@ export function MaterialPicker({
                 aria-checked={isSelected}
                 aria-label={material.name}
                 title={material.name}
-                onClick={() => onSelect(material.id)}
+                onClick={() => {
+                  sounds.pop();
+                  onSelect(material.id);
+                }}
                 disabled={inactive || (locked && !isSelected)}
                 className={`group relative flex h-16 w-14 items-end justify-center border-0 bg-transparent p-0 short:h-12 short:w-10 ${
                   locked && !isSelected ? "opacity-40" : ""

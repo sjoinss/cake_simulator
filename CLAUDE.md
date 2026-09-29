@@ -186,6 +186,18 @@
 - 인내심 게이지는 여전히 안 함(사용자 결정)
 - 브라우저 확인: 새 게임은 가운데 테이블만 손님, 양옆 🔒 랭크 2/4. 랭크 3 상태에선 테이블 2개 + 주문 "딸기 3개"
 
+### [x] 효과음·배경음악
+- `lib/sound.ts`: 파일 없이 Web Audio 합성. `sounds.*` — bell(손님), click(탭), pop/unpop(재료·토핑), talk(주문 말풍선), orderTaken, pour, squish(짜기), ovenIn, ovenDing(다 구워짐), ovenWarning(타기 시작), whoosh(꺼내기), done(단계 완료), sparkle(케이크 완성), coin(서빙), trash, nope(드래그 되돌아감), fanfare(랭크업), dayEnd
+  - 부르는 곳: 게임 동작은 `useGameState` 콜백(업데이터 밖), 화면 조작은 각 컴포넌트, 오븐 알림은 `StationNav`의 알림 상태가 바뀌는 순간, 랭크업·결산 카드는 `useMountSound`(StrictMode 이중 실행 방지)
+- 배경음악: C–Am–F–G 4마디 오르골 루프(92bpm)를 미리 예약해 반복. 반복마다 볼륨 노드를 따로 둬서 끄면 즉시 멈춤
+- 브라우저 자동재생 정책: `GameRoot`가 첫 pointerdown/click/keydown 때 `unlockAudio()` → 그때부터 소리·음악. 탭이 가려지면 오디오 일시정지
+- 설정: 상단 바 🔊 → 효과음/배경음악 스위치(`SoundToggle`, body에 portal로 그려 튜토리얼 어둠막 위에 뜸). localStorage `cake-tycoon.sound`, 진행 초기화와 무관. 기본 둘 다 켬
+- 확인: 배경음악 한 루프 26음 예약, 끄면 새 음 없음, 다시 켜면 재개(노드 호출 수로 확인). **실제로 들어 보는 확인은 아직 못 함**(자동화 탭이 백그라운드라 효과음은 막혀 있었음) — 음색·볼륨은 사용자 확인 필요
+  - 개발 서버 HMR로 sound 모듈이 두 번 로드되면 음악이 겹칠 수 있다 — 테스트는 새로고침 후
+
+### [x] 단골 개념 없앰 (사용자 결정)
+- 단골·별점·손님별 취향/성격은 만들지 않는다. `Customer.starCount`, `favoriteMaterialIds` 필드 삭제. 손님은 주문 번호로만 구분
+
 ### 기타 참고
 - 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
 - 브라우저 자동화: hidden 탭에서 rAF를 흉내 낼 땐 **누르고 있는 동안만** 가짜 rAF를 켤 것(`window.__fake` 플래그). 항상 켜두면 다른 rAF 루프까지 MessageChannel로 계속 돌아 스크린샷 캡처가 타임아웃난다. 캔버스가 있는 화면은 캡처가 가끔 30초 타임아웃 — 한 번 더 시도하면 대개 된다

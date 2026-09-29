@@ -8,6 +8,7 @@ import { ServeResultCard } from "./ServeResultCard";
 import type { CakeDragHandlers } from "./CakeCounter";
 import { CakeSnapshot } from "@/components/game/cake/CakeSnapshot";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
+import { sounds } from "@/lib/sound";
 
 type ShopScreenProps = {
   gameState: ReturnType<typeof useGameState>;
@@ -70,6 +71,7 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
   }, [drag?.isReturning]);
 
   const snapBack = () => {
+    sounds.nope();
     setHoverTableIndex(null);
     setDrag((prev) => (prev ? { ...prev, isReturning: true } : prev));
   };

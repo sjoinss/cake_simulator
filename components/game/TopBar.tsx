@@ -3,6 +3,7 @@
 import { CUSTOMERS_PER_DAY, type Player } from "@/lib/gameState";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { RankBadge } from "./RankBadge";
+import { SoundToggle } from "./SoundToggle";
 
 type TopBarProps = {
   day: number;
@@ -27,6 +28,7 @@ export function TopBar({ day, servedToday, player, onOpenShop, onOpenDecor }: To
       </span>
       <RankBadge player={player} />
       <div className="ml-auto flex items-center gap-2">
+        <SoundToggle />
         {install && (
           <button
             type="button"

@@ -29,7 +29,7 @@ import {
 import { scoreServedCake, type ServeResult } from "@/lib/scoring";
 import { findMaterial, getMaterialRegistry } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
-import { playBellSound } from "@/lib/sound";
+import { sounds } from "@/lib/sound";
 import { clearSave, loadGame, saveGame } from "@/lib/save";
 
 // cake-tycoon-prompt.md 3장 "손님 등장 애니메이션 및 주문 흐름" 기준.
@@ -117,7 +117,7 @@ export function useGameState() {
     (tableIndex: number) => {
       const current = stateRef.current;
       if (current.tables[tableIndex] || current.today.customers >= CUSTOMERS_PER_DAY) return;
-      playBellSound();
+      sounds.bell();
       const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.unlockedItems, current.player.rank);
       setState((prev) => {
         if (prev.tables[tableIndex] || prev.today.customers >= CUSTOMERS_PER_DAY) return prev;
@@ -191,13 +191,19 @@ export function useGameState() {
 
       setOrderingCustomerId(customer.id);
       setOrderingStepIndex(0);
+      sounds.talk();
       steps.forEach((_, index) => {
-        if (index > 0) schedule(() => setOrderingStepIndex(index), index * ORDER_STEP_DURATION_MS);
+        if (index > 0)
+          schedule(() => {
+            setOrderingStepIndex(index);
+            sounds.talk();
+          }, index * ORDER_STEP_DURATION_MS);
       });
 
       schedule(() => {
         setOrderingCustomerId(null);
         if (!isInitial) return; // 재생(replay)은 상태를 바꾸지 않는다
+        sounds.orderTaken();
         // 주문이 확정되면 번호를 붙이고 주문서가 레일에 걸린다. 속도 점수는 이때부터 잰다 (손님이 기다린 시간).
         setState((current) => {
           const target = current.tables[tableIndex];
@@ -243,12 +249,14 @@ export function useGameState() {
   // 케이크를 다음 스테이션 대기열로 보낸다. 되돌아가는 이동은 없다 (1장 2번).
   // 시트 스테이션에서 떠나면 그 자리에 새 빈 틀이 놓인다 (주방 케이크 수 상한까지).
   const sendCakeTo = useCallback((jobId: string, stage: CraftingStage) => {
+    sounds.done();
     setState((prev) => withBaseCake(mapCake(prev, jobId, (job) => ({ ...job, stage }))));
   }, []);
 
   // 오븐 대기 중인 케이크를 빈 오븐 칸에 넣는다. 타이머는 절대 시각이라 다른 스테이션에 가 있어도 계속 흐른다.
   // slot을 주면(끌어다 놓은 칸) 그 칸이 비어 있을 때만 넣고, 안 주면(키보드 조작) 첫 빈 칸에 넣는다.
   const putInOven = useCallback((jobId: string, slot?: number) => {
+    sounds.ovenIn();
     setState((prev) => {
       const slotIndex = slot === undefined ? prev.ovenSlots.indexOf(null) : prev.ovenSlots[slot] === null ? slot : -1;
       const job = prev.cakes.find((cake) => cake.jobId === jobId);
@@ -264,6 +272,7 @@ export function useGameState() {
 
   // 오븐에서 꺼내면 그 순간의 경과 비율로 굽기 점수를 매기고, 필링·크림 스테이션 대기열로 넘긴다.
   const takeOutOfOven = useCallback((slotIndex: number) => {
+    sounds.whoosh();
     setState((prev) => {
       const jobId = prev.ovenSlots[slotIndex];
       if (!jobId) return prev;
@@ -284,6 +293,7 @@ export function useGameState() {
 
   // 타거나 실수했거나, 줄 손님이 없는 케이크를 버린다. 시트 스테이션에서 버리면 새 빈 틀이 다시 놓인다.
   const discardCake = useCallback((jobId: string) => {
+    sounds.trash();
     setState((prev) =>
       withBaseCake({
         ...prev,
@@ -295,6 +305,7 @@ export function useGameState() {
 
   // 데코레이션 "완성": 케이크를 ready로 바꾸고 매장으로 이동한다. 케이크는 계산대 위에 표시된다.
   const completeCake = useCallback((jobId: string) => {
+    sounds.sparkle();
     setState((prev) => ({
       ...mapCake(prev, jobId, (job) => ({ ...job, stage: "ready", completedAt: Date.now() })),
       station: "order",
@@ -338,6 +349,7 @@ export function useGameState() {
           },
         };
       });
+      sounds.coin();
       setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
       setServeResult({ ...result, orderNumber: customer.orderNumber, cake: job.cake });
       if (reachedRanks.length > 0) {

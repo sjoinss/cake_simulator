@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { unlockAudio } from "@/lib/sound";
 import { useGameState } from "@/hooks/useGameState";
 import { ShopScreen } from "@/components/shop/ShopScreen";
 import { StationScreen } from "./StationScreen";
@@ -23,6 +24,17 @@ export function GameRoot() {
   const [openBillId, setOpenBillId] = useState<string | null>(null);
   const [isDecorOpen, setIsDecorOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+
+  // 브라우저는 사용자가 한 번 누르기 전엔 소리를 막는다: 첫 입력 때 오디오를 깨우고 배경음악을 시작한다
+  useEffect(() => {
+    const events = ["pointerdown", "click", "keydown"] as const;
+    const unlock = () => {
+      unlockAudio();
+      events.forEach((type) => window.removeEventListener(type, unlock, { capture: true }));
+    };
+    events.forEach((type) => window.addEventListener(type, unlock, { capture: true }));
+    return () => events.forEach((type) => window.removeEventListener(type, unlock, { capture: true }));
+  }, []);
 
   // 빌지를 누르면 주문서를 펼치고, 다시 누르면 접는다 (케이크는 주문과 묶여 있지 않아서 작업 대상 선택과는 무관)
   const handleBillTap = (customerId: string) => setOpenBillId((prev) => (prev === customerId ? null : customerId));

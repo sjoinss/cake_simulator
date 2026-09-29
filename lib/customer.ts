@@ -29,7 +29,6 @@ export function createCustomer(
     orderNumber: null,
     look: Math.floor(Math.random() * CUSTOMER_LOOK_COUNT),
     orderedAt: null,
-    starCount: 0,
     order: {
       cake: pickMaterial('base'),
       filling: pickMaterial('filling'),

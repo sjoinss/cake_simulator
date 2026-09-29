@@ -9,6 +9,7 @@ import { AmountGauge } from "../AmountGauge";
 import { MaterialPicker } from "../MaterialPicker";
 import { FitBox, Scaled } from "../FitBox";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, IDLE_NOTE, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
+import { sounds } from "@/lib/sound";
 
 type BaseSelectStageProps = {
   job: CakeJob;
@@ -39,7 +40,9 @@ export function BaseSelectStage({
   useHoldLoop(isPouring, (dt) => setAmount((prev) => prev + BATTER_FLOW_PER_SEC * dt));
 
   const startPouring = () => {
-    if (base && !idle) setIsPouring(true);
+    if (!base || idle) return;
+    sounds.pour();
+    setIsPouring(true);
   };
   const stopPouring = () => {
     if (!isPouring) return;

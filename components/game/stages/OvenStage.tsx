@@ -8,6 +8,7 @@ import { useIsShort } from "@/hooks/useIsShort";
 import { DiscardButton } from "../DiscardButton";
 import { CakeSnapshot } from "../cake/CakeSnapshot";
 import { BatterTin } from "../cake/BatterTin";
+import { sounds } from "@/lib/sound";
 
 type OvenStageProps = {
   queue: CakeJob[]; // 오븐에 들어가길 기다리는 케이크
@@ -59,6 +60,7 @@ export function OvenStage({ queue, slots, materials, onPutIn, onTakeOut, onDisca
   }, [drag?.isReturning]);
 
   const snapBack = () => {
+    sounds.nope();
     setHoverSlot(null);
     setDrag((prev) => (prev ? { ...prev, isReturning: true } : prev));
   };

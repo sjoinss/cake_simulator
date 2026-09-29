@@ -20,6 +20,7 @@ import { MaterialPicker } from "../MaterialPicker";
 import { FitBox, Scaled } from "../FitBox";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, IDLE_NOTE, SIDE_COLUMN, STAGE_ROOT, WORK_ROW } from "./layout";
 import { CakeBoard } from "../cake/CakeBoard";
+import { sounds } from "@/lib/sound";
 
 export type SpreadData = { cells: number[]; side: number[] };
 
@@ -105,6 +106,7 @@ export function SpreadStage({
     onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => {
       if (!hasMaterial) return;
       event.currentTarget.setPointerCapture(event.pointerId);
+      sounds.squish();
       setNozzle(pointerAt(event));
     },
     onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => {
@@ -276,7 +278,10 @@ export function SpreadStage({
           <button
             type="button"
             data-tutorial="spread-done"
-            onClick={() => onFinish({ cells, side })}
+            onClick={() => {
+              sounds.done();
+              onFinish({ cells, side });
+            }}
             disabled={idle || topTotal === 0 || nozzle !== null}
             className={BUTTON_PRIMARY}
           >

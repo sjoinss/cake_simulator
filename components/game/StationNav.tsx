@@ -4,6 +4,8 @@ import type { GameState, Station } from "@/lib/gameState";
 import { getBakingElapsedRatio, OVEN_BURNT_RATIO, OVEN_IDEAL_END_RATIO, OVEN_IDEAL_START_RATIO } from "@/lib/gameLogic";
 import { getCakesAtStage, getOvenQueue, STATIONS } from "@/lib/station";
 import { useNow } from "@/hooks/useNow";
+import { useEffect, useRef } from "react";
+import { sounds } from "@/lib/sound";
 
 type StationNavProps = {
   state: GameState;
@@ -24,6 +26,15 @@ export function StationNav({ state, onSelect }: StationNavProps) {
     : ovenRatios.some((ratio) => ratio !== null && ratio >= OVEN_IDEAL_START_RATIO)
       ? "ideal"
       : null;
+
+  // 오븐 알림이 바뀌는 순간 소리로도 알린다 (다른 스테이션에 있어도 들리게): 다 구워짐 딩동 / 타기 시작 삐삐
+  const lastAlert = useRef(ovenAlert);
+  useEffect(() => {
+    if (ovenAlert === lastAlert.current) return;
+    if (ovenAlert === "ideal") sounds.ovenDing();
+    if (ovenAlert === "over") sounds.ovenWarning();
+    lastAlert.current = ovenAlert;
+  }, [ovenAlert]);
 
   const counts: Record<Station, number> = {
     // 주문 받을 손님 + 서빙할 케이크
@@ -49,7 +60,10 @@ export function StationNav({ state, onSelect }: StationNavProps) {
               <button
                 type="button"
                 data-station-tab={station}
-                onClick={() => onSelect(station)}
+                onClick={() => {
+                  sounds.click();
+                  onSelect(station);
+                }}
                 aria-current={isCurrent ? "page" : undefined}
                 className={`relative flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold short:h-8 short:text-xs shadow-sm transition-transform active:scale-95 ${
                   isCurrent ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"

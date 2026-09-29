@@ -1,5 +1,7 @@
 "use client";
 
+import { sounds } from "@/lib/sound";
+import { useMountSound } from "@/hooks/useMountSound";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import type { MaterialCategory } from "@/lib/gameState";
 import { CUSTOM_MATERIAL_RANK, TABLE_UNLOCK_RANKS, TOPPING_COUNT_RANK } from "@/lib/progress";
@@ -20,6 +22,7 @@ type RankUpCardProps = {
 
 // 랭크업 카드 (Papa's "Rank Up!"): 이번에 상점에 새로 진열된 재료와 새로 열린 기능을 보여준다
 export function RankUpCard({ ranks, onOpenShop, onClose }: RankUpCardProps) {
+  useMountSound(sounds.fanfare);
   const registry = useMaterialRegistry();
   const newMaterials = (Object.keys(registry) as MaterialCategory[]).flatMap((category) =>
     registry[category].filter((material) => !material.isCustom && ranks.includes(material.unlockRank)),

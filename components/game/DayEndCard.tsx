@@ -1,3 +1,5 @@
+import { sounds } from "@/lib/sound";
+import { useMountSound } from "@/hooks/useMountSound";
 import type { DayProgress } from "@/lib/gameState";
 
 type DayEndCardProps = {
@@ -9,6 +11,7 @@ type DayEndCardProps = {
 
 // 하루 마감 결산: 오늘 손님을 다 서빙하고 가게가 비면 뜬다. 다음 날을 누르면 날짜가 넘어가고 손님을 다시 받는다.
 export function DayEndCard({ day, today, onNextDay, onOpenShop }: DayEndCardProps) {
+  useMountSound(sounds.dayEnd);
   const averageScore = today.served > 0 ? Math.round(today.scoreTotal / today.served) : 0;
 
   return (
