@@ -10,9 +10,9 @@ const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * ite
 
 let nextCustomerSeq = 0;
 
-export function createCustomer(tableIndex: number, materials: MaterialRegistry, rank: number): Customer {
+export function createCustomer(tableIndex: number, materials: MaterialRegistry, owned: readonly string[]): Customer {
   nextCustomerSeq += 1;
-  const pickMaterial = (category: MaterialCategory) => pick(getUnlockedMaterials(materials, category, rank)).id;
+  const pickMaterial = (category: MaterialCategory) => pick(getUnlockedMaterials(materials, category, owned)).id;
 
   return {
     id: `customer_${Date.now()}_${nextCustomerSeq}`,

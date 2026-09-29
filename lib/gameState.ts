@@ -129,11 +129,12 @@ export type Player = {
   name: string;
   money: number;
   day: number;
-  rank: number; // 재료/손님/난이도 해금 축. Phase 1은 1 고정
-  tipTotal: number; // 누적 Tip (랭크업 경험치). Phase 1은 누적만 하고 랭크업 로직 미구현
-  rankUpThreshold: number;
-  unlockedItems: string[];
-  upgrades: Record<string, number>;
+  rank: number; // 1부터. 오르면 상점에 새 재료가 진열된다 (lib/progress.ts)
+  exp: number; // 지금 랭크에서 쌓은 경험치 (서빙 점수 합). rankUpThreshold가 되면 랭크업
+  tipTotal: number; // 누적 데코 팁
+  rankUpThreshold: number; // 다음 랭크까지 필요한 경험치 (expToNextRank(rank))
+  unlockedItems: string[]; // 상점에서 산 재료 id
+  upgrades: Record<string, number>; // 장비 업그레이드 단계 (ovenSpeed, ovenSlots)
 };
 
 export type GameState = {
@@ -173,8 +174,9 @@ export function createInitialGameState(): GameState {
       money: 0,
       day: 1,
       rank: 1,
+      exp: 0,
       tipTotal: 0,
-      rankUpThreshold: 100,
+      rankUpThreshold: 300,
       unlockedItems: [],
       upgrades: {},
     },

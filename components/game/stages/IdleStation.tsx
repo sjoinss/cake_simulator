@@ -12,7 +12,7 @@ const noop = () => {};
 
 // 작업할 케이크가 없는 스테이션. 빈 안내 문구 대신 선반·빈 틀/케이크 받침·도구가 세팅된 작업대를 그대로 보여주고,
 // 조작만 막아둔다 (케이크만 없는 상태). 각 단계 컴포넌트의 idle 모드를 그대로 쓴다.
-export function IdleStation({ station, rank }: { station: WorkStation; rank: number }) {
+export function IdleStation({ station, owned }: { station: WorkStation; owned: readonly string[] }) {
   const materialRegistry = useMaterialRegistry();
   const job = createPlaceholderJob();
 
@@ -21,7 +21,7 @@ export function IdleStation({ station, rank }: { station: WorkStation; rank: num
       <BaseSelectStage
         job={job}
         materials={materialRegistry}
-        rank={rank}
+        owned={owned}
         onSelectBase={noop}
         onSaveBatter={noop}
         onNext={noop}
@@ -44,7 +44,7 @@ export function IdleStation({ station, rank }: { station: WorkStation; rank: num
           job={job}
           materials={materialRegistry}
           layer="filling"
-          options={getUnlockedMaterials(materialRegistry, "filling", rank)}
+          options={getUnlockedMaterials(materialRegistry, "filling", owned)}
           targets={[{ label: "적정량", thickness: FILLING_TARGET_THICKNESS }]}
           onSelectMaterial={noop}
           onSave={noop}
@@ -64,7 +64,7 @@ export function IdleStation({ station, rank }: { station: WorkStation; rank: num
         { id: "decoration", emoji: "✏️", label: "데코", done: false, locked: true, lockedNote: "토핑 먼저" },
       ]}
     >
-      <ToppingStage job={job} materials={materialRegistry} rank={rank} onToggleTopping={noop} onNext={noop} idle />
+      <ToppingStage job={job} materials={materialRegistry} owned={owned} onToggleTopping={noop} onNext={noop} idle />
     </StepTabsLayout>
   );
 }

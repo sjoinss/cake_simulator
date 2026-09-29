@@ -65,21 +65,7 @@ export function MaterialPicker({
                       : "group-hover:-translate-y-0.5 group-active:translate-y-0"
                   }`}
                 >
-                  {material.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- 재료 그림은 작은 정적 에셋이라 next/image 최적화가 필요 없다
-                    <img
-                      src={withBasePath(material.image)}
-                      alt=""
-                      draggable={false}
-                      className="h-14 w-auto object-contain"
-                    />
-                  ) : container === "jar" ? (
-                    <Jar material={material} />
-                  ) : container === "bag" ? (
-                    <PipingBag material={material} />
-                  ) : (
-                    <Bowl material={material} />
-                  )}
+                  <MaterialIcon material={material} container={container} />
                 </span>
               </button>
             );
@@ -108,6 +94,19 @@ export function MaterialPicker({
       </div>
     </div>
   );
+}
+
+// 선반에 놓이는 재료 한 개의 모습 (그림이 있으면 그림, 없으면 병/짤주머니/그릇). 상점 진열대에서도 쓴다
+export function MaterialIcon({ material, container }: { material: Material; container: MaterialContainer }) {
+  if (material.image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- 재료 그림은 작은 정적 에셋이라 next/image 최적화가 필요 없다
+      <img src={withBasePath(material.image)} alt="" draggable={false} className="h-14 w-auto object-contain" />
+    );
+  }
+  if (container === "jar") return <Jar material={material} />;
+  if (container === "bag") return <PipingBag material={material} />;
+  return <Bowl material={material} />;
 }
 
 // 잼 병: 유리병 + 뚜껑 + 이모지 라벨

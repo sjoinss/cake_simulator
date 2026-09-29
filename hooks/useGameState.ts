@@ -15,9 +15,19 @@ import {
 } from "@/lib/gameState";
 import { createCustomer } from "@/lib/customer";
 import { withBaseCake } from "@/lib/cake";
-import { getBakingElapsedRatio, OVEN_DURATION_MS, scoreBaking } from "@/lib/gameLogic";
+import { getBakingElapsedRatio, scoreBaking } from "@/lib/gameLogic";
+import {
+  addExp,
+  getOvenDuration,
+  getOvenSlotCount,
+  isMaterialOwned,
+  materialPrice,
+  UPGRADES,
+  upgradeLevel,
+  type UpgradeId,
+} from "@/lib/progress";
 import { scoreServedCake, type ServeResult } from "@/lib/scoring";
-import { getMaterialRegistry } from "@/lib/materials";
+import { findMaterial, getMaterialRegistry } from "@/lib/materials";
 import { getOrderSteps } from "@/lib/order";
 import { playBellSound } from "@/lib/sound";
 import { clearSave, loadGame, saveGame } from "@/lib/save";
@@ -56,6 +66,8 @@ export function useGameState() {
   const [servedCakes, setServedCakes] = useState<Readonly<Record<string, CakeData>>>({});
   const [leavingIds, setLeavingIds] = useState<ReadonlySet<string>>(() => new Set());
   const [serveResult, setServeResult] = useState<ServeResultCard | null>(null);
+  // 방금 오른 랭크들 (랭크업 카드). 서빙 결과 카드를 닫은 뒤에 뜬다
+  const [rankUps, setRankUps] = useState<number[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const schedule = useCallback((callback: () => void, delay: number) => {
@@ -93,7 +105,7 @@ export function useGameState() {
       const current = stateRef.current;
       if (current.tables[tableIndex] || current.today.customers >= CUSTOMERS_PER_DAY) return;
       playBellSound();
-      const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.rank);
+      const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.unlockedItems);
       setState((prev) => {
         if (prev.tables[tableIndex] || prev.today.customers >= CUSTOMERS_PER_DAY) return prev;
         const tables = [...prev.tables];
@@ -208,7 +220,7 @@ export function useGameState() {
       ovenSlots[slotIndex] = jobId;
       return mapCake({ ...prev, ovenSlots }, jobId, (j) => ({
         ...j,
-        cake: { ...j.cake, baking: { startTime: Date.now(), endTime: null, duration: OVEN_DURATION_MS, doneness: 0 } },
+        cake: { ...j.cake, baking: { startTime: Date.now(), endTime: null, duration: getOvenDuration(prev.player), doneness: 0 } },
       }));
     });
   }, []);
@@ -264,19 +276,22 @@ export function useGameState() {
 
       const servedAt = Date.now();
       const result = scoreServedCake(job.cake, customer.order, customer.orderedAt ?? servedAt, servedAt);
+      // 서빙 점수만큼 경험치 (랭크업은 결과 카드를 닫은 뒤 카드로 알린다)
+      const { reachedRanks } = addExp(state.player, result.total);
 
       setState((prev) => {
         const tables = [...prev.tables];
         const target = tables[tableIndex];
         if (target?.id === customer.id) tables[tableIndex] = { ...target, status: "served" };
+        const leveled = addExp(prev.player, result.total).player;
         return {
           ...prev,
           tables,
           cakes: prev.cakes.filter((cake) => cake.jobId !== jobId),
           player: {
-            ...prev.player,
-            money: prev.player.money + result.money + result.tip,
-            tipTotal: prev.player.tipTotal + result.tip,
+            ...leveled,
+            money: leveled.money + result.money + result.tip,
+            tipTotal: leveled.tipTotal + result.tip,
           },
           today: {
             ...prev.today,
@@ -288,6 +303,7 @@ export function useGameState() {
       });
       setServedCakes((prev) => ({ ...prev, [customer.id]: job.cake }));
       setServeResult({ ...result, orderNumber: customer.orderNumber, cake: job.cake });
+      if (reachedRanks.length > 0) setRankUps((prev) => [...prev, ...reachedRanks]);
 
       schedule(() => {
         setLeavingIds((prev) => new Set(prev).add(customer.id));
@@ -312,10 +328,50 @@ export function useGameState() {
         }, LEAVE_ANIMATION_MS);
       }, EATING_DURATION_MS);
     },
-    [state.cakes, state.tables, schedule, assignCustomer],
+    [state.cakes, state.tables, state.player, schedule, assignCustomer],
   );
 
   const dismissServeResult = useCallback(() => setServeResult(null), []);
+  const dismissRankUp = useCallback(() => setRankUps([]), []);
+
+  // 상점: 랭크로 열린 재료를 돈을 내고 산다. 산 재료는 바로 선반에 올라가고 새 손님 주문에도 나온다
+  const buyMaterial = useCallback((materialId: string) => {
+    setState((prev) => {
+      const material = findMaterial(getMaterialRegistry(), materialId);
+      if (!material || material.isCustom || isMaterialOwned(material, prev.player.unlockedItems)) return prev;
+      const price = materialPrice(material);
+      if (prev.player.rank < material.unlockRank || prev.player.money < price) return prev;
+      return {
+        ...prev,
+        player: {
+          ...prev.player,
+          money: prev.player.money - price,
+          unlockedItems: [...prev.player.unlockedItems, materialId],
+        },
+      };
+    });
+  }, []);
+
+  // 상점: 장비 업그레이드를 한 단계 산다. 오븐 칸이 늘면 빈 칸을 덧붙인다
+  const buyUpgrade = useCallback((id: UpgradeId) => {
+    setState((prev) => {
+      const info = UPGRADES.find((upgrade) => upgrade.id === id);
+      const level = upgradeLevel(prev.player, id);
+      const next = info?.levels[level];
+      if (!next || prev.player.money < next.price) return prev;
+      const player = {
+        ...prev.player,
+        money: prev.player.money - next.price,
+        upgrades: { ...prev.player.upgrades, [id]: level + 1 },
+      };
+      const slotCount = getOvenSlotCount(player);
+      const ovenSlots =
+        prev.ovenSlots.length < slotCount
+          ? [...prev.ovenSlots, ...Array.from({ length: slotCount - prev.ovenSlots.length }, () => null)]
+          : prev.ovenSlots;
+      return { ...prev, player, ovenSlots };
+    });
+  }, []);
 
   // 오늘 손님을 다 서빙했고 마지막 손님까지 나가서 테이블이 모두 비었으면 하루가 끝난 것 (결산 카드)
   const isDayOver = state.today.served >= CUSTOMERS_PER_DAY && state.tables.every((table) => table === null);
@@ -354,6 +410,7 @@ export function useGameState() {
     setServedCakes({});
     setLeavingIds(new Set());
     setServeResult(null);
+    setRankUps([]);
     seatOpeningCustomers();
   }, [seatOpeningCustomers]);
 
@@ -379,5 +436,9 @@ export function useGameState() {
     completeCake,
     serveCake,
     dismissServeResult,
+    rankUps,
+    dismissRankUp,
+    buyMaterial,
+    buyUpgrade,
   };
 }

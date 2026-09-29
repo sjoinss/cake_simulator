@@ -12,7 +12,7 @@ import { CakeBoard } from "../cake/CakeBoard";
 type ToppingStageProps = {
   job: CakeJob;
   materials: MaterialRegistry;
-  rank: number;
+  owned: readonly string[]; // 가진 재료 (player.unlockedItems)
   onToggleTopping: (itemId: string, x: number, y: number) => void;
   onNext: () => void;
   idle?: boolean; // 작업할 케이크가 없음 — 선반/빈 케이크 받침은 그대로 보여주고 조작만 막는다
@@ -23,8 +23,8 @@ const SNAP_STEP = 100 / GRID_SIZE;
 
 // 토핑 단계. 토핑 재료를 먼저 고른 뒤 케이크를 탭해서 올린다. 완전 자유배치 대신 은은한 그리드에 스냅시켜서
 // 배치가 깔끔해 보이게 한다 (1장 5번 원칙). 이미 올린 자리를 다시 탭하면 뺀다.
-export function ToppingStage({ job, materials, rank, onToggleTopping, onNext, idle = false }: ToppingStageProps) {
-  const options = getUnlockedMaterials(materials, "topping", rank);
+export function ToppingStage({ job, materials, owned, onToggleTopping, onNext, idle = false }: ToppingStageProps) {
+  const options = getUnlockedMaterials(materials, "topping", owned);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // 입체 케이크 윗면 타원 영역을 누른 위치를 평면 좌표(0~1)로 되돌린다

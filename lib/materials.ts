@@ -1,4 +1,5 @@
 import type { Material, MaterialCategory, MaterialRegistry } from './gameState';
+import { isMaterialOwned } from './progress';
 
 // 기본 재료 (8장). 이모지는 윈도우 10에서도 보이는 것만 쓴다 (🫐 등 최신 이모지 제외).
 const builtInMaterials: MaterialRegistry = {
@@ -19,7 +20,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#6b4432',
       emoji: '🍫',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 2,
     },
     {
       id: 'base_matcha',
@@ -28,7 +29,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#b7c98a',
       emoji: '🍵',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 6,
     },
     {
       id: 'base_strawberry',
@@ -37,7 +38,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#f4b6c2',
       emoji: '🍓',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 4,
     },
   ],
   cream: [
@@ -57,7 +58,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#8a5a44',
       emoji: '🍫',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 3,
     },
     {
       id: 'cream_strawberry',
@@ -66,7 +67,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#f9c9d4',
       emoji: '🍓',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 5,
     },
     {
       id: 'cream_matcha',
@@ -75,7 +76,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#cfe0b0',
       emoji: '🍵',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 7,
     },
   ],
   filling: [
@@ -95,7 +96,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#5a3a2a',
       emoji: '🍫',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 5,
     },
     {
       id: 'filling_custard',
@@ -104,7 +105,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#f3d27a',
       emoji: '🍮',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 3,
     },
     {
       id: 'filling_lemon',
@@ -113,7 +114,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#f5e26a',
       emoji: '🍋',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 7,
     },
   ],
   topping: [
@@ -133,7 +134,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#c8102e',
       emoji: '🍒',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 4,
     },
     {
       id: 'topping_chocochip',
@@ -142,7 +143,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#5a3a2a',
       emoji: '🍫',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 2,
     },
     {
       id: 'topping_kiwi',
@@ -151,7 +152,7 @@ const builtInMaterials: MaterialRegistry = {
       color: '#8cc63f',
       emoji: '🥝',
       isCustom: false,
-      unlockRank: 0,
+      unlockRank: 6,
     },
   ],
   decoration: [],
@@ -250,9 +251,14 @@ export function removeCustomMaterial(id: string) {
   commit(customMaterials.map((material) => (material.id === id ? { ...material, retired: true } : material)));
 }
 
-// 선반에 올리고 새 주문에 쓸 수 있는 재료 (지운 커스텀 재료 제외)
-export function getUnlockedMaterials(registry: MaterialRegistry, category: MaterialCategory, rank: number): Material[] {
-  return registry[category].filter((material) => !material.retired && material.unlockRank <= rank);
+// 선반에 올리고 새 주문에 쓸 수 있는 재료: 처음부터 가진 재료 + 상점에서 산 재료(owned = player.unlockedItems) + 커스텀 재료.
+// 지운 커스텀 재료는 뺀다
+export function getUnlockedMaterials(
+  registry: MaterialRegistry,
+  category: MaterialCategory,
+  owned: readonly string[],
+): Material[] {
+  return registry[category].filter((material) => !material.retired && isMaterialOwned(material, owned));
 }
 
 export function findMaterial(registry: MaterialRegistry, id: string): Material | undefined {

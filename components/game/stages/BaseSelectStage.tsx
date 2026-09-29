@@ -13,7 +13,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY, HINT, IDLE_NOTE, SIDE_COLUMN, STAGE_R
 type BaseSelectStageProps = {
   job: CakeJob;
   materials: MaterialRegistry;
-  rank: number;
+  owned: readonly string[]; // 가진 재료 (player.unlockedItems)
   onSelectBase: (materialId: string) => void;
   onSaveBatter: (amount: number) => void; // 손을 뗄 때마다 부은 양을 주문에 저장
   onNext: () => void;
@@ -25,13 +25,13 @@ type BaseSelectStageProps = {
 export function BaseSelectStage({
   job,
   materials,
-  rank,
+  owned,
   onSelectBase,
   onSaveBatter,
   onNext,
   idle = false,
 }: BaseSelectStageProps) {
-  const options = getUnlockedMaterials(materials, "base", rank);
+  const options = getUnlockedMaterials(materials, "base", owned);
   const base = job.cake.base ? findMaterial(materials, job.cake.base) : undefined;
   const [amount, setAmount] = useState(job.cake.batter.amount);
   const [isPouring, setIsPouring] = useState(false);

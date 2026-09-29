@@ -26,7 +26,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
 
   const job = station === "oven" ? null : getSelectedCake(state, station);
   const jobsHere = station === "oven" ? [] : getCakesAtStage(state, station);
-  const rank = state.player.rank;
+  const owned = state.player.unlockedItems;
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col bg-[var(--theme-background)]">
@@ -73,7 +73,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
         )}
 
         {/* 작업할 케이크가 없어도 작업대(선반, 빈 틀/케이크 받침, 도구)는 세팅된 채로 보여준다 */}
-        {!job && station !== "oven" && <IdleStation station={station} rank={rank} />}
+        {!job && station !== "oven" && <IdleStation station={station} owned={owned} />}
 
         {/* 작업할 케이크가 바뀌면 단계 컴포넌트의 로컬 상태(짜는 중인 크림, 데코 히스토리 등)가 섞이지 않도록
             key로 새로 마운트한다 */}
@@ -82,7 +82,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
             key={job.jobId}
             job={job}
             materials={materialRegistry}
-            rank={rank}
+            owned={owned}
             onSelectBase={(materialId) =>
               updateCake(job.jobId, (j) => ({ ...j, cake: { ...j.cake, base: materialId } }))
             }
@@ -101,7 +101,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
             key={job.jobId}
             job={job}
             materials={materialRegistry}
-            rank={rank}
+            owned={owned}
             onUpdate={(updater) => updateCake(job.jobId, updater)}
           />
         )}
@@ -111,7 +111,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
             key={job.jobId}
             job={job}
             materials={materialRegistry}
-            rank={rank}
+            owned={owned}
             onUpdate={(updater) => updateCake(job.jobId, updater)}
             onComplete={() => completeCake(job.jobId)}
           />

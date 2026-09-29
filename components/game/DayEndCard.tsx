@@ -4,10 +4,11 @@ type DayEndCardProps = {
   day: number;
   today: DayProgress;
   onNextDay: () => void;
+  onOpenShop: () => void; // 다음 날 전에 재료·장비 사기
 };
 
 // 하루 마감 결산: 오늘 손님을 다 서빙하고 가게가 비면 뜬다. 다음 날을 누르면 날짜가 넘어가고 손님을 다시 받는다.
-export function DayEndCard({ day, today, onNextDay }: DayEndCardProps) {
+export function DayEndCard({ day, today, onNextDay, onOpenShop }: DayEndCardProps) {
   const averageScore = today.served > 0 ? Math.round(today.scoreTotal / today.served) : 0;
 
   return (
@@ -37,6 +38,13 @@ export function DayEndCard({ day, today, onNextDay }: DayEndCardProps) {
             <dd className="text-xl font-extrabold tabular-nums short:text-lg">{averageScore}%</dd>
           </div>
         </dl>
+        <button
+          type="button"
+          onClick={onOpenShop}
+          className="-mb-2 w-full rounded-full bg-white px-6 py-2 text-sm font-bold shadow-sm transition-transform active:scale-95 short:-mb-1 short:py-1"
+        >
+          🛒 상점 들르기
+        </button>
         <button
           type="button"
           autoFocus

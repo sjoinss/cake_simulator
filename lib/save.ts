@@ -1,4 +1,5 @@
 import { createDayProgress, createInitialGameState, type GameState } from './gameState';
+import { expToNextRank, getOvenSlotCount } from './progress';
 
 // 진행 상황 저장 (cake-tycoon-prompt.md 15장): 게임 상태 객체(GameState) 전체를 localStorage에 직렬화한다.
 // 그림(주인/손님)과 가게 이름은 따로 저장한다 (lib/imageStore.ts, ShopSign).
@@ -49,6 +50,11 @@ export function loadGame(): GameState | null {
     selectedCakeIds: { ...initial.selectedCakeIds, ...saved.selectedCakeIds },
     station: 'order',
   };
+
+  // 다음 랭크 기준은 숫자를 조정해도 맞도록 매번 다시 계산하고, 오븐 칸 수는 산 업그레이드에 맞춘다
+  state.player.rankUpThreshold = expToNextRank(state.player.rank);
+  const slotCount = getOvenSlotCount(state.player);
+  state.ovenSlots = Array.from({ length: slotCount }, (_, index) => state.ovenSlots[index] ?? null);
 
   state.tables = (saved.tables ?? initial.tables).map((customer) => {
     if (!customer) return null;

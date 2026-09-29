@@ -1,17 +1,19 @@
 "use client";
 
-import { CUSTOMERS_PER_DAY } from "@/lib/gameState";
+import { CUSTOMERS_PER_DAY, type Player } from "@/lib/gameState";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { RankBadge } from "./RankBadge";
 
 type TopBarProps = {
   day: number;
   servedToday: number; // 오늘 서빙을 마친 손님 수 (CUSTOMERS_PER_DAY명이면 하루 마감)
-  money: number;
+  player: Player;
+  onOpenShop: () => void;
   onOpenDecor: () => void; // "가게 꾸미기" 창 열기
 };
 
-// 모든 화면 공통 상단 바: DAY + 오늘 손님 진행 / 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
-export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
+// 모든 화면 공통 상단 바: DAY + 오늘 손님 진행, 랭크 / 상점, 꾸미기, 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
+export function TopBar({ day, servedToday, player, onOpenShop, onOpenDecor }: TopBarProps) {
   // 크롬이 설치 가능하다고 알려줄 때만 "앱 설치" 버튼이 보인다 (이미 설치한 앱 안에선 안 보임)
   const install = useInstallPrompt();
 
@@ -23,7 +25,8 @@ export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
           손님 {servedToday}/{CUSTOMERS_PER_DAY}
         </span>
       </span>
-      <div className="flex items-center gap-2">
+      <RankBadge player={player} />
+      <div className="ml-auto flex items-center gap-2">
         {install && (
           <button
             type="button"
@@ -40,8 +43,15 @@ export function TopBar({ day, servedToday, money, onOpenDecor }: TopBarProps) {
         >
           <span aria-hidden>🎨</span> 가게 꾸미기
         </button>
+        <button
+          type="button"
+          onClick={onOpenShop}
+          className="flex items-center gap-1 rounded-full bg-white/70 px-3 py-1.5 text-sm font-bold text-[var(--theme-text)] shadow-sm transition-transform active:scale-95 short:py-0.5 short:text-xs"
+        >
+          <span aria-hidden>🛒</span> 상점
+        </button>
         <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-base font-bold tracking-wide text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-sm">
-          <span aria-hidden>💰</span> ${money.toLocaleString()}
+          <span aria-hidden>💰</span> ${player.money.toLocaleString()}
         </span>
       </div>
     </header>

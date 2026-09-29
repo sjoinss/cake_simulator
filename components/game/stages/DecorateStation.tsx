@@ -9,7 +9,7 @@ import { ToppingStage } from "./ToppingStage";
 type DecorateStationProps = {
   job: CakeJob;
   materials: MaterialRegistry;
-  rank: number;
+  owned: readonly string[]; // 가진 재료 (player.unlockedItems)
   onUpdate: (updater: (job: CakeJob) => CakeJob) => void;
   onComplete: () => void;
 };
@@ -18,7 +18,7 @@ type Step = "topping" | "decoration";
 
 // 토핑·데코 스테이션. 토핑을 올리고(토핑 탭) "토핑 완료"를 눌러야 데코 탭이 열린다.
 // 데코 탭에 들어갈 때마다 카메라가 위로 올라가는 Top View 전환 연출이 재생된다 (4장).
-export function DecorateStation({ job, materials, rank, onUpdate, onComplete }: DecorateStationProps) {
+export function DecorateStation({ job, materials, owned, onUpdate, onComplete }: DecorateStationProps) {
   const { toppingsDone } = job.cake;
   const [step, setStep] = useState<Step>(toppingsDone ? "decoration" : "topping");
 
@@ -53,7 +53,7 @@ export function DecorateStation({ job, materials, rank, onUpdate, onComplete }: 
           <ToppingStage
             job={job}
             materials={materials}
-            rank={rank}
+            owned={owned}
             onToggleTopping={handleToggleTopping}
             onNext={() => {
               onUpdate((o) => ({ ...o, cake: { ...o.cake, toppingsDone: true } }));

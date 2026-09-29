@@ -10,7 +10,7 @@ import { StepDone, StepTabsLayout } from "./StepTabsLayout";
 type CreamStationProps = {
   job: CakeJob;
   materials: MaterialRegistry;
-  rank: number;
+  owned: readonly string[]; // 가진 재료 (player.unlockedItems)
   onUpdate: (updater: (job: CakeJob) => CakeJob) => void;
 };
 
@@ -30,7 +30,7 @@ const withLayer = (job: CakeJob, layer: Step, patch: Partial<SpreadLayer>): Cake
 // 필링·크림 스테이션. 구운 시트를 가로로 갈라 안에 필링(잼 등)을 바르고(필링 탭) → 덮은 뒤 겉에 크림을 바른다(크림 탭).
 // 필링을 마쳐야 크림 탭이 열리고, 크림을 마치면 케이크가 토핑·데코 스테이션으로 넘어간다.
 // 점수는 여기서 매기지 않는다 — 서빙할 때 받은 손님 주문 기준으로 계산한다 (lib/scoring.ts).
-export function CreamStation({ job, materials, rank, onUpdate }: CreamStationProps) {
+export function CreamStation({ job, materials, owned, onUpdate }: CreamStationProps) {
   const { filling } = job.cake;
   const [step, setStep] = useState<Step>(filling.done ? "frosting" : "filling");
   const fillingScore = scoreSpread(filling.cells, FILLING_TARGET_THICKNESS);
@@ -64,7 +64,7 @@ export function CreamStation({ job, materials, rank, onUpdate }: CreamStationPro
             job={job}
             materials={materials}
             layer="filling"
-            options={getUnlockedMaterials(materials, "filling", rank)}
+            options={getUnlockedMaterials(materials, "filling", owned)}
             targets={[{ label: "적정량", thickness: FILLING_TARGET_THICKNESS }]}
             onSelectMaterial={(materialId) => onUpdate((o) => withLayer(o, "filling", { materialId }))}
             onSave={({ cells }) => onUpdate((o) => withLayer(o, "filling", { cells }))}
@@ -81,7 +81,7 @@ export function CreamStation({ job, materials, rank, onUpdate }: CreamStationPro
           job={job}
           materials={materials}
           layer="frosting"
-          options={getUnlockedMaterials(materials, "cream", rank)}
+          options={getUnlockedMaterials(materials, "cream", owned)}
           targets={CREAM_TARGETS}
           onSelectMaterial={(materialId) => onUpdate((o) => withLayer(o, "frosting", { materialId }))}
           onSave={(data) => onUpdate((o) => withLayer(o, "frosting", data))}

@@ -6,6 +6,7 @@ import { customerImageKey, OWNER_IMAGE_KEY, useCustomImages, type CustomerLookPo
 import { ImageDropZone } from "./ImageDropZone";
 import { MaterialMaker } from "./MaterialMaker";
 import { ThemePicker } from "./ThemePicker";
+import { CUSTOM_MATERIAL_RANK } from "@/lib/progress";
 
 const POSES: { pose: CustomerLookPose; label: string }[] = [
   { pose: "idle", label: "평소" },
@@ -25,11 +26,12 @@ const TABS: { id: DecorTab; label: string }[] = [
 // - 테마 탭: 파스텔 테마 7가지 (ThemePicker)
 // 넣은 그림·재료·테마는 브라우저에 저장된다 (진행 초기화와 무관).
 type DecorSettingsProps = {
+  rank: number; // 재료 탭(나만의 재료 만들기)은 CUSTOM_MATERIAL_RANK부터 열린다
   onClose: () => void;
   onResetProgress: () => void; // 게임 진행(돈·DAY·케이크) 초기화
 };
 
-export function DecorSettings({ onClose, onResetProgress }: DecorSettingsProps) {
+export function DecorSettings({ rank, onClose, onResetProgress }: DecorSettingsProps) {
   const { images, ownerImage, hasCustomOwner, setImage, clearImage } = useCustomImages();
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [tab, setTab] = useState<DecorTab>("images");
@@ -86,7 +88,15 @@ export function DecorSettings({ onClose, onResetProgress }: DecorSettingsProps) 
           </div>
         ) : tab === "materials" ? (
           <div role="tabpanel" id="decor-panel-materials" aria-labelledby="decor-tab-materials">
-            <MaterialMaker />
+            {rank >= CUSTOM_MATERIAL_RANK ? (
+              <MaterialMaker />
+            ) : (
+              <p className="rounded-xl bg-white/70 px-4 py-6 text-center text-sm font-bold text-[var(--theme-text)]/70">
+                🔒 랭크 {CUSTOM_MATERIAL_RANK}가 되면 나만의 재료를 만들 수 있어요
+                <br />
+                <span className="text-xs font-semibold">지금 랭크 {rank}</span>
+              </p>
+            )}
           </div>
         ) : (
           <div
