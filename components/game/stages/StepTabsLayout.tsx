@@ -68,6 +68,7 @@ export function StepDone({ title, detail, nextLabel, onNext }: StepDoneProps) {
       <p className="text-sm">{detail}</p>
       <button
         type="button"
+        data-tutorial="step-next"
         onClick={onNext}
         className="mt-2 rounded-full bg-[var(--theme-accent)] px-5 py-1.5 text-base font-bold text-white shadow-sm transition-transform active:scale-95"
       >

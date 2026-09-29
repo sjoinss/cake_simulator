@@ -324,6 +324,7 @@ export function DecorationStage({ job, materials, onChange, onFinish }: Decorati
 
         <button
           type="button"
+          data-tutorial="complete"
           onClick={onFinish}
           className="rounded-full bg-[var(--theme-accent)] px-6 py-2 text-base font-bold text-white shadow-sm transition-transform active:scale-95 short:py-1 short:text-sm"
         >

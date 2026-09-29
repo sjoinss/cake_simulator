@@ -269,6 +269,7 @@ function OvenSlot({ index, job, now, materials, dropHint, onTakeOut, onDiscard }
       <div className="flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"
+          data-take-out
           onClick={onTakeOut}
           disabled={!job}
           className={`rounded-full px-5 py-1.5 text-base font-bold whitespace-nowrap text-white shadow-sm short:px-3 short:py-1 short:text-sm transition-transform active:scale-95 disabled:opacity-30 ${

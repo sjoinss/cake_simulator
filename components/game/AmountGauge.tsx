@@ -31,7 +31,7 @@ export function AmountGauge({ value, max, label, marks }: AmountGaugeProps) {
         : "사이예요";
 
   return (
-    <div className="flex h-full max-h-56 min-h-28 shrink-0 flex-col items-center gap-1.5 py-1 short:gap-1">
+    <div data-tutorial="gauge" className="flex h-full max-h-56 min-h-28 shrink-0 flex-col items-center gap-1.5 py-1 short:gap-1">
       <span className="text-xs font-bold whitespace-nowrap text-[var(--theme-text)] short:text-[10px]">
         {isSingle ? (
           <>

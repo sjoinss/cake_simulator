@@ -117,6 +117,7 @@ export function SpreadStage({
   const hitArea = (label: string) => (
     <div
       aria-label={label}
+      data-tutorial="spread-area"
       className={`relative h-full w-full touch-none select-none ${hasMaterial ? "cursor-crosshair" : "cursor-not-allowed"}`}
       {...pressHandlers}
     >
@@ -274,6 +275,7 @@ export function SpreadStage({
           </button>
           <button
             type="button"
+            data-tutorial="spread-done"
             onClick={() => onFinish({ cells, side })}
             disabled={idle || topTotal === 0 || nozzle !== null}
             className={BUTTON_PRIMARY}

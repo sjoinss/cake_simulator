@@ -98,6 +98,7 @@ export function ToppingStage({ job, materials, owned, onToggleTopping, onNext, i
           {/* 주문에는 항상 토핑이 있으므로 최소 1개는 올려야 데코로 넘어갈 수 있다 */}
           <button
             type="button"
+            data-tutorial="topping-done"
             onClick={onNext}
             disabled={idle || job.cake.toppings.length === 0}
             className={BUTTON_PRIMARY}

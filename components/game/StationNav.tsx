@@ -7,14 +7,13 @@ import { useNow } from "@/hooks/useNow";
 
 type StationNavProps = {
   state: GameState;
-  highlight?: Station | null; // 첫 플레이 안내가 가라고 하는 탭 (손가락 표시 + 테두리)
   onSelect: (station: Station) => void;
 };
 
 // 하단 스테이션 탭 (Papa's 시리즈). 매장 포함 어느 화면에서든 항상 보이고 언제든 이동할 수 있다.
 // 각 탭에 "할 일" 개수 배지를 달고, 오븐 탭은 칸별 진행 바 + 꺼낼 때(초록)/타기 시작할 때(빨강) 깜빡여서
 // 다른 스테이션에서 일하다가도 오븐을 챙길 수 있게 한다.
-export function StationNav({ state, highlight, onSelect }: StationNavProps) {
+export function StationNav({ state, onSelect }: StationNavProps) {
   const bakingCakes = state.ovenSlots.map((id) => state.cakes.find((job) => job.jobId === id) ?? null);
   const now = useNow(bakingCakes.some(Boolean));
   const ovenRatios = bakingCakes.map((job) =>
@@ -45,24 +44,19 @@ export function StationNav({ state, highlight, onSelect }: StationNavProps) {
         {STATIONS.map(({ station, emoji, label }) => {
           const isCurrent = state.station === station;
           const alert = station === "oven" ? ovenAlert : null;
-          const isGuided = highlight === station && !isCurrent;
           return (
             <li key={station} className="flex-1">
               <button
                 type="button"
+                data-station-tab={station}
                 onClick={() => onSelect(station)}
                 aria-current={isCurrent ? "page" : undefined}
                 className={`relative flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold short:h-8 short:text-xs shadow-sm transition-transform active:scale-95 ${
                   isCurrent ? "bg-[var(--theme-accent)] text-white" : "bg-white/70 text-[var(--theme-text)]"
                 } ${alert === "ideal" ? "animate-pulse ring-3 ring-emerald-400" : ""} ${
                   alert === "over" ? "animate-pulse ring-3 ring-red-500" : ""
-                } ${isGuided && !alert ? "ring-3 ring-[var(--theme-accent)]" : ""}`}
+                }`}
               >
-                {isGuided && (
-                  <span aria-hidden className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 animate-bounce text-xl short:-top-6 short:text-base">
-                    👇
-                  </span>
-                )}
                 <span className="text-xl leading-none short:text-base" aria-hidden>
                   {emoji}
                 </span>

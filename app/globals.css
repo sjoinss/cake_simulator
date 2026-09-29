@@ -211,3 +211,62 @@ body {
       0 0 110px 0px color-mix(in srgb, var(--theme-accent) 20%, transparent);
   }
 }
+
+/* 첫 플레이 튜토리얼 (components/game/TutorialCoach.tsx) */
+@keyframes tutorial-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(4deg);
+  }
+}
+.animate-tutorial-bob {
+  animation: tutorial-bob 1.6s ease-in-out infinite;
+}
+
+/* 짚어 준 자리의 테두리가 숨 쉬듯 퍼진다 */
+@keyframes tutorial-ring {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px var(--theme-accent),
+      0 0 0 6px rgba(255, 255, 255, 0.9),
+      0 0 18px 8px color-mix(in srgb, var(--theme-accent) 60%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--theme-accent),
+      0 0 0 9px rgba(255, 255, 255, 0.7),
+      0 0 28px 14px color-mix(in srgb, var(--theme-accent) 45%, transparent);
+  }
+}
+.animate-tutorial-ring {
+  animation: tutorial-ring 1.2s ease-in-out infinite;
+}
+
+/* 끌어다 놓는 단계: 손가락이 출발점(0,0)에서 도착점(--drag-x, --drag-y)까지 움직이는 시늉을 반복한다 */
+@keyframes tutorial-drag {
+  0%,
+  15% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  22% {
+    transform: translate(0, 0) scale(0.85);
+    opacity: 1;
+  }
+  75% {
+    transform: translate(var(--drag-x), var(--drag-y)) scale(0.85);
+    opacity: 1;
+  }
+  90%,
+  100% {
+    transform: translate(var(--drag-x), var(--drag-y)) scale(1);
+    opacity: 0;
+  }
+}
+.animate-tutorial-drag {
+  animation: tutorial-drag 2.2s ease-in-out infinite;
+}

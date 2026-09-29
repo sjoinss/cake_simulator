@@ -149,6 +149,7 @@ export function BaseSelectStage({
           </button>
           <button
             type="button"
+            data-tutorial="to-oven"
             onClick={onNext}
             disabled={idle || amount === 0 || isPouring}
             className={BUTTON_PRIMARY}
