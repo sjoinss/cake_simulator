@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { MaterialCategory, Player } from "@/lib/gameState";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
-import { isMaterialOwned, materialPrice, UPGRADES, upgradeLevel, type UpgradeId } from "@/lib/progress";
+import { DECOR_ITEMS, hasDecor, isMaterialOwned, materialPrice, UPGRADES, upgradeLevel, type UpgradeId } from "@/lib/progress";
+import { sounds } from "@/lib/sound";
 import { MaterialIcon, type MaterialContainer } from "./MaterialPicker";
 import { RankBadge } from "./RankBadge";
 
@@ -15,22 +16,24 @@ const SHELVES: { category: MaterialCategory; label: string; container: MaterialC
   { category: "topping", label: "토핑", container: "bowl" },
 ];
 
-type ShopTab = "materials" | "equipment";
+type ShopTab = "materials" | "equipment" | "decor";
 const TABS: { id: ShopTab; label: string }[] = [
   { id: "materials", label: "재료" },
   { id: "equipment", label: "장비" },
+  { id: "decor", label: "장식" },
 ];
 
 type ShopMenuProps = {
   player: Player;
   onBuyMaterial: (materialId: string) => void;
   onBuyUpgrade: (id: UpgradeId) => void;
+  onBuyDecor: (id: string) => void;
   onClose: () => void;
 };
 
 // 상점 (13장 성장 시스템): 랭크가 오르면 진열되는 재료를 돈으로 사고, 장비는 랭크와 무관하게 언제든 산다.
 // 산 재료는 바로 선반에 올라가고 그 뒤로 오는 손님 주문에도 나온다.
-export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onClose }: ShopMenuProps) {
+export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onBuyDecor, onClose }: ShopMenuProps) {
   const registry = useMaterialRegistry();
   const [tab, setTab] = useState<ShopTab>("materials");
 
@@ -134,7 +137,10 @@ export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onClose }: ShopM
                           ) : (
                             <button
                               type="button"
-                              onClick={() => onBuyMaterial(material.id)}
+                              onClick={() => {
+                                sounds.coin();
+                                onBuyMaterial(material.id);
+                              }}
                               disabled={player.money < price}
                               aria-label={`${material.name} $${price}에 사기`}
                               className="rounded-full bg-[var(--theme-accent)] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm transition-transform active:scale-95 disabled:bg-black/15 disabled:text-[var(--theme-text)]/50"
@@ -149,12 +155,48 @@ export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onClose }: ShopM
               </div>
             ))}
           </div>
+        ) : tab === "decor" ? (
+          <div role="tabpanel" id="shop-panel-decor" aria-labelledby="shop-tab-decor" className="flex flex-col gap-2">
+            <p className="text-xs text-[var(--theme-text)]/70">가게 홀에 놓는 장식이에요. 점수와는 상관없이 가게를 꾸며요.</p>
+            <ul className="grid grid-cols-3 gap-2 short:grid-cols-6">
+              {DECOR_ITEMS.map((item) => {
+                const owned = hasDecor(player.unlockedItems, item.id);
+                return (
+                  <li key={item.id} className="flex flex-col items-center gap-1 rounded-xl bg-white/80 p-2 text-center">
+                    <span className="text-3xl leading-none short:text-2xl" aria-hidden>
+                      {item.emoji}
+                    </span>
+                    <span className="text-xs font-extrabold">{item.name}</span>
+                    <span className="text-[10px] opacity-60">{item.place}</span>
+                    {owned ? (
+                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-bold text-[var(--theme-text)]/50">
+                        놓았어요
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sounds.coin();
+                          onBuyDecor(item.id);
+                        }}
+                        disabled={player.money < item.price}
+                        aria-label={`${item.name} ${item.price}에 사기`}
+                        className="rounded-full bg-[var(--theme-accent)] px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm transition-transform active:scale-95 disabled:bg-black/15 disabled:text-[var(--theme-text)]/50"
+                      >
+                        ${item.price}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         ) : (
           <div
             role="tabpanel"
             id="shop-panel-equipment"
             aria-labelledby="shop-tab-equipment"
-            className="grid grid-cols-2 gap-2"
+            className="grid grid-cols-2 gap-2 short:grid-cols-4"
           >
             {UPGRADES.map((upgrade) => {
               const level = upgradeLevel(player, upgrade.id);
@@ -183,7 +225,10 @@ export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onClose }: ShopM
                   {next ? (
                     <button
                       type="button"
-                      onClick={() => onBuyUpgrade(upgrade.id)}
+                      onClick={() => {
+                        sounds.coin();
+                        onBuyUpgrade(upgrade.id);
+                      }}
                       disabled={player.money < next.price}
                       className="flex items-center justify-between gap-2 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-xs font-bold text-white shadow-sm transition-transform active:scale-95 disabled:bg-black/15 disabled:text-[var(--theme-text)]/50"
                     >

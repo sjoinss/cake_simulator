@@ -47,7 +47,7 @@ export const TOPPING_COUNT_MIN = 3;
 export const TOPPING_COUNT_MAX = 5;
 
 // ── 장비 업그레이드 ──
-export type UpgradeId = 'ovenSpeed' | 'ovenSlots';
+export type UpgradeId = 'ovenSpeed' | 'ovenSlots' | 'pipingBag' | 'penSet';
 
 type UpgradeLevel = { price: number; label: string }; // label: 이 단계를 사면 어떻게 되는지
 export type UpgradeInfo = { id: UpgradeId; emoji: string; name: string; base: string; levels: UpgradeLevel[] };
@@ -75,6 +75,23 @@ export const UPGRADES: UpgradeInfo[] = [
       { price: 300, label: '4칸' },
     ],
   },
+  {
+    id: 'pipingBag',
+    emoji: '🍦',
+    name: '큰 짤주머니',
+    base: '필링·크림 보통 속도',
+    levels: [
+      { price: 120, label: '1.3배 빨리 나와요' },
+      { price: 250, label: '1.6배 빨리 나와요' },
+    ],
+  },
+  {
+    id: 'penSet',
+    emoji: '🖍️',
+    name: '데코 펜 세트',
+    base: '펜 색 5가지',
+    levels: [{ price: 80, label: '펜 색 10가지' }],
+  },
 ];
 
 const OVEN_DURATIONS_MS = [OVEN_DURATION_MS, 42_000, 35_000, 28_000];
@@ -83,3 +100,27 @@ export const upgradeLevel = (player: Player, id: UpgradeId) => player.upgrades[i
 export const getOvenDuration = (player: Player) =>
   OVEN_DURATIONS_MS[Math.min(upgradeLevel(player, 'ovenSpeed'), OVEN_DURATIONS_MS.length - 1)];
 export const getOvenSlotCount = (player: Player) => 2 + upgradeLevel(player, 'ovenSlots');
+
+// 큰 짤주머니: 필링·크림이 나오는 속도(회전판 속도도 같이 빨라져서 한 바퀴 = 보통 양은 그대로)
+const PIPING_SPEEDS = [1, 1.3, 1.6];
+export const getPipingSpeed = (player: Player) =>
+  PIPING_SPEEDS[Math.min(upgradeLevel(player, 'pipingBag'), PIPING_SPEEDS.length - 1)];
+
+// 데코 펜 색: 기본 5가지, 펜 세트를 사면 5가지 더
+const BASE_PEN_COLORS = ['#ff7f66', '#f2a0d8', '#7ec8e3', '#8bd17c', '#4a3733'];
+const EXTRA_PEN_COLORS = ['#ffd166', '#b39ddb', '#ffffff', '#ff4d6d', '#3fa7a0'];
+export const getPenColors = (player: Player) =>
+  upgradeLevel(player, 'penSet') > 0 ? [...BASE_PEN_COLORS, ...EXTRA_PEN_COLORS] : BASE_PEN_COLORS;
+
+// ── 가게 장식 (한 번 사면 매장에 계속 놓인다. 게임 효과는 없고 꾸미는 재미용) ──
+// 산 장식 id는 재료처럼 player.unlockedItems에 넣는다 ("decor_" 접두사)
+export type DecorItem = { id: string; emoji: string; name: string; price: number; place: string };
+export const DECOR_ITEMS: DecorItem[] = [
+  { id: 'decor_tulip', emoji: '🌷', name: '튤립 화분', price: 60, place: '홀 왼쪽 바닥' },
+  { id: 'decor_frame', emoji: '🖼️', name: '케이크 액자', price: 90, place: '홀 벽' },
+  { id: 'decor_clock', emoji: '🕰️', name: '벽시계', price: 90, place: '홀 벽' },
+  { id: 'decor_bear', emoji: '🧸', name: '곰 인형', price: 110, place: '창틀' },
+  { id: 'decor_balloons', emoji: '🎈', name: '풍선', price: 130, place: '홀 오른쪽' },
+  { id: 'decor_lights', emoji: '💡', name: '전구 줄', price: 180, place: '홀 천장' },
+];
+export const hasDecor = (owned: readonly string[], id: string) => owned.includes(id);

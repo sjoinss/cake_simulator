@@ -18,6 +18,7 @@ import { getBakingElapsedRatio, scoreBaking } from "@/lib/gameLogic";
 import {
   addExp,
   getOvenDuration,
+  DECOR_ITEMS,
   getOvenSlotCount,
   isMaterialOwned,
   isTableOpen,
@@ -423,6 +424,22 @@ export function useGameState() {
     });
   }, []);
 
+  // 상점: 가게 장식을 산다 (한 번 사면 홀에 계속 놓인다)
+  const buyDecor = useCallback((id: string) => {
+    setState((prev) => {
+      const item = DECOR_ITEMS.find((decor) => decor.id === id);
+      if (!item || prev.player.unlockedItems.includes(id) || prev.player.money < item.price) return prev;
+      return {
+        ...prev,
+        player: {
+          ...prev.player,
+          money: prev.player.money - item.price,
+          unlockedItems: [...prev.player.unlockedItems, id],
+        },
+      };
+    });
+  }, []);
+
   // 상점: 장비 업그레이드를 한 단계 산다. 오븐 칸이 늘면 빈 칸을 덧붙인다
   const buyUpgrade = useCallback((id: UpgradeId) => {
     setState((prev) => {
@@ -512,5 +529,6 @@ export function useGameState() {
     finishTutorial,
     buyMaterial,
     buyUpgrade,
+    buyDecor,
   };
 }

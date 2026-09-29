@@ -11,6 +11,7 @@ import { FitBox, Scaled } from "../FitBox";
 export type DecorationData = { drawings: CakeDrawing[]; text: CakeText[] };
 
 type DecorationStageProps = {
+  colors: string[]; // 펜·글자 색 (lib/progress.ts getPenColors)
   job: CakeJob;
   materials: MaterialRegistry;
   onChange: (decoration: DecorationData) => void;
@@ -19,7 +20,6 @@ type DecorationStageProps = {
 
 type Mode = "draw" | "text";
 
-const COLORS = ["#ff7f66", "#f2a0d8", "#7ec8e3", "#8bd17c", "#4a3733"];
 const PEN_SIZES = [
   { size: 2, label: "가는 펜" },
   { size: 4, label: "보통 펜" },
@@ -40,7 +40,7 @@ const TEXT_ROTATION_STEP = 15;
 // 연출이 핵심 차별화 요소라 반드시 구현한다 (cake-tycoon-prompt.md 4장 — 생략 대상 아님).
 // 도구: 자유 그림(펜 색상/크기, 지우개, 전체 지우기, 실행 취소/다시 실행 — 5장) +
 // 텍스트(추가, 드래그 이동, 크기/회전/색상/폰트 버튼 — 6장 "Phase 1은 버튼 방식").
-export function DecorationStage({ job, materials, onChange, onFinish }: DecorationStageProps) {
+export function DecorationStage({ job, materials, colors: COLORS, onChange, onFinish }: DecorationStageProps) {
   const [isTopView, setIsTopView] = useState(false);
   const [mode, setMode] = useState<Mode>("draw");
   const [color, setColor] = useState(COLORS[0]);
@@ -195,7 +195,7 @@ export function DecorationStage({ job, materials, onChange, onFinish }: Decorati
         )}
 
         {(mode === "draw" || selectedText) && (
-          <div role="group" aria-label={mode === "draw" ? "펜 색상" : "글자 색상"} className="flex items-center gap-2">
+          <div role="group" aria-label={mode === "draw" ? "펜 색상" : "글자 색상"} className="flex flex-wrap items-center gap-2">
             {COLORS.map((swatch) => (
               <button
                 key={swatch}

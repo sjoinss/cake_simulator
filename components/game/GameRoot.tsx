@@ -120,6 +120,7 @@ export function GameRoot() {
             player={state.player}
             onBuyMaterial={gameState.buyMaterial}
             onBuyUpgrade={gameState.buyUpgrade}
+            onBuyDecor={gameState.buyDecor}
             onClose={() => setIsShopOpen(false)}
           />
         )}

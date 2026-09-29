@@ -211,6 +211,12 @@
   - ⚠️ 브라우저 자동화 탭이 백그라운드면 html-to-image가 `img.decode()`/rAF에서 멈춘다(환경 문제). 테스트할 땐 `HTMLImageElement.prototype.decode`를 바로 resolve로, rAF를 MessageChannel로 바꾸고, `HTMLAnchorElement.prototype.click`을 가로채 실제 다운로드 없이 결과를 확인
 - 브라우저 확인: 결산 → 고르기(이름 입력, 체크) → 2장 담고 DAY 4 → 앨범 목록 → 카드 → PNG 생성(1600x1080, ~300KB) 결과 이미지 확인, 이름 없는 카드는 빈칸, 667x375 폰 크기 목록·카드 화면
 
+### [x] 상점 아이템 늘리기 (중반 이후 돈 쓸 곳)
+- 장비(`UPGRADES`)에 추가: 🍦 큰 짤주머니(필링·크림 1.3배/1.6배, $120/$250 — `getPipingSpeed`, SpreadStage의 `speed`가 나오는 양과 회전판 속도를 같이 올려 "한 바퀴 = 보통 양"은 유지), 🖍️ 데코 펜 세트(펜 색 5 → 10, $80 — `getPenColors`, DecorationStage의 `colors`)
+- 상점 **장식** 탭(`DECOR_ITEMS`): 튤립 화분 / 케이크 액자 / 벽시계 / 곰 인형 / 풍선 / 전구 줄 ($60~$180). 한 번 사면 홀에 계속 놓인다(`CustomerSide`의 `DiningDecor`, 테이블보다 뒤). 게임 효과 없음. 산 id는 `player.unlockedItems`에 "decor_" 접두사로
+- 상점에서 살 때 짤랑 소리
+- 브라우저 확인: 장식 6개·짤주머니·펜 세트 구매 후 돈 계산 맞음, 홀에 장식 표시(전구가 줄에 매달림), 데코 펜 10색
+
 ### 기타 참고
 - 백그라운드 탭에서는 브라우저가 CSS transition을 그리지 않아 데코 단계 카메라 전환이 스크린샷에 기울어진 채로 찍힐 수 있음 — 실제 transform 값은 정상
 - 브라우저 자동화: hidden 탭에서 rAF를 흉내 낼 땐 **누르고 있는 동안만** 가짜 rAF를 켤 것(`window.__fake` 플래그). 항상 켜두면 다른 rAF 루프까지 MessageChannel로 계속 돌아 스크린샷 캡처가 타임아웃난다. 캔버스가 있는 화면은 캡처가 가끔 30초 타임아웃 — 한 번 더 시도하면 대개 된다

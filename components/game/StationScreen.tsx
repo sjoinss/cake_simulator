@@ -3,6 +3,7 @@ import type { Station } from "@/lib/gameState";
 import { BATTER_TARGET, scoreAmountMatch } from "@/lib/gameLogic";
 import { useMaterialRegistry } from "@/hooks/useMaterialRegistry";
 import { getCakesAtStage, getOvenQueue, getSelectedCake } from "@/lib/station";
+import { getPenColors, getPipingSpeed } from "@/lib/progress";
 import { BaseSelectStage } from "./stages/BaseSelectStage";
 import { OvenStage } from "./stages/OvenStage";
 import { CreamStation } from "./stages/CreamStation";
@@ -102,6 +103,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
             job={job}
             materials={materialRegistry}
             owned={owned}
+            pipingSpeed={getPipingSpeed(state.player)}
             onUpdate={(updater) => updateCake(job.jobId, updater)}
           />
         )}
@@ -112,6 +114,7 @@ export function StationScreen({ gameState, station }: StationScreenProps) {
             job={job}
             materials={materialRegistry}
             owned={owned}
+            penColors={getPenColors(state.player)}
             onUpdate={(updater) => updateCake(job.jobId, updater)}
             onComplete={() => completeCake(job.jobId)}
           />

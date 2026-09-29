@@ -34,6 +34,7 @@ type SpreadStageProps = {
   onSelectMaterial: (materialId: string) => void;
   onSave: (data: SpreadData) => void; // 손을 뗄 때마다 지금까지 바른 양을 주문에 저장
   onFinish: (data: SpreadData) => void; // 완료 — 채점 후 다음으로 넘어간다 (되돌릴 수 없음)
+  speed?: number; // 큰 짤주머니 업그레이드: 나오는 속도와 회전판 속도를 같이 올린다 (한 바퀴 = 보통 양은 그대로)
   idle?: boolean; // 작업할 케이크가 없음 — 선반/빈 케이크 받침/도구는 그대로 보여주고 조작만 막는다
 };
 
@@ -67,6 +68,7 @@ export function SpreadStage({
   onSelectMaterial,
   onSave,
   onFinish,
+  speed = 1,
   idle = false,
 }: SpreadStageProps) {
   const current = job.cake[layer];
@@ -80,7 +82,8 @@ export function SpreadStage({
   const noun = layer === "filling" ? "필링" : "크림";
   const hasSide = layer === "frosting";
 
-  useHoldLoop(nozzle !== null, (dt) => {
+  useHoldLoop(nozzle !== null, (frameDt) => {
+    const dt = frameDt * speed;
     const multiplier = SQUEEZE_LEVELS.find((level) => level.id === squeeze)?.multiplier ?? 1;
     const units = CREAM_FLOW_PER_SEC * dt * multiplier;
     if (face === "side") {
