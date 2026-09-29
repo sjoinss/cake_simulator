@@ -362,6 +362,7 @@ export function useGameState() {
                 cake: job.cake,
                 scores: { accuracy: result.accuracy, quality: result.quality, speed: result.speed, total: result.total },
                 tip: result.tip,
+                failReason: result.failReason,
               },
             ],
           },

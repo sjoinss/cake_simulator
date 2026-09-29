@@ -79,7 +79,7 @@ export function AlbumView({ onClose }: { onClose: () => void }) {
                   <Polaroid cake={entry.cake} materials={materials} name={entry.name} size="sm" tilt={index % 2 ? 2 : -2} />
                 </button>
                 <span className="text-[11px] font-bold opacity-60">
-                  DAY {entry.day} · {entry.scores.total}%
+                  DAY {entry.day} · {entry.failReason ? "😠 망침" : `${entry.scores.total}%`}
                 </span>
               </li>
             ))}

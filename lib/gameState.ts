@@ -167,6 +167,7 @@ export type ServedCakeRecord = {
   cake: CakeData;
   scores: { accuracy: number; quality: number; speed: number; total: number };
   tip: number; // 데코 팁을 받았는지 (카드에 스티커로)
+  failReason?: string | null; // 망친 케이크였으면 이유 (앨범 고르기·카드에 표시)
 };
 
 // 하루에 받는 손님 수. 이만큼 다 서빙하고 마지막 손님이 나가면 하루가 끝나고 결산 카드가 뜬다

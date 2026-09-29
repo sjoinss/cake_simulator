@@ -22,7 +22,8 @@ const formatDate = (time: number) => {
 // 화면에서는 바깥에서 줄여서 보여주고, 저장할 때는 이 요소를 그대로 PNG로 찍는다 (lib/cardImage.ts)
 export const CakeCard = forwardRef<HTMLDivElement, { entry: AlbumEntry; materials: MaterialRegistry }>(
   function CakeCard({ entry, materials }, ref) {
-    const starCount = stars(entry.scores.total);
+    // 망친 케이크는 별이 없다
+    const starCount = entry.failReason ? 0 : stars(entry.scores.total);
     return (
       <div
         ref={ref}
@@ -87,7 +88,11 @@ export const CakeCard = forwardRef<HTMLDivElement, { entry: AlbumEntry; material
           </div>
 
           <div className="flex items-center justify-between">
-            {entry.tip > 0 ? (
+            {entry.failReason ? (
+              <span className="rotate-[-4deg] rounded-md border-[3px] border-red-500 bg-white px-3 py-0.5 text-sm font-extrabold whitespace-nowrap text-red-500">
+                😠 {entry.failReason}
+              </span>
+            ) : entry.tip > 0 ? (
               <span className="rotate-[-3deg] rounded-full border-2 border-[var(--theme-accent)] bg-white px-3 py-1 text-sm font-extrabold text-[var(--theme-accent)]">
                 🎨 데코 칭찬!
               </span>

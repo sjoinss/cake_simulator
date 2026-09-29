@@ -128,7 +128,9 @@ function AlbumPicker({
                 type="button"
                 role="checkbox"
                 aria-checked={picked}
-                aria-label={`${record.orderNumber != null ? `#${record.orderNumber} ` : ""}케이크, ${record.scores.total}점`}
+                aria-label={`${record.orderNumber != null ? `#${record.orderNumber} ` : ""}케이크, ${
+                  record.failReason ? `망친 케이크(${record.failReason})` : `${record.scores.total}점`
+                }`}
                 onClick={() => toggle(record.id)}
                 className={`relative transition-transform ${picked ? "-translate-y-1.5 scale-105" : "opacity-80 hover:opacity-100"}`}
               >
@@ -150,7 +152,7 @@ function AlbumPicker({
               </button>
               <span className="text-[11px] font-bold opacity-60">
                 {record.orderNumber != null && `#${record.orderNumber} · `}
-                {record.scores.total}%
+                {record.failReason ? <span className="text-red-500">😠 망침</span> : `${record.scores.total}%`}
               </span>
               {picked && (
                 <input
