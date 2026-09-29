@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { CakeJob, MaterialRegistry } from "@/lib/gameState";
 import { findMaterial, getUnlockedMaterials } from "@/lib/materials";
-import { BATTER_FLOW_PER_SEC, BATTER_MAX, BATTER_TARGET } from "@/lib/gameLogic";
+import { BATTER_FLOW_PER_SEC, BATTER_MAX, BATTER_TARGET, scoreAmountMatch } from "@/lib/gameLogic";
+import { showToast } from "@/lib/toast";
 import { useHoldLoop } from "@/hooks/useHoldLoop";
 import { AmountGauge } from "../AmountGauge";
 import { MaterialPicker } from "../MaterialPicker";
@@ -153,7 +154,18 @@ export function BaseSelectStage({
           <button
             type="button"
             data-tutorial="to-oven"
-            onClick={onNext}
+            onClick={() => {
+              // 바로 피드백 (1장 7번)
+              const score = scoreAmountMatch(amount, BATTER_TARGET);
+              showToast({
+                emoji: "🥣",
+                title: "반죽",
+                stars: score >= 90 ? 3 : score >= 70 ? 2 : 1,
+                message:
+                  score >= 90 ? "딱 맞게 부었어요" : amount < BATTER_TARGET ? "조금 모자라요" : "조금 넘쳤어요",
+              });
+              onNext();
+            }}
             disabled={idle || amount === 0 || isPouring}
             className={BUTTON_PRIMARY}
           >

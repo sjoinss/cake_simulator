@@ -17,6 +17,7 @@ import { DayEndCard } from "./DayEndCard";
 import { ShopMenu } from "./ShopMenu";
 import { RankUpCard } from "./RankUpCard";
 import { TutorialCoach } from "./TutorialCoach";
+import { Toaster } from "./Toaster";
 
 // 매장과 모든 제작 스테이션이 같은 게임 상태를 공유해야 해서, useGameState는 이 최상위 컴포넌트에서만 호출한다.
 // 오른쪽 위 주문서 집게 레일과 하단 스테이션 탭은 어느 화면에서든 항상 보인다 (Papa's 방식).
@@ -69,6 +70,8 @@ export function GameRoot() {
         </div>
         <StationNav state={state} onSelect={gameState.setStation} />
         {/* 첫 플레이 안내: 게임 전체 위에 뜬다. 결과 카드·랭크업·상점 같은 창이 떠 있으면 잠깐 숨는다 */}
+        {/* 단계 피드백 쪽지 (반죽·굽기·필링·크림을 마칠 때) */}
+        <Toaster />
         <TutorialCoach
           state={state}
           paused={

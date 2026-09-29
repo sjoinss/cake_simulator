@@ -14,7 +14,8 @@ import {
 } from "@/lib/gameState";
 import { createCustomer } from "@/lib/customer";
 import { withBaseCake } from "@/lib/cake";
-import { getBakingElapsedRatio, scoreBaking } from "@/lib/gameLogic";
+import { getBakingElapsedRatio, OVEN_IDEAL_START_RATIO, scoreBaking } from "@/lib/gameLogic";
+import { showToast } from "@/lib/toast";
 import {
   addExp,
   getOvenDuration,
@@ -277,6 +278,28 @@ export function useGameState() {
   // 오븐에서 꺼내면 그 순간의 경과 비율로 굽기 점수를 매기고, 필링·크림 스테이션 대기열로 넘긴다.
   const takeOutOfOven = useCallback((slotIndex: number) => {
     sounds.whoosh();
+    // 바로 피드백 (1장 7번): 꺼낸 순간의 굽기 (부수 효과라 업데이터 밖에서, 최신 상태 거울로 계산)
+    const current = stateRef.current;
+    const baking = current.cakes.find((job) => job.jobId === current.ovenSlots[slotIndex])?.cake.baking;
+    if (baking?.startTime) {
+      const ratio = getBakingElapsedRatio(baking.startTime, baking.duration, Date.now());
+      const score = scoreBaking(ratio);
+      showToast({
+        emoji: "🔥",
+        title: "굽기",
+        stars: score >= 90 ? 3 : score >= 60 ? 2 : 1,
+        message:
+          score >= 90
+            ? "딱 좋게 구워졌어요"
+            : ratio < OVEN_IDEAL_START_RATIO
+              ? score < 50
+                ? "덜 익었어요!"
+                : "조금 덜 익었어요"
+              : score < 50
+                ? "탔어요!"
+                : "조금 많이 구워졌어요",
+      });
+    }
     setState((prev) => {
       const jobId = prev.ovenSlots[slotIndex];
       if (!jobId) return prev;

@@ -1,18 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import type { CakeJob, Material, MaterialRegistry } from "@/lib/gameState";
+import type { CakeJob, CreamAmount, Material, MaterialRegistry } from "@/lib/gameState";
 import {
   CREAM_FLOW_PER_SEC,
+  CREAM_TARGET_THICKNESS,
   createEmptyFrosting,
   createEmptySide,
   depositCream,
   depositSide,
+  FILLING_TARGET_THICKNESS,
   getCreamTotal,
   getSideTargetTotal,
   getSpreadTargetTotal,
+  getThinCells,
+  layerStars,
+  scoreFrostingLayer,
+  scoreSide,
+  scoreSpread,
+  spreadAdvice,
   TURNTABLE_SEC_PER_TURN,
+  type FrostingScore,
 } from "@/lib/frosting";
+import { showToast } from "@/lib/toast";
 import { useHoldLoop } from "@/hooks/useHoldLoop";
 import { Cake3D, CakeInsideView, TOP_VIEW_PX } from "../cake/CakeRenderer";
 import { AmountGauge } from "../AmountGauge";
@@ -42,11 +52,12 @@ type Face = "top" | "side";
 
 // 짜는 세기: 같은 속도로 케이크 전체를 한 번 훑었을 때 얼마나 두껍게 발리는지를 정한다.
 // "조금" 주문은 살살, "듬뿍" 주문은 꾹 눌러 짜면 된다 — 바르다가 중간에 멈추는 식으로 양을 맞추지 않게.
-const SQUEEZE_LEVELS = [
-  { id: "soft", label: "살살", multiplier: 0.6 },
-  { id: "normal", label: "보통", multiplier: 1 },
-  { id: "hard", label: "꾹", multiplier: 1.5 },
-] as const;
+// aim: 이 세기로 짤 때 노리는 크림 양 — 덮인 정도·얇은 곳 표시의 기준 두께로 쓴다 (케이크가 주문과 묶여 있지 않아서)
+const SQUEEZE_LEVELS: readonly { id: "soft" | "normal" | "hard"; label: string; multiplier: number; aim: CreamAmount }[] = [
+  { id: "soft", label: "살살", multiplier: 0.6, aim: "light" },
+  { id: "normal", label: "보통", multiplier: 1, aim: "normal" },
+  { id: "hard", label: "꾹", multiplier: 1.5, aim: "heavy" },
+];
 type SqueezeId = (typeof SQUEEZE_LEVELS)[number]["id"];
 
 const CAKE_MAX_SIZE = 240;
@@ -81,6 +92,15 @@ export function SpreadStage({
   const hasMaterial = current.materialId !== null && !idle;
   const noun = layer === "filling" ? "필링" : "크림";
   const hasSide = layer === "frosting";
+
+  // 바르는 동안의 피드백 기준 두께: 필링은 적정량, 크림은 고른 짜는 세기가 노리는 양 (살살=조금, 보통, 꾹=듬뿍)
+  const squeezeLevel = SQUEEZE_LEVELS.find((level) => level.id === squeeze) ?? SQUEEZE_LEVELS[1];
+  const aimThickness = layer === "filling" ? FILLING_TARGET_THICKNESS : CREAM_TARGET_THICKNESS[squeezeLevel.aim];
+  const onSideFace = hasSide && face === "side";
+  const liveScore: FrostingScore = onSideFace ? scoreSide(side, aimThickness) : scoreSpread(cells, aimThickness);
+  const hasSpread = (onSideFace ? side : cells).some((value) => value > 0);
+  // 아직 덜 덮인 칸 (윗면·필링만. 한 번이라도 짜기 시작한 뒤에 보여준다)
+  const thinCells = !onSideFace && hasSpread ? getThinCells(cells, aimThickness) : [];
 
   useHoldLoop(nozzle !== null, (frameDt) => {
     const dt = frameDt * speed;
@@ -126,6 +146,17 @@ export function SpreadStage({
       className={`relative h-full w-full touch-none select-none ${hasMaterial ? "cursor-crosshair" : "cursor-not-allowed"}`}
       {...pressHandlers}
     >
+      {/* 아직 덜 덮인 자리: 작은 점으로 살짝 표시하고, 덮이면 사라진다 */}
+      {!onSideFace &&
+        thinCells.map((cell) => (
+          <span
+            key={cell.index}
+            aria-hidden
+            // 크림 윗면은 납작한 타원이라 % 크기면 점이 눌려 보여서 고정 크기 동그라미로
+            className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dotted border-[var(--theme-accent)] opacity-70 short:h-2 short:w-2 short:border-[1.5px]"
+            style={{ left: `${cell.x * 100}%`, top: `${cell.y * 100}%` }}
+          />
+        ))}
       {/* 짜는 위치 표시: 크림이 쌓이는 자리를 가리지 않도록 테두리 원 + 옆으로 비켜난 작은 짤주머니만 보여준다 */}
       {nozzle && (
         <>
@@ -258,7 +289,11 @@ export function SpreadStage({
 
         <div className={SIDE_COLUMN}>
           {idle && <p className={IDLE_NOTE}>오븐에서 꺼낸 케이크가 오면 바를 수 있어요</p>}
-          <p className={idle ? "hidden" : HINT}>
+          {/* 바른 결과: 덮인 정도·고르기 (채점과 같은 기준). 양은 옆의 게이지 */}
+          {!idle && hasSpread && (
+            <SpreadMeters score={liveScore} label={onSideFace ? "옆면" : hasSide ? "윗면" : noun} />
+          )}
+          <p className={idle || hasSpread ? "hidden" : HINT}>
             {!hasMaterial
               ? `먼저 ${noun} 재료를 고르세요.`
               : isSideFace
@@ -283,6 +318,16 @@ export function SpreadStage({
             data-tutorial="spread-done"
             onClick={() => {
               sounds.done();
+              // 바로 피드백 (1장 7번): 필링은 단면, 크림은 윗면+옆면. 양이 주문과 맞는지는 서빙할 때 채점한다
+              const topScore = scoreSpread(cells, aimThickness);
+              const sideScore = hasSide ? scoreSide(side, aimThickness) : null;
+              const weakSide = sideScore !== null && sideScore.coverage < topScore.coverage;
+              showToast({
+                emoji: hasSide ? "🍦" : "🍓",
+                title: noun,
+                stars: layerStars(hasSide ? scoreFrostingLayer(cells, side, aimThickness) : topScore),
+                message: weakSide ? `옆면: ${spreadAdvice(sideScore)}` : spreadAdvice(topScore),
+              });
               onFinish({ cells, side });
             }}
             disabled={idle || topTotal === 0 || nozzle !== null}
@@ -292,6 +337,34 @@ export function SpreadStage({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// 덮인 정도·고르기 막대 두 개 + 가장 급한 조언 한 줄. 색만으로 구분하지 않도록 숫자와 말을 같이 보여준다 (18장)
+function SpreadMeters({ score, label }: { score: FrostingScore; label: string }) {
+  const rows = [
+    { name: "덮인 정도", value: score.coverage },
+    { name: "고르기", value: score.evenness },
+  ];
+  return (
+    <div className="flex w-full flex-col gap-1 rounded-xl bg-white/70 px-2.5 py-2 text-[var(--theme-text)] short:gap-0.5 short:px-2 short:py-1">
+      <span className="text-[11px] font-extrabold opacity-60 short:text-[10px]">{label}</span>
+      {rows.map(({ name, value }) => (
+        <div key={name} className="flex items-center gap-1.5 text-[11px] font-bold short:text-[10px]">
+          <span className="w-14 shrink-0 whitespace-nowrap short:w-12">{name}</span>
+          <span className="relative h-2 flex-1 overflow-hidden rounded-full bg-black/10" aria-hidden>
+            <span
+              className={`absolute inset-y-0 left-0 rounded-full ${
+                value >= 85 ? "bg-emerald-400" : value >= 60 ? "bg-amber-400" : "bg-red-400"
+              }`}
+              style={{ width: `${value}%` }}
+            />
+          </span>
+          <span className="w-8 text-right tabular-nums">{value}%</span>
+        </div>
+      ))}
+      <p className="text-[11px] font-bold text-[var(--theme-accent)] short:text-[10px]">{spreadAdvice(score)}</p>
     </div>
   );
 }

@@ -173,25 +173,56 @@ export type FrostingScore = { coverage: number; evenness: number; amount: number
 
 const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
-// 겉 크림 채점: 윗면과 옆면을 각각 범위/균일도로 보고 평균, 양은 윗면+옆면 합계를 목표 합계와 비교한다
-export function scoreFrostingLayer(cells: number[], side: number[], thickness: number): FrostingScore {
-  const top = scoreSpread(cells, thickness);
-  const sideValues = side.map(sideThickness);
-  const sideTotal = side.reduce((sum, value) => sum + value, 0);
-  const sideCoverage =
-    (sideValues.filter((value) => value >= thickness * COVERED_RATIO).length / SIDE_SEGMENTS) * 100;
-  const sideMean = sideValues.reduce((sum, value) => sum + value, 0) / SIDE_SEGMENTS;
-  const sideDeviation = sideValues.reduce((sum, value) => sum + Math.abs(value - sideMean), 0) / SIDE_SEGMENTS;
-  const sideEvenness = sideMean > 0 ? (1 - (sideDeviation / sideMean) * EVENNESS_STRICTNESS) * 100 : 0;
-  // 양은 윗면과 옆면을 따로 본다 (예전엔 합계라서 윗면이 모자라도 옆면이 메워 줬다)
-  const sideAmount = scoreLayerAmount(sideTotal, getSideTargetTotal(thickness));
+// 옆면(회전판) 채점: 조각별 두께로 범위/균일도/양
+export function scoreSide(side: number[], thickness: number): FrostingScore {
+  const values = side.map(sideThickness);
+  const total = side.reduce((sum, value) => sum + value, 0);
+  if (total === 0) return { coverage: 0, evenness: 0, amount: 0 };
+  const coverage = (values.filter((value) => value >= thickness * COVERED_RATIO).length / SIDE_SEGMENTS) * 100;
+  const mean = values.reduce((sum, value) => sum + value, 0) / SIDE_SEGMENTS;
+  const deviation = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / SIDE_SEGMENTS;
   return {
-    coverage: clampScore((top.coverage + sideCoverage) / 2),
-    evenness: clampScore((top.evenness + sideEvenness) / 2),
-    // 양은 윗면·옆면 중 더 모자라거나 넘친 쪽 기준 (한쪽이 완벽해도 다른 쪽 실수를 메워 주지 않는다)
-    amount: Math.min(top.amount, sideAmount),
+    coverage: clampScore(coverage),
+    evenness: clampScore((1 - (deviation / mean) * EVENNESS_STRICTNESS) * 100),
+    amount: scoreLayerAmount(total, getSideTargetTotal(thickness)),
   };
 }
+
+// 겉 크림 채점: 윗면과 옆면을 각각 범위/균일도로 보고 평균, 양은 둘 중 나쁜 쪽
+export function scoreFrostingLayer(cells: number[], side: number[], thickness: number): FrostingScore {
+  const top = scoreSpread(cells, thickness);
+  const sideScore = scoreSide(side, thickness);
+  return {
+    coverage: clampScore((top.coverage + sideScore.coverage) / 2),
+    evenness: clampScore((top.evenness + sideScore.evenness) / 2),
+    // 양은 윗면·옆면 중 더 모자라거나 넘친 쪽 기준 (한쪽이 완벽해도 다른 쪽 실수를 메워 주지 않는다)
+    amount: Math.min(top.amount, sideScore.amount),
+  };
+}
+
+// ---- 바르는 동안 보여주는 피드백 (채점과 같은 기준) ----
+// 아직 덜 덮인(목표 두께의 COVERED_RATIO 미만) 케이크 위 칸들과 그 칸의 중심 좌표(0~1)
+export function getThinCells(cells: number[], thickness: number): { index: number; x: number; y: number }[] {
+  return ON_CAKE_CELLS.filter((index) => (cells[index] ?? 0) < thickness * COVERED_RATIO).map((index) => ({
+    index,
+    ...cellCenter(index),
+  }));
+}
+
+// 덮인 정도·고르기를 짧은 말로 (가장 급한 것 하나)
+export function spreadAdvice({ coverage, evenness }: Pick<FrostingScore, 'coverage' | 'evenness'>): string {
+  if (coverage < 60) return '빈 곳이 많아요';
+  if (coverage < 85) return '아직 빈 곳이 있어요';
+  if (evenness < 50) return '들쭉날쭉해요 — 두꺼운 곳을 피해 고르게';
+  if (evenness < 75) return '조금 들쭉날쭉해요';
+  return '고르게 잘 발랐어요';
+}
+
+// 별 1~3개 (층 점수 기준)
+export const layerStars = (score: FrostingScore) => {
+  const value = layerScore(score);
+  return value >= 85 ? 3 : value >= 60 ? 2 : 1;
+};
 
 // thickness: 칸당 목표 두께 (크림은 CREAM_TARGET_THICKNESS[주문량], 필링은 FILLING_TARGET_THICKNESS)
 export function scoreSpread(cells: number[], thickness: number): FrostingScore {
