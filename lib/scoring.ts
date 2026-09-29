@@ -1,5 +1,5 @@
 import type { CakeData, Customer } from "./gameState";
-import { CREAM_TARGET_THICKNESS, FILLING_TARGET_THICKNESS, scoreFrostingLayer, scoreSpread } from "./frosting";
+import { CREAM_TARGET_THICKNESS, FILLING_TARGET_THICKNESS, layerScore, scoreFrostingLayer, scoreSpread } from "./frosting";
 import { getBakingElapsedRatio, OVEN_IDEAL_START_RATIO } from "./gameLogic";
 
 // ---- ⑤ 서빙 결과 채점 (cake-tycoon-prompt.md 12장) ----
@@ -7,9 +7,13 @@ import { getBakingElapsedRatio, OVEN_IDEAL_START_RATIO } from "./gameLogic";
 
 const CAKE_PRICE = 30; // 총점 100일 때 받는 금액 (Phase 1 임시값)
 // 주문 확정 ~ 서빙까지 손님이 기다린 시간. 오븐만 50초라 여러 주문을 병행하는 걸 감안해 넉넉히 잡았다 (임시값)
-const SPEED_PERFECT_MS = 150_000; // 이 시간 안에 서빙하면 속도 만점
-const SPEED_SLOW_MS = 360_000; // 이 시간 이상 기다리게 하면 속도 최저점
-const SPEED_MIN_SCORE = 40;
+// (사용자 요청으로 줄임: 예전 150초/360초/40점이라 거의 항상 만점이었다. 케이크 하나를 쉬지 않고 만들면 약 90초)
+const SPEED_PERFECT_MS = 100_000; // 이 시간 안에 서빙하면 속도 만점
+const SPEED_SLOW_MS = 220_000; // 이 시간 이상 기다리게 하면 속도 최저점
+const SPEED_MIN_SCORE = 20;
+// 총점: 케이크 자체(제작 품질)가 가장 중요하다 — 재료가 맞고 빨라도 엉망으로 만들면 만족도는 낮다 (사용자 결정)
+const TOTAL_WEIGHTS = { quality: 0.5, accuracy: 0.25, speed: 0.25 };
+const TOTAL_ABOVE_QUALITY_MAX = 10; // 총점은 제작 품질 + 이 값을 넘지 못한다
 // 데코는 플레이어 재미용이라 점수에 넣지 않는다. 적당히 꾸미면(그림 2획 이상 또는 글자) 팁을 조금 더 받는다.
 const DECO_TIP = 3;
 const DECO_TIP_MIN_EFFORT = 2;
@@ -22,7 +26,7 @@ const FAIL_ACCURACY = 50; // 주문 재료 절반 이상 틀림
 const FAIL_DONENESS = 50; // 굽기 점수 (덜 익음 ≈ 28초 전에 꺼냄 / 탐)
 const FAIL_LAYER = 40; // 필링·크림 각각 (범위·균일도·양 평균)
 const FAIL_TOTAL = 50;
-const MEH_TOTAL = 70; // 이보다 낮으면 먹긴 하지만 시큰둥 (😐)
+const MEH_TOTAL = 80; // 이보다 낮으면 먹긴 하지만 시큰둥 (😐) — 대충 바른 케이크가 여기 걸리게 했다
 
 export type CustomerMood = "happy" | "meh" | "angry";
 
@@ -67,15 +71,15 @@ function scoreLayers(cake: CakeData, order: OrderSpec) {
     cake.frosting.side,
     CREAM_TARGET_THICKNESS[order.creamAmount],
   );
-  return {
-    filling: average([filling.coverage, filling.evenness, filling.amount]),
-    frosting: average([frosting.coverage, frosting.evenness, frosting.amount]),
-  };
+  return { filling: layerScore(filling), frosting: layerScore(frosting) };
 }
 
+// 제작 품질: 반죽·굽기·필링·크림의 평균에 가장 나쁜 단계를 절반 섞는다.
+// 단순 평균이면 반죽·굽기가 만점일 때 필링·크림을 엉망으로 발라도 가려져서 만족도가 높게 나왔다 (사용자 피드백)
 export function scoreQuality(cake: CakeData, order: OrderSpec): number {
   const layers = scoreLayers(cake, order);
-  return average([cake.batter.score, cake.baking.doneness, layers.filling, layers.frosting]);
+  const parts = [cake.batter.score, cake.baking.doneness, layers.filling, layers.frosting];
+  return Math.round((average(parts) + Math.min(...parts)) / 2);
 }
 
 // 망친 케이크인지 — 손님이 화내는 이유를 돌려준다 (결과 카드에 그대로 보여줌)
@@ -109,7 +113,10 @@ export function scoreServedCake(cake: CakeData, order: OrderSpec, orderedAt: num
   const accuracy = scoreAccuracy(cake, order);
   const quality = scoreQuality(cake, order);
   const speed = scoreSpeed(servedAt - orderedAt);
-  const total = average([accuracy, quality, speed]);
+  const weighted = Math.round(
+    quality * TOTAL_WEIGHTS.quality + accuracy * TOTAL_WEIGHTS.accuracy + speed * TOTAL_WEIGHTS.speed,
+  );
+  const total = Math.min(weighted, quality + TOTAL_ABOVE_QUALITY_MAX);
   const failReason = findFailReason(cake, order, accuracy, total);
   return {
     accuracy,

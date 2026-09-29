@@ -1,5 +1,4 @@
 import type { CreamAmount, SpreadLayer } from './gameState';
-import { scoreAmountMatch } from './gameLogic';
 
 // 짤주머니로 짜서 바르는 층(필링, 겉 크림) 판정 (cake-tycoon-prompt.md 2장 "균일도/범위/양", 1장 4번 프레스&홀드, 19장 4번 샘플링 근사치).
 // 케이크 위를 GRID x GRID 칸으로 나누고, 누르고 있는 동안 짤주머니 위치 주변 칸에 크림 두께가 쌓인다.
@@ -29,7 +28,19 @@ export const CREAM_AMOUNT_LABEL: Record<CreamAmount, string> = {
 };
 
 const BRUSH_RADIUS_CELLS = 1.6; // 짤주머니 한 번에 크림이 퍼지는 반경(칸)
-const COVERED_RATIO = 0.35; // 목표 두께의 이 비율 이상이면 "덮였다"고 본다
+// 판정 기준 (사용자 요청으로 엄격하게: 예전엔 "부족해요"로 발라도 제작 품질 80%대가 나왔다)
+// 값은 채점 시뮬레이션으로 맞췄다: 꼼꼼히 바르면 층 점수 75~91, 가운데만 바르면 ~53, 좁게만 ~34, 절반만 ~19
+const COVERED_RATIO = 0.5; // 목표 두께의 이 비율 이상이면 "덮였다"고 본다 (예전 0.35)
+const EVENNESS_STRICTNESS = 1.2; // 평균 절대 편차/평균에 곱하는 값. 클수록 들쭉날쭉에 엄격
+const AMOUNT_STRICTNESS = 200; // 양이 목표와 20% 다르면 60점 (공용 scoreAmountMatch는 150 = 70점)
+
+// 양 판정 (필링·크림 전용, 엄격)
+const scoreLayerAmount = (total: number, target: number) =>
+  target <= 0 || total <= 0 ? 0 : clampScore(100 - Math.abs(total / target - 1) * AMOUNT_STRICTNESS);
+
+// 층 하나의 점수: 범위·균일도·양의 평균에 가장 나쁜 항목을 1/3 섞는다 (하나라도 엉망이면 확 떨어진다)
+export const layerScore = ({ coverage, evenness, amount }: FrostingScore) =>
+  Math.round(Math.min(coverage, evenness, amount) / 3 + ((coverage + evenness + amount) / 3) * (2 / 3));
 
 export const createEmptyFrosting = (): number[] => Array.from({ length: FROSTING_CELL_COUNT }, () => 0);
 
@@ -171,14 +182,14 @@ export function scoreFrostingLayer(cells: number[], side: number[], thickness: n
     (sideValues.filter((value) => value >= thickness * COVERED_RATIO).length / SIDE_SEGMENTS) * 100;
   const sideMean = sideValues.reduce((sum, value) => sum + value, 0) / SIDE_SEGMENTS;
   const sideDeviation = sideValues.reduce((sum, value) => sum + Math.abs(value - sideMean), 0) / SIDE_SEGMENTS;
-  const sideEvenness = sideMean > 0 ? (1 - (sideDeviation / sideMean) * 1.2) * 100 : 0;
+  const sideEvenness = sideMean > 0 ? (1 - (sideDeviation / sideMean) * EVENNESS_STRICTNESS) * 100 : 0;
+  // 양은 윗면과 옆면을 따로 본다 (예전엔 합계라서 윗면이 모자라도 옆면이 메워 줬다)
+  const sideAmount = scoreLayerAmount(sideTotal, getSideTargetTotal(thickness));
   return {
     coverage: clampScore((top.coverage + sideCoverage) / 2),
     evenness: clampScore((top.evenness + sideEvenness) / 2),
-    amount: scoreAmountMatch(
-      getCreamTotal(cells) + sideTotal,
-      getSpreadTargetTotal(thickness) + getSideTargetTotal(thickness),
-    ),
+    // 양은 윗면·옆면 중 더 모자라거나 넘친 쪽 기준 (한쪽이 완벽해도 다른 쪽 실수를 메워 주지 않는다)
+    amount: Math.min(top.amount, sideAmount),
   };
 }
 
@@ -195,11 +206,11 @@ export function scoreSpread(cells: number[], thickness: number): FrostingScore {
   // 균일도: 칸 두께가 평균에서 얼마나 벗어나는지 (평균 절대 편차 / 평균)
   const mean = total / values.length;
   const meanDeviation = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / values.length;
-  const evenness = (1 - (meanDeviation / mean) * 1.2) * 100;
+  const evenness = (1 - (meanDeviation / mean) * EVENNESS_STRICTNESS) * 100;
 
   return {
     coverage: clampScore(coverage),
     evenness: clampScore(evenness),
-    amount: scoreAmountMatch(total, target * values.length),
+    amount: scoreLayerAmount(total, target * values.length),
   };
 }
