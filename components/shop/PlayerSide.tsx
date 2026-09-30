@@ -56,15 +56,16 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         <ChefCharacter />
       </div>
 
-      {/* 계산대: 스테이션 조리대와 같은 나무 톤. 넓은 상판(위에서 내려다보는 면) + 세로 널빤지 앞판 */}
-      <div className="relative h-1/4 min-h-24 w-full shrink-0">
+      {/* 계산대: 스테이션 조리대와 같은 나무 톤. 넓은 상판(위에서 내려다보는 면) + 세로 널빤지 앞판.
+          받침대 아래 체크무늬 천이 상판 안에 다 들어오도록 높이를 넉넉히 잡는다 (예전 1/4 — 천이 앞판으로 삐져나왔다) */}
+      <div className="relative h-[30%] min-h-28 w-full shrink-0">
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-[55%] bg-[#e7c3a0] shadow-[inset_0_3px_0_rgba(255,255,255,0.45),0_-3px_8px_rgba(0,0,0,0.08)]"
+          className="absolute inset-x-0 top-0 h-[62%] bg-[#e7c3a0] shadow-[inset_0_3px_0_rgba(255,255,255,0.45),0_-3px_8px_rgba(0,0,0,0.08)]"
         />
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-[45%] shadow-[inset_0_3px_4px_rgba(0,0,0,0.12)]"
+          className="absolute inset-x-0 bottom-0 h-[38%] shadow-[inset_0_3px_4px_rgba(0,0,0,0.12)]"
           style={{
             backgroundColor: "#c99466",
             backgroundImage: "repeating-linear-gradient(90deg, rgba(0,0,0,0.07) 0 2px, transparent 2px 26px)",
@@ -72,12 +73,12 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         />
 
         {/* 금전등록기: 주인 캐릭터 바로 앞 (계산대 상판 위) */}
-        <div className="absolute bottom-[52%] left-[calc(28%+var(--safe-l))] origin-bottom -translate-x-1/2 short:scale-[0.75]">
+        <div className="absolute bottom-[62%] left-[calc(28%+var(--safe-l))] origin-bottom -translate-x-1/2 short:scale-[0.75]">
           <CashRegister />
         </div>
 
-        {/* 케이크 받침대: 오른쪽에 넉넉히 두고 케이크를 크게 보여준다 */}
-        <div className="absolute bottom-[50%] left-[68%] origin-bottom -translate-x-1/2">
+        {/* 케이크 받침대: 오른쪽에 넉넉히 두고 케이크를 크게 보여준다. 천 중심(상자 바닥에서 22px 위)이 상판 한가운데에 온다 */}
+        <div className="absolute bottom-[calc(69%-22px)] left-[68%] origin-bottom -translate-x-1/2">
           <CakeCounter {...counter} />
         </div>
       </div>
