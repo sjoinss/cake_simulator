@@ -350,7 +350,13 @@ export function useGameState() {
       if (!customer || customer.status !== "order_confirmed") return;
 
       const servedAt = Date.now();
-      const result = scoreServedCake(job.cake, customer.order, customer.orderedAt ?? servedAt, servedAt);
+      const result = scoreServedCake(
+        job.cake,
+        customer.order,
+        customer.orderedAt ?? servedAt,
+        servedAt,
+        state.player.rank,
+      );
       // 서빙 점수만큼 경험치 (랭크업은 결과 카드를 닫은 뒤 카드로 알린다)
       // 망친 케이크는 경험치가 없다. 랭크는 하루에 한 번만 오른다
       const gainedExp = result.failReason ? 0 : result.total;

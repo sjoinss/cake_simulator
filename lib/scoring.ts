@@ -5,7 +5,9 @@ import { getBakingElapsedRatio, OVEN_IDEAL_START_RATIO } from "./gameLogic";
 // ---- ⑤ 서빙 결과 채점 (cake-tycoon-prompt.md 12장) ----
 // Phase 1은 각 항목을 0~100으로 단순 계산하고, 총점은 단순 평균 (가중치 없음).
 
-const CAKE_PRICE = 30; // 총점 100일 때 받는 금액 (Phase 1 임시값)
+// 총점 100일 때 받는 금액. 랭크가 오를수록 주문이 어려워지니(토핑 개수, 테이블) 값도 오른다 — 랭크 1 $30, 랭크 5 $38, 랭크 10 $48
+// (사용자 결정 "빠듯하게": 예전엔 끝까지 $30이라 새 재료값에 하루 수입이 다 나가고 장비는 거의 못 샀다)
+export const cakePrice = (rank: number) => 30 + 2 * (Math.max(1, rank) - 1);
 // 주문 확정 ~ 서빙까지 손님이 기다린 시간. 오븐만 50초라 여러 주문을 병행하는 걸 감안해 넉넉히 잡았다 (임시값)
 // (사용자 요청으로 줄임: 예전 150초/360초/40점이라 거의 항상 만점이었다. 케이크 하나를 쉬지 않고 만들면 약 90초)
 const SPEED_PERFECT_MS = 100_000; // 이 시간 안에 서빙하면 속도 만점
@@ -17,7 +19,7 @@ const TOTAL_ABOVE_QUALITY_MAX = 10; // 총점은 제작 품질 + 이 값을 넘�
 // 데코는 플레이어 재미용이라 점수에 넣지 않는다. 적당히 꾸미면(그림 2획 이상 또는 글자) 팁을 조금 더 받는다.
 const DECO_TIP = 3;
 const DECO_TIP_MIN_EFFORT = 2;
-// 받는 돈: 총점 30점을 0으로 보고 100점이면 CAKE_PRICE. 50점 → $9, 70점 → $17, 100점 → $30 (잘 만들수록 확 오른다)
+// 받는 돈: 총점 30점을 0으로 보고 100점이면 cakePrice(랭크). 랭크 1 기준 50점 → $9, 70점 → $17, 100점 → $30 (잘 만들수록 확 오른다)
 const PRICE_ZERO_SCORE = 30;
 // 망친 케이크 (사용자 요청: 덜 익은 시트에 크림 대충 발라도 좋아하며 돈을 줬음).
 // 아래 중 하나라도 걸리면 손님이 화내고 돈을 못 받고 재료비만큼 잃는다. 경험치·팁도 없다
@@ -110,7 +112,13 @@ export function scoreSpeed(elapsedMs: number): number {
   return Math.round(100 - ratio * (100 - SPEED_MIN_SCORE));
 }
 
-export function scoreServedCake(cake: CakeData, order: OrderSpec, orderedAt: number, servedAt: number): ServeResult {
+export function scoreServedCake(
+  cake: CakeData,
+  order: OrderSpec,
+  orderedAt: number,
+  servedAt: number,
+  rank: number,
+): ServeResult {
   const accuracy = scoreAccuracy(cake, order);
   const quality = scoreQuality(cake, order);
   const speed = scoreSpeed(servedAt - orderedAt);
@@ -126,7 +134,7 @@ export function scoreServedCake(cake: CakeData, order: OrderSpec, orderedAt: num
     total,
     money: failReason
       ? -FAIL_PENALTY
-      : Math.round((CAKE_PRICE * Math.max(0, total - PRICE_ZERO_SCORE)) / (100 - PRICE_ZERO_SCORE)),
+      : Math.round((cakePrice(rank) * Math.max(0, total - PRICE_ZERO_SCORE)) / (100 - PRICE_ZERO_SCORE)),
     tip: failReason ? 0 : getDecorationTip(cake),
     failReason,
     mood: failReason ? "angry" : total < MEH_TOTAL ? "meh" : "happy",

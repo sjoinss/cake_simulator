@@ -34,8 +34,8 @@ export const CUSTOM_MATERIAL_RANK = 5;
 export const isMaterialOwned = (material: Material, owned: readonly string[]) =>
   material.isCustom || material.unlockRank === 0 || owned.includes(material.id);
 
-// 상점 가격: 늦게 열리는 재료일수록 비싸다
-export const materialPrice = (material: Material) => 30 + 15 * material.unlockRank;
+// 상점 가격: 늦게 열리는 재료일수록 비싸다 (랭크 2 $45 ~ 랭크 10 $125). 예전 30 + 15×랭크는 하루 수입을 다 가져갔다
+export const materialPrice = (material: Material) => 25 + 10 * material.unlockRank;
 
 // ── 랭크별 난이도 (13-3) ──
 // 테이블은 가운데부터 하나씩 열린다: TABLE_UNLOCK_RANKS[n] = n+1번째로 열리는 테이블(TABLE_OPEN_ORDER[n])의 랭크
