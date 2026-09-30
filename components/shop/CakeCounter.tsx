@@ -81,7 +81,7 @@ export function CakeCounter({
       {/* 케이크 받침대: 발이 천 한가운데 → 나팔 모양 기둥 → 넓은 접시 (아래에서 위로 쌓는다) */}
       <div className="absolute bottom-[16px] left-1/2 flex -translate-x-1/2 flex-col items-center">
         {cake && (
-          <div className={`relative z-10 -mb-[4.5rem] flex flex-col items-center short:-mb-12 ${isDragging ? "opacity-0" : ""}`}>
+          <div className={`relative z-10 -mb-[3.75rem] flex flex-col items-center short:-mb-10 ${isDragging ? "opacity-0" : ""}`}>
             {/* 받침대에 못 올라간 완성 케이크 수 (케이크 위쪽) */}
             {queuedCount > 0 && (
               <span className="mb-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)] shadow-sm">
