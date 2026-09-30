@@ -164,7 +164,7 @@ export function ShopScreen({ gameState }: ShopScreenProps) {
           }}
         >
           {counterCake && (
-            <CakeSnapshot cake={counterCake.cake} materials={materialRegistry} size={72} label="들고 있는 케이크" />
+            <CakeSnapshot cake={counterCake.cake} materials={materialRegistry} size={96} label="들고 있는 케이크" />
           )}
         </div>
       )}

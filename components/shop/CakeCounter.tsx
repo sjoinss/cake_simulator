@@ -32,7 +32,9 @@ const checkeredClothStyle = {
   backgroundColor: "#fffaf6",
 };
 
-const CLOTH_PX = 112; // 천(정사각형) 한 변
+// 천(정사각형) 한 변. 받침대·케이크를 키우면서(2026-09-30 사용자 요청) 같이 키웠다 (예전 112)
+const CLOTH_PX = 160;
+const CLOTH_PX_SHORT = 120;
 // 계산대 상판을 비스듬히 내려다보는 각도에 맞춘 세로 눌림 비율 (케이크 윗면 타원 비율과 비슷하게)
 const COUNTER_TILT = 0.36;
 
@@ -49,13 +51,14 @@ export function CakeCounter({
 }: CakeCounterProps) {
   const materialRegistry = useMaterialRegistry();
   const isShort = useIsShort();
-  const cakeSize = isShort ? 68 : 92;
+  const cakeSize = isShort ? 92 : 128; // 예전 68 / 92
+  const clothPx = isShort ? CLOTH_PX_SHORT : CLOTH_PX;
 
   return (
-    <div className="relative h-44 w-44 short:h-32">
+    <div className="relative h-60 w-56 short:h-44 short:w-36">
       {/* 줄 손님이 없는 케이크는 버리기 (받침대 오른쪽 아래) */}
       {cake && !isDragging && (
-        <div className="absolute right-[-1.5rem] bottom-0 z-10">
+        <div className="absolute right-[-1.5rem] bottom-0 z-10 short:right-[-0.5rem]">
           <DiscardButton orderLabel="계산대" onDiscard={onDiscard} compact />
         </div>
       )}
@@ -66,10 +69,10 @@ export function CakeCounter({
           className="absolute rounded-[3px]"
           style={{
             ...checkeredClothStyle,
-            width: CLOTH_PX,
-            height: CLOTH_PX,
-            left: -CLOTH_PX / 2,
-            top: -CLOTH_PX / 2,
+            width: clothPx,
+            height: clothPx,
+            left: -clothPx / 2,
+            top: -clothPx / 2,
             transform: `scaleY(${COUNTER_TILT}) rotate(45deg)`,
           }}
         />
@@ -78,7 +81,7 @@ export function CakeCounter({
       {/* 케이크 받침대: 발이 천 한가운데 → 나팔 모양 기둥 → 넓은 접시 (아래에서 위로 쌓는다) */}
       <div className="absolute bottom-[16px] left-1/2 flex -translate-x-1/2 flex-col items-center">
         {cake && (
-          <div className={`relative z-10 -mb-3 flex flex-col items-center ${isDragging ? "opacity-0" : ""}`}>
+          <div className={`relative z-10 -mb-4 flex flex-col items-center short:-mb-3 ${isDragging ? "opacity-0" : ""}`}>
             {/* 받침대에 못 올라간 완성 케이크 수 (케이크 위쪽) */}
             {queuedCount > 0 && (
               <span className="mb-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)] shadow-sm">
@@ -103,18 +106,18 @@ export function CakeCounter({
         {/* 접시 */}
         <div
           aria-hidden
-          className="h-5 w-28 rounded-[50%] bg-[linear-gradient(180deg,#ffffff,#eee6e1)] shadow-[0_2px_0_#dcd0c8,0_4px_6px_rgba(90,50,30,0.2)] short:h-4 short:w-20"
+          className="h-7 w-40 rounded-[50%] bg-[linear-gradient(180deg,#ffffff,#eee6e1)] shadow-[0_3px_0_#dcd0c8,0_5px_8px_rgba(90,50,30,0.2)] short:h-5 short:w-28"
         />
         {/* 기둥 */}
         <div
           aria-hidden
-          className="h-7 w-10 bg-[linear-gradient(90deg,#e9e1dc,#ffffff_45%,#e3dad4)] short:h-5 short:w-8"
+          className="h-10 w-14 bg-[linear-gradient(90deg,#e9e1dc,#ffffff_45%,#e3dad4)] short:h-7 short:w-10"
           style={{ clipPath: "polygon(38% 0%, 62% 0%, 88% 100%, 12% 100%)" }}
         />
         {/* 발 */}
         <div
           aria-hidden
-          className="-mt-0.5 h-2.5 w-12 rounded-[50%] bg-[#eee6e1] shadow-[0_1px_2px_rgba(0,0,0,0.2)] short:w-9"
+          className="-mt-0.5 h-3.5 w-16 rounded-[50%] bg-[#eee6e1] shadow-[0_1px_2px_rgba(0,0,0,0.2)] short:h-2.5 short:w-12"
         />
       </div>
     </div>
