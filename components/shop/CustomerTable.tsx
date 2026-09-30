@@ -63,7 +63,7 @@ export function CustomerTable({
       {/* 의자 등받이: 손님 뒤에 있어서 앉아 있는 것처럼 보인다. 빈 테이블에도 놓여 있다 */}
       <div
         aria-hidden
-        className={`absolute bottom-14 left-1/2 h-24 w-20 -translate-x-1/2 rounded-t-[1.8rem] border-4 border-b-0 border-[#b98559] bg-[#d9aa7e] shadow-[inset_0_3px_0_rgba(255,255,255,0.3)] short:bottom-9 short:h-16 short:w-14 short:rounded-t-[1.2rem] ${lockedRank !== null && !customer ? "opacity-50" : ""}`}
+        className={`absolute bottom-14 left-1/2 h-32 w-28 -translate-x-1/2 rounded-t-[2.4rem] border-4 border-b-0 border-[#b98559] bg-[#d9aa7e] shadow-[inset_0_3px_0_rgba(255,255,255,0.3)] short:bottom-9 short:h-[5.5rem] short:w-[4.5rem] short:rounded-t-[1.6rem] ${lockedRank !== null && !customer ? "opacity-50" : ""}`}
       >
         <div className="mx-auto mt-2 h-[70%] w-1.5 rounded-full bg-[#b98559]/60" />
       </div>
@@ -72,7 +72,7 @@ export function CustomerTable({
         // 그래야 제작 화면을 왕복해서 이 컴포넌트가 다시 마운트돼도, 이미 있던 손님까지 매번 튀어나오지 않는다.
         <div
           key={customer.id}
-          className={`relative z-10 -mb-1 flex flex-col items-center gap-1 ${shouldAnimateEntrance ? "animate-customer-enter" : ""} ${
+          className={`relative z-10 -mb-3 flex flex-col items-center gap-1 short:-mb-2 ${shouldAnimateEntrance ? "animate-customer-enter" : ""} ${
             isLeaving ? "animate-customer-leave" : ""
           }`}
         >
@@ -89,12 +89,12 @@ export function CustomerTable({
               />
             </span>
           )}
-          {/* 손님 그림 자리: 이미지로 바꿀 때도 이 상자 크기(64x64, 폰 가로 48x48)에 맞춰 넣는다 */}
+          {/* 손님 그림 자리: 이미지로 바꿀 때도 이 상자 크기(112x112, 폰 가로 72x72)에 맞춰 넣는다. 아래쪽은 테이블 상판에 살짝 가려진다 */}
           <button
             type="button"
             onClick={onTap}
             aria-label={"손님 주문 확인"}
-            className="flex h-16 w-16 cursor-pointer items-end justify-center border-0 bg-transparent p-0 text-6xl leading-none transition-transform active:scale-90 short:h-12 short:w-12 short:text-5xl"
+            className="flex h-28 w-28 cursor-pointer items-end justify-center border-0 bg-transparent p-0 text-7xl leading-none transition-transform active:scale-90 short:h-[4.5rem] short:w-[4.5rem] short:text-5xl"
           >
             {customerImage ? (
               // eslint-disable-next-line @next/next/no-img-element -- 플레이어가 넣은 blob URL이라 next/image를 쓸 수 없다
@@ -104,17 +104,16 @@ export function CustomerTable({
                 draggable={false}
                 className="h-full w-full object-contain object-bottom"
               />
-            ) : servedCake ? (
-              MOOD_FACES[mood ?? "happy"]
             ) : (
-              "🧑"
+              // 이모지 손님은 얼굴이 테이블에 가리지 않게 살짝 올린다 (그림은 몸 아래쪽이 가려지는 게 자연스럽다)
+              <span className="pb-3 short:pb-2">{servedCake ? MOOD_FACES[mood ?? "happy"] : "🧑"}</span>
             )}
           </button>
         </div>
       )}
       {/* 드래그 중 드롭 안내: 색만으로 구분하지 않도록 텍스트 라벨을 함께 보여준다 (18장) */}
       {dropState === "hover" && (
-        <span className="pointer-events-none absolute bottom-28 z-30 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-sm font-bold whitespace-nowrap text-white shadow-sm">
+        <span className="pointer-events-none absolute bottom-40 z-30 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-sm font-bold whitespace-nowrap text-white shadow-sm">
           이 손님에게 주기 ⬇
         </span>
       )}
