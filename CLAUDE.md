@@ -109,6 +109,7 @@
 - **가게 꾸미기 창**(`components/game/DecorSettings.tsx`, 상단 바 "🎨 가게 꾸미기"): 주인 그림 + 손님 모습 최대 6종류 × (평소/먹는 중). 사용자에게 제안해서 정한 위치 — 나중에 배경·재료 그림도 여기로 모을 수 있다
   - 그림은 IndexedDB(`lib/imageStore.ts`, DB `cake-tycoon`)에 Blob으로 저장, `components/game/CustomImages.tsx`(Context)가 불러와 object URL로 나눠준다. 공용 칸 `ImageDropZone`(끌어다 놓기 + 눌러서 파일 고르기 + X)
   - 손님은 생성 때 `Customer.look`(0~5)을 받고, 평소 모습이 채워진 칸들 중 `look % 채워진 수`번째 그림을 쓴다. 먹는 중 그림이 없으면 평소 그림, 아무 칸도 없으면 이모지
+  - **기본 손님 그림** `lib/assets.ts` `DEFAULT_CUSTOMER_IMAGES`(6종 × 평소/먹는 중, 지금 전부 null — GPT 그림을 받으면 경로 채움): 칸마다 플레이어가 평소 모습을 넣었으면 그 칸은 플레이어 그림만, 비어 있으면 기본 그림(`getCustomerSlotImage`). 꾸미기 창 칸에도 기본 그림이 보이고 X는 플레이어 그림일 때만
   - 브라우저 테스트 후엔 테스트 그림/이름을 지워 둘 것 (`indexedDB.deleteDatabase('cake-tycoon')`, localStorage `cake-tycoon.shopName`)
   - 체크무늬 천은 정사각형을 `scaleY(0.36) rotate(45deg)`로 눕혀 계산대 상판과 원근을 맞춤(체크까지 같이 눕는다). 받침대 발이 천 한가운데
 - 홀(`CustomerSide`의 `DiningRoom`): 은은한 세로 줄무늬 벽지, 가운데 아치형 창문 하나, 웨인스코팅 벽 패널, 나무 바닥

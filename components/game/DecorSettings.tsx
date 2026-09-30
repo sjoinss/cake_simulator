@@ -32,7 +32,7 @@ type DecorSettingsProps = {
 };
 
 export function DecorSettings({ rank, onClose, onResetProgress }: DecorSettingsProps) {
-  const { images, ownerImage, hasCustomOwner, setImage, clearImage } = useCustomImages();
+  const { images, ownerImage, hasCustomOwner, setImage, clearImage, getCustomerSlotImage } = useCustomImages();
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [tab, setTab] = useState<DecorTab>("images");
 
@@ -106,8 +106,8 @@ export function DecorSettings({ rank, onClose, onResetProgress }: DecorSettingsP
             className="flex flex-col gap-3 short:gap-2"
           >
             <p className="text-xs text-[var(--theme-text)]/70">
-              칸에 그림 파일을 끌어다 놓거나 눌러서 고르세요. 평소 모습을 넣은 손님만 가게에 오고, 먹는 모습이 없으면
-              평소 모습을 그대로 써요.
+              칸에 그림 파일을 끌어다 놓거나 눌러서 고르세요. 비워 두거나 X로 지우면 기본 그림이 나와요. 먹는 모습이
+              없으면 평소 모습을 그대로 써요.
             </p>
 
             <div className="flex gap-4 short:gap-3">
@@ -137,7 +137,7 @@ export function DecorSettings({ rank, onClose, onResetProgress }: DecorSettingsP
                           return (
                             <div key={pose} className="flex flex-col items-center gap-0.5">
                               <ImageDropZone
-                                imageUrl={images[key] ?? null}
+                                imageUrl={getCustomerSlotImage(look, pose)}
                                 isCustom={!!images[key]}
                                 label={`손님 ${look + 1} ${label} 그림`}
                                 onFile={(file) => setImage(key, file)}

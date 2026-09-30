@@ -25,3 +25,11 @@ export const DEFAULT_OWNER_IMAGE: string | null = null; // 예: "/images/charact
 // 손님 모습 종류 수. 종류마다 평소 모습 + 케이크를 먹는 모습 두 장을 "가게 꾸미기" 창에서 넣는다 (브라우저에 저장).
 // 손님 그림 자리: 64x64px(폰 48x48px), 발끝/몸 아래쪽이 테이블에 살짝 가려진다.
 export const CUSTOMER_LOOK_COUNT = 6;
+
+// 손님 기본 그림 (종류마다 평소/먹는 중). 플레이어가 그 칸에 평소 모습을 넣으면 그 종류는 플레이어 그림이 우선이고,
+// 비워 두면 이 기본 그림이 나온다. null이면 이모지 손님. 먹는 중이 null이면 평소 그림을 쓴다.
+// 크기: 256x256 투명 PNG 권장 (화면에선 64x64, 폰 48x48)
+export const DEFAULT_CUSTOMER_IMAGES: { idle: string | null; eating: string | null }[] = Array.from(
+  { length: CUSTOMER_LOOK_COUNT },
+  () => ({ idle: null, eating: null }), // 예: { idle: "/images/customers/1-idle.png", eating: "/images/customers/1-eating.png" }
+);

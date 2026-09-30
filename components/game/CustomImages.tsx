@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteImage, loadImage, saveImage } from "@/lib/imageStore";
-import { CUSTOMER_LOOK_COUNT, DEFAULT_OWNER_IMAGE, withBasePath } from "@/lib/assets";
+import { CUSTOMER_LOOK_COUNT, DEFAULT_CUSTOMER_IMAGES, DEFAULT_OWNER_IMAGE, withBasePath } from "@/lib/assets";
 
 // 손님 모습은 최대 CUSTOMER_LOOK_COUNT(6)종류. 종류마다 평소 모습 + 케이크를 먹는 모습 두 장
 export type CustomerLookPose = "idle" | "eating";
@@ -24,8 +24,10 @@ type CustomImagesValue = {
   hasCustomOwner: boolean;
   setImage: (key: string, file: File) => void;
   clearImage: (key: string) => void;
-  // 이 손님(look 번호)에게 보여줄 그림. 채워진 손님 칸들 중에서 고르고, 먹는 모습이 없으면 평소 모습을 쓴다
+  // 이 손님(look 번호)에게 보여줄 그림. 그림이 있는 손님 칸들 중에서 고르고, 먹는 모습이 없으면 평소 모습을 쓴다
   getCustomerImage: (look: number, pose: CustomerLookPose) => string | null;
+  // 손님 칸 하나에 지금 들어가 있는 그림 (플레이어 그림, 없으면 기본 그림) — 꾸미기 창 표시용
+  getCustomerSlotImage: (slot: number, pose: CustomerLookPose) => string | null;
 };
 
 const CustomImagesContext = createContext<CustomImagesValue | null>(null);
@@ -83,18 +85,29 @@ export function CustomImagesProvider({ children }: { children: ReactNode }) {
     [replace],
   );
 
+  // 칸마다: 플레이어가 평소 모습을 넣었으면 그 칸은 플레이어 그림만 쓰고(기본 먹는 그림과 섞이지 않게),
+  // 비어 있으면 기본 그림. 먹는 모습만 넣은 경우엔 그 그림이 기본 먹는 그림 대신 나온다
+  const getCustomerSlotImage = useCallback(
+    (slot: number, pose: CustomerLookPose) => {
+      const custom = images[customerImageKey(slot, pose)];
+      if (custom) return custom;
+      if (images[customerImageKey(slot, "idle")]) return null;
+      const fallback = DEFAULT_CUSTOMER_IMAGES[slot]?.[pose];
+      return fallback ? withBasePath(fallback) : null;
+    },
+    [images],
+  );
+
   const getCustomerImage = useCallback(
     (look: number, pose: CustomerLookPose) => {
-      const filled = Array.from({ length: CUSTOMER_LOOK_COUNT }, (_, index) => index).filter(
-        (index) => images[customerImageKey(index, "idle")],
+      const filled = Array.from({ length: CUSTOMER_LOOK_COUNT }, (_, index) => index).filter((index) =>
+        getCustomerSlotImage(index, "idle"),
       );
       if (filled.length === 0) return null;
       const chosen = filled[look % filled.length];
-      return (
-        (pose === "eating" && images[customerImageKey(chosen, "eating")]) || images[customerImageKey(chosen, "idle")]
-      );
+      return (pose === "eating" && getCustomerSlotImage(chosen, "eating")) || getCustomerSlotImage(chosen, "idle");
     },
-    [images],
+    [getCustomerSlotImage],
   );
 
   const value: CustomImagesValue = {
@@ -104,6 +117,7 @@ export function CustomImagesProvider({ children }: { children: ReactNode }) {
     setImage,
     clearImage,
     getCustomerImage,
+    getCustomerSlotImage,
   };
 
   return <CustomImagesContext.Provider value={value}>{children}</CustomImagesContext.Provider>;
