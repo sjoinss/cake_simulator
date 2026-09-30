@@ -129,8 +129,8 @@ export function Cake3D({
           틈이 있는 것처럼(공중에 뜬 것처럼) 보였다 */}
       <div
         aria-hidden
-        className="absolute rounded-[50%] bg-black/25 blur-[2px]"
-        style={{ left: "1%", width: "98%", height: faceHeight * 0.5, top: toppingRoom + sideHeight + faceHeight * 0.52 }}
+        className="absolute rounded-[50%] bg-black/12 blur-[3px]"
+        style={{ left: "1%", width: "98%", height: faceHeight, top: toppingRoom + sideHeight + faceHeight * 0.1 }}
       />
 
       {/* 옆면: 아래쪽이 타원 곡선으로 둥글게 말린 원기둥 벽 */}
