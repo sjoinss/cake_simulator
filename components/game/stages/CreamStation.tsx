@@ -55,7 +55,7 @@ export function CreamStation({ job, materials, owned, pipingSpeed, onUpdate }: C
         (filling.done ? (
           <StepDone
             title="필링 완료! 시트를 덮었어요"
-            detail={`범위 ${fillingScore.coverage}점 · 균일도 ${fillingScore.evenness}점 · 양 ${fillingScore.amount}점`}
+            detail={`범위 ${fillingScore.coverage}점 · 양 ${fillingScore.amount}점`}
             nextLabel="크림 바르기 →"
             onNext={() => setStep("frosting")}
           />

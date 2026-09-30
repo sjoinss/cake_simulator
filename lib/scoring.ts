@@ -24,7 +24,7 @@ const PRICE_ZERO_SCORE = 30;
 const FAIL_PENALTY = 10;
 const FAIL_ACCURACY = 50; // 주문 재료 절반 이상 틀림
 const FAIL_DONENESS = 50; // 굽기 점수 (덜 익음 ≈ 28초 전에 꺼냄 / 탐)
-const FAIL_LAYER = 40; // 필링·크림 각각 (범위·균일도·양 평균)
+const FAIL_LAYER = 40; // 필링·크림 각각 (범위·양 층 점수)
 const FAIL_TOTAL = 50;
 const MEH_TOTAL = 80; // 이보다 낮으면 먹긴 하지만 시큰둥 (😐) — 대충 바른 케이크가 여기 걸리게 했다
 
@@ -32,7 +32,7 @@ export type CustomerMood = "happy" | "meh" | "angry";
 
 export type ServeResult = {
   accuracy: number; // 주문 정확도: 주문한 재료와 일치하는지
-  quality: number; // 제작 품질: 반죽 양 + 굽기 + 필링/크림의 범위·균일도·양 (크림 양은 이 손님이 주문한 양 기준)
+  quality: number; // 제작 품질: 반죽 양 + 굽기 + 필링/크림의 범위·양 (크림 양은 이 손님이 주문한 양 기준)
   speed: number; // 속도: 주문 확정 ~ 서빙까지 손님이 기다린 시간
   total: number;
   money: number;

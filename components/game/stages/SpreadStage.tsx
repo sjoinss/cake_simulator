@@ -289,7 +289,7 @@ export function SpreadStage({
 
         <div className={SIDE_COLUMN}>
           {idle && <p className={IDLE_NOTE}>오븐에서 꺼낸 케이크가 오면 바를 수 있어요</p>}
-          {/* 바른 결과: 덮인 정도·고르기 (채점과 같은 기준). 양은 옆의 게이지 */}
+          {/* 바른 결과: 덮인 정도 (채점과 같은 기준). 양은 옆의 게이지 */}
           {!idle && hasSpread && (
             <SpreadMeters score={liveScore} label={onSideFace ? "옆면" : hasSide ? "윗면" : noun} />
           )}
@@ -297,8 +297,8 @@ export function SpreadStage({
             {!hasMaterial
               ? `먼저 ${noun} 재료를 고르세요.`
               : isSideFace
-                ? "옆면을 누르고 있으면 케이크가 돌아가며 크림이 발려요. 딱 한 바퀴 돌리면 고르게 발려요."
-                : `케이크를 누르고 있으면 ${noun}이 나와요. 짜는 세기를 골라 케이크 전체를 고르게 훑어 초록 띠에 맞춰주세요.`}
+                ? "옆면을 누르고 있으면 케이크가 돌아가며 크림이 발려요. 딱 한 바퀴 돌리면 빈 곳 없이 발려요."
+                : `케이크를 누르고 있으면 ${noun}이 나와요. 짜는 세기를 골라 빈 곳 없이 케이크 전체를 훑어 초록 띠에 맞춰주세요.`}
           </p>
           <button
             type="button"
@@ -341,11 +341,10 @@ export function SpreadStage({
   );
 }
 
-// 덮인 정도·고르기 막대 두 개 + 가장 급한 조언 한 줄. 색만으로 구분하지 않도록 숫자와 말을 같이 보여준다 (18장)
+// 덮인 정도 막대 + 조언 한 줄. 색만으로 구분하지 않도록 숫자와 말을 같이 보여준다 (18장)
 function SpreadMeters({ score, label }: { score: FrostingScore; label: string }) {
   const rows = [
     { name: "덮인 정도", value: score.coverage },
-    { name: "고르기", value: score.evenness },
   ];
   return (
     <div className="flex w-full flex-col gap-1 rounded-xl bg-white/70 px-2.5 py-2 text-[var(--theme-text)] short:gap-0.5 short:px-2 short:py-1">

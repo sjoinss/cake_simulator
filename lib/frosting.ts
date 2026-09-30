@@ -1,6 +1,7 @@
 import type { CreamAmount, SpreadLayer } from './gameState';
 
-// 짤주머니로 짜서 바르는 층(필링, 겉 크림) 판정 (cake-tycoon-prompt.md 2장 "균일도/범위/양", 1장 4번 프레스&홀드, 19장 4번 샘플링 근사치).
+// 짤주머니로 짜서 바르는 층(필링, 겉 크림) 판정: 덮인 범위 + 양 (1장 4번 프레스&홀드, 19장 4번 샘플링 근사치).
+// 기획서 2장의 "균일도"는 뺐다 (사용자 결정: 평면이라 고르게 폈는지 보이지도 않고 기준이 이상했다).
 // 케이크 위를 GRID x GRID 칸으로 나누고, 누르고 있는 동안 짤주머니 위치 주변 칸에 크림 두께가 쌓인다.
 // 한 자리에 오래 머물면 그 자리만 두꺼워지고, 너무 빨리 지나가면 얇게 발려서 시트가 비친다.
 
@@ -31,16 +32,25 @@ const BRUSH_RADIUS_CELLS = 1.6; // 짤주머니 한 번에 크림이 퍼지는 �
 // 판정 기준 (사용자 요청으로 엄격하게: 예전엔 "부족해요"로 발라도 제작 품질 80%대가 나왔다)
 // 값은 채점 시뮬레이션으로 맞췄다: 꼼꼼히 바르면 층 점수 75~91, 가운데만 바르면 ~53, 좁게만 ~34, 절반만 ~19
 const COVERED_RATIO = 0.5; // 목표 두께의 이 비율 이상이면 "덮였다"고 본다 (예전 0.35)
-const EVENNESS_STRICTNESS = 1.2; // 평균 절대 편차/평균에 곱하는 값. 클수록 들쭉날쭉에 엄격
 const AMOUNT_STRICTNESS = 200; // 양이 목표와 20% 다르면 60점 (공용 scoreAmountMatch는 150 = 70점)
 
 // 양 판정 (필링·크림 전용, 엄격)
 const scoreLayerAmount = (total: number, target: number) =>
   target <= 0 || total <= 0 ? 0 : clampScore(100 - Math.abs(total / target - 1) * AMOUNT_STRICTNESS);
 
-// 층 하나의 점수: 범위·균일도·양의 평균에 가장 나쁜 항목을 1/3 섞는다 (하나라도 엉망이면 확 떨어진다)
-export const layerScore = ({ coverage, evenness, amount }: FrostingScore) =>
-  Math.round(Math.min(coverage, evenness, amount) / 3 + ((coverage + evenness + amount) / 3) * (2 / 3));
+// 덮인 비율(%)을 점수로: 30% 이하 0점 → 90% 이상 100점.
+// 크림은 넘치면 옆으로 퍼져서 가운데에 몰아 짜기만 해도 절반 가까이 덮이기 때문에, 덮인 비율을 그대로 점수로 쓰면 후하다
+const COVERAGE_ZERO = 30;
+const COVERAGE_FULL = 90;
+const coveragePoints = (coverage: number) =>
+  clampScore(((coverage - COVERAGE_ZERO) / (COVERAGE_FULL - COVERAGE_ZERO)) * 100);
+
+// 층 하나의 점수: 범위·양의 평균에 나쁜 쪽을 1/3 섞는다 (하나라도 엉망이면 확 떨어진다)
+// 시뮬레이션: 꼼꼼히 ~89, 가운데만·절반만·한 자리에 몰아 짜기 ~51~55, 양이 모자라면 ~30
+export const layerScore = ({ coverage, amount }: FrostingScore) => {
+  const covered = coveragePoints(coverage);
+  return Math.round(Math.min(covered, amount) / 3 + ((covered + amount) / 2) * (2 / 3));
+};
 
 export const createEmptyFrosting = (): number[] => Array.from({ length: FROSTING_CELL_COUNT }, () => 0);
 
@@ -169,32 +179,28 @@ function spreadOverflow(cells: number[]) {
   }
 }
 
-export type FrostingScore = { coverage: number; evenness: number; amount: number };
+export type FrostingScore = { coverage: number; amount: number };
 
 const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
-// 옆면(회전판) 채점: 조각별 두께로 범위/균일도/양
+// 옆면(회전판) 채점: 조각별 두께로 범위/양
 export function scoreSide(side: number[], thickness: number): FrostingScore {
   const values = side.map(sideThickness);
   const total = side.reduce((sum, value) => sum + value, 0);
-  if (total === 0) return { coverage: 0, evenness: 0, amount: 0 };
+  if (total === 0) return { coverage: 0, amount: 0 };
   const coverage = (values.filter((value) => value >= thickness * COVERED_RATIO).length / SIDE_SEGMENTS) * 100;
-  const mean = values.reduce((sum, value) => sum + value, 0) / SIDE_SEGMENTS;
-  const deviation = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / SIDE_SEGMENTS;
   return {
     coverage: clampScore(coverage),
-    evenness: clampScore((1 - (deviation / mean) * EVENNESS_STRICTNESS) * 100),
     amount: scoreLayerAmount(total, getSideTargetTotal(thickness)),
   };
 }
 
-// 겉 크림 채점: 윗면과 옆면을 각각 범위/균일도로 보고 평균, 양은 둘 중 나쁜 쪽
+// 겉 크림 채점: 범위는 윗면과 옆면의 평균, 양은 둘 중 나쁜 쪽
 export function scoreFrostingLayer(cells: number[], side: number[], thickness: number): FrostingScore {
   const top = scoreSpread(cells, thickness);
   const sideScore = scoreSide(side, thickness);
   return {
     coverage: clampScore((top.coverage + sideScore.coverage) / 2),
-    evenness: clampScore((top.evenness + sideScore.evenness) / 2),
     // 양은 윗면·옆면 중 더 모자라거나 넘친 쪽 기준 (한쪽이 완벽해도 다른 쪽 실수를 메워 주지 않는다)
     amount: Math.min(top.amount, sideScore.amount),
   };
@@ -209,13 +215,11 @@ export function getThinCells(cells: number[], thickness: number): { index: numbe
   }));
 }
 
-// 덮인 정도·고르기를 짧은 말로 (가장 급한 것 하나)
-export function spreadAdvice({ coverage, evenness }: Pick<FrostingScore, 'coverage' | 'evenness'>): string {
+// 덮인 정도를 짧은 말로
+export function spreadAdvice({ coverage }: Pick<FrostingScore, 'coverage'>): string {
   if (coverage < 60) return '빈 곳이 많아요';
   if (coverage < 85) return '아직 빈 곳이 있어요';
-  if (evenness < 50) return '들쭉날쭉해요 — 두꺼운 곳을 피해 고르게';
-  if (evenness < 75) return '조금 들쭉날쭉해요';
-  return '고르게 잘 발랐어요';
+  return '빈 곳 없이 잘 덮었어요';
 }
 
 // 별 1~3개 (층 점수 기준)
@@ -229,19 +233,13 @@ export function scoreSpread(cells: number[], thickness: number): FrostingScore {
   const target = thickness;
   const values = ON_CAKE_CELLS.map((index) => cells[index] ?? 0);
   const total = values.reduce((sum, value) => sum + value, 0);
-  if (total === 0) return { coverage: 0, evenness: 0, amount: 0 };
+  if (total === 0) return { coverage: 0, amount: 0 };
 
   // 범위: 목표 두께의 일정 비율 이상 덮인 칸의 비율
   const coverage = (values.filter((value) => value >= target * COVERED_RATIO).length / values.length) * 100;
 
-  // 균일도: 칸 두께가 평균에서 얼마나 벗어나는지 (평균 절대 편차 / 평균)
-  const mean = total / values.length;
-  const meanDeviation = values.reduce((sum, value) => sum + Math.abs(value - mean), 0) / values.length;
-  const evenness = (1 - (meanDeviation / mean) * EVENNESS_STRICTNESS) * 100;
-
   return {
     coverage: clampScore(coverage),
-    evenness: clampScore(evenness),
     amount: scoreLayerAmount(total, target * values.length),
   };
 }

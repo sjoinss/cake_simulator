@@ -121,7 +121,7 @@ function pickStep(state: GameState, now: number): TutorialStep {
         id: `spread-${noun}`,
         phase: 3,
         text: '케이크를 누른 채 문질러요',
-        hint: filling.done ? '옆면은 누르고 있으면 돌아가요' : '단면에 골고루 발라요',
+        hint: filling.done ? '옆면은 누르고 있으면 돌아가요' : '단면을 빈 곳 없이 덮어요',
         station: 'cream',
         targets: ['[data-tutorial="spread-area"]', '[data-tutorial="gauge"]'],
       };
