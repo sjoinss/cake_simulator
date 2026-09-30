@@ -1,12 +1,18 @@
 import type { Player } from "@/lib/gameState";
 
 // 랭크 + 다음 랭크까지 경험치 막대 (상단 바, 상점)
+// 랭크는 하루에 한 번만 오르므로, 오늘 이미 올라서 막대가 꽉 찬 채 멈춰 있으면 "내일" 표시를 붙인다
 export function RankBadge({ player }: { player: Player }) {
   const ratio = Math.min(player.exp / player.rankUpThreshold, 1);
+  const waitingForTomorrow = player.exp >= player.rankUpThreshold;
   return (
     <span
       className="flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-sm font-bold text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-xs"
-      title={`다음 랭크까지 ${Math.max(0, player.rankUpThreshold - player.exp)}점`}
+      title={
+        waitingForTomorrow
+          ? "경험치가 꽉 찼어요 — 내일 첫 서빙에 랭크가 올라요"
+          : `다음 랭크까지 ${Math.max(0, player.rankUpThreshold - player.exp)}점`
+      }
     >
       <span aria-hidden>⭐</span>
       <span className="tabular-nums">랭크 {player.rank}</span>
@@ -20,6 +26,9 @@ export function RankBadge({ player }: { player: Player }) {
       >
         <span className="block h-full bg-[var(--theme-accent)]" style={{ width: `${ratio * 100}%` }} />
       </span>
+      {waitingForTomorrow && (
+        <span className="whitespace-nowrap text-[10px] font-extrabold text-[var(--theme-accent)]">내일 ⬆</span>
+      )}
     </span>
   );
 }

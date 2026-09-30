@@ -41,7 +41,7 @@ export function TutorialCoach({ state, paused, onFinish }: TutorialCoachProps) {
     return (
       <TutorialCard
         title="🎉 첫 케이크 완성!"
-        lines={["💰 잘 만들수록 돈을 많이 받아요", "😠 덜 익거나 엉망인 케이크는 재료비만 날려요", "⭐ 랭크가 오르면 새 재료와 테이블이 열려요", "📅 손님 10명을 받으면 하루가 끝나요"]}
+        lines={["💰 잘 만들수록 돈을 많이 받아요", "😠 덜 익거나 엉망인 케이크는 재료비만 날려요", "⭐ 랭크가 오르면 새 재료와 테이블이 열려요", "📅 손님 6명을 받으면 하루가 끝나요 (전단지를 사면 늘어요)"]}
         action="영업 시작!"
         onAction={onFinish}
       />

@@ -140,7 +140,7 @@ const builtInMaterials: MaterialRegistry = {
       emoji: '🍒',
       icon: '/images/assets/toppings/cherry.png',
       isCustom: false,
-      unlockRank: 4,
+      unlockRank: 0, // 랭크 1 주문이 전부 같지 않게 토핑만 두 개로 시작 (사용자 결정)
     },
     {
       id: 'topping_chocochip',

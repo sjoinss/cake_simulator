@@ -1,6 +1,6 @@
 "use client";
 
-import { CUSTOMERS_PER_DAY, type Player } from "@/lib/gameState";
+import type { Player } from "@/lib/gameState";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { RankBadge } from "./RankBadge";
 import { formatMoney } from "@/lib/money";
@@ -8,7 +8,8 @@ import { SoundToggle } from "./SoundToggle";
 
 type TopBarProps = {
   day: number;
-  servedToday: number; // 오늘 서빙을 마친 손님 수 (CUSTOMERS_PER_DAY명이면 하루 마감)
+  servedToday: number; // 오늘 서빙을 마친 손님 수 (customersToday명이면 하루 마감)
+  customersToday: number; // 오늘 받을 손님 수
   player: Player;
   onOpenShop: () => void;
   onOpenAlbum: () => void; // 케이크 앨범
@@ -16,7 +17,7 @@ type TopBarProps = {
 };
 
 // 모든 화면 공통 상단 바: DAY + 오늘 손님 진행, 랭크 / 상점, 꾸미기, 돈. 주문서는 바 아래 오른쪽의 집게 레일(OrderClipRail)에 따로 걸린다.
-export function TopBar({ day, servedToday, player, onOpenShop, onOpenAlbum, onOpenDecor }: TopBarProps) {
+export function TopBar({ day, servedToday, customersToday, player, onOpenShop, onOpenAlbum, onOpenDecor }: TopBarProps) {
   // 크롬이 설치 가능하다고 알려줄 때만 "앱 설치" 버튼이 보인다 (이미 설치한 앱 안에선 안 보임)
   const install = useInstallPrompt();
 
@@ -25,7 +26,7 @@ export function TopBar({ day, servedToday, player, onOpenShop, onOpenAlbum, onOp
       <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 text-base font-bold tracking-wide text-[var(--theme-text)] shadow-sm short:py-0.5 short:text-sm">
         <span aria-hidden>📅</span> DAY {day}
         <span className="ml-1 text-sm font-semibold text-[var(--theme-text)]/60 short:text-xs">
-          손님 {servedToday}/{CUSTOMERS_PER_DAY}
+          손님 {servedToday}/{customersToday}
         </span>
       </span>
       <RankBadge player={player} />

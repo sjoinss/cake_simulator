@@ -152,16 +152,18 @@ export type GameState = {
   selectedCakeIds: Record<WorkStation, string | null>; // 스테이션별로 지금 작업 중인 케이크
   ovenSlots: (string | null)[]; // 오븐 칸마다 들어 있는 케이크 id
   nextOrderNumber: number; // 다음 주문에 붙일 번호. 하루가 시작될 때 1로 리셋한다
-  today: DayProgress; // 오늘 하루 진행 (손님 CUSTOMERS_PER_DAY명을 다 서빙하면 하루가 끝난다)
+  today: DayProgress; // 오늘 하루 진행 (손님 today.customerLimit명을 다 서빙하면 하루가 끝난다)
   tutorialDone: boolean; // 첫 플레이 안내(lib/tutorial.ts)를 끝냈거나 건너뛰었는지
 };
 
 export type DayProgress = {
-  customers: number; // 오늘 가게에 온 손님 수 (CUSTOMERS_PER_DAY가 되면 더 오지 않는다)
+  customerLimit: number; // 오늘 받을 손님 수. 하루가 시작될 때 정한다(홍보 전단지 업그레이드) — 중간에 사도 내일부터
+  customers: number; // 오늘 가게에 온 손님 수 (customerLimit이 되면 더 오지 않는다)
   served: number; // 오늘 서빙을 마친 손님 수
   money: number; // 오늘 번 돈
   scoreTotal: number; // 오늘 서빙 총점 합 (결산의 평균 점수용)
   cakes: ServedCakeRecord[]; // 오늘 서빙한 케이크들 — 하루가 끝나면 이 중에서 골라 케이크 앨범에 담는다
+  rankedUp: boolean; // 오늘 이미 랭크가 올랐는지 (랭크는 하루에 한 번만 오른다)
 };
 
 // 서빙한 케이크 한 개의 기록 (케이크 모양 + 그때 받은 점수)
@@ -176,10 +178,19 @@ export type ServedCakeRecord = {
   failReason?: string | null; // 망친 케이크였으면 이유 (앨범 고르기·카드에 표시)
 };
 
-// 하루에 받는 손님 수. 이만큼 다 서빙하고 마지막 손님이 나가면 하루가 끝나고 결산 카드가 뜬다
-export const CUSTOMERS_PER_DAY = 10;
+// 기본 하루 손님 수. 이만큼 다 서빙하고 마지막 손님이 나가면 하루가 끝나고 결산 카드가 뜬다.
+// 홍보 전단지를 사면 늘어난다(lib/progress.ts getCustomersPerDay). 예전엔 10명 고정이라 랭크 1(테이블 1개)에선 하루가 20분 넘게 걸렸다
+export const BASE_CUSTOMERS_PER_DAY = 6;
 
-export const createDayProgress = (): DayProgress => ({ customers: 0, served: 0, money: 0, scoreTotal: 0, cakes: [] });
+export const createDayProgress = (customerLimit = BASE_CUSTOMERS_PER_DAY): DayProgress => ({
+  customerLimit,
+  customers: 0,
+  served: 0,
+  money: 0,
+  scoreTotal: 0,
+  cakes: [],
+  rankedUp: false,
+});
 
 export const TABLE_COUNT = 3;
 export const OVEN_SLOT_COUNT = 2;

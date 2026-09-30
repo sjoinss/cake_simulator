@@ -74,7 +74,8 @@ export function loadGame(): GameState | null {
     ...initial,
     ...saved,
     player: { ...initial.player, ...saved.player },
-    today: { ...createDayProgress(), ...saved.today },
+    // 손님 수 제한이 없던 예전 저장은 그날을 예전 기준(10명)으로 마저 진행한다
+    today: { ...createDayProgress(saved.today ? 10 : undefined), ...saved.today },
     selectedCakeIds: { ...initial.selectedCakeIds, ...saved.selectedCakeIds },
     station: 'order',
     // 튜토리얼이 생기기 전 저장이면, 이미 플레이해 본 사람에게는 다시 보여주지 않는다

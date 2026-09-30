@@ -212,6 +212,9 @@ export function ShopMenu({ player, onBuyMaterial, onBuyUpgrade, onBuyDecor, onCl
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm font-extrabold">{upgrade.name}</h3>
                       <p className="text-xs text-[var(--theme-text)]/70">지금: {current}</p>
+                      {upgrade.note && next && (
+                        <p className="text-[10px] font-bold text-[var(--theme-accent)]">{upgrade.note}</p>
+                      )}
                     </div>
                   </div>
                   {/* 단계 표시 */}

@@ -50,6 +50,7 @@ export function GameRoot() {
         <TopBar
           day={state.player.day}
           servedToday={state.today.served}
+          customersToday={state.today.customerLimit}
           player={state.player}
           onOpenShop={() => setIsShopOpen(true)}
           onOpenAlbum={() => setIsAlbumOpen(true)}

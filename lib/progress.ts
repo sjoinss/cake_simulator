@@ -1,26 +1,29 @@
-import type { Material, Player } from './gameState';
+import { BASE_CUSTOMERS_PER_DAY, type Material, type Player } from './gameState';
 import { OVEN_DURATION_MS } from './gameLogic';
 
 // 성장 시스템 (cake-tycoon-prompt.md 13장, 사용자 결정):
 // - 케이크를 서빙할 때마다 점수(0~100)만큼 경험치가 쌓이고, 다 차면 랭크가 오른다
-// - 랭크가 오르면 상점에 새 재료가 진열되고, 돈을 내고 사야 선반에 올라간다 (처음엔 카테고리별 1개씩)
+// - 랭크는 하루에 한 번만 오른다 (사용자 결정). 그날 이미 올랐으면 경험치는 막대가 꽉 찰 때까지만 쌓이고 다음 날 첫 서빙에 오른다
+// - 랭크가 오르면 상점에 새 재료가 진열되고, 돈을 내고 사야 선반에 올라간다 (처음엔 카테고리별 1개, 토핑만 2개)
 // - 커스텀 재료 만들기는 CUSTOM_MATERIAL_RANK부터
 // - 장비(오븐 속도, 오븐 칸)는 랭크와 무관하게 언제든 돈으로 산다
 // 숫자는 전부 임시값 — 실제 플레이하며 조정한다.
 
-// rank → rank+1 에 필요한 경험치. 평균 80점이면 첫날 랭크 2, 둘째 날 랭크 3 정도
+// rank → rank+1 에 필요한 경험치. 하루 6명 × 평균 80점 ≈ 480이라 초반엔 하루에 한 랭크, 랭크 3부터는 이틀쯤
 export const expToNextRank = (rank: number) => 300 + 150 * (rank - 1);
 
-// 경험치를 더하고 오른 랭크들을 돌려준다 (한 번에 여러 랭크가 오를 수도 있다)
-export function addExp(player: Player, gained: number): { player: Player; reachedRanks: number[] } {
+// 경험치를 더하고 오른 랭크를 돌려준다. canRankUp이 false(오늘 이미 오름)면 랭크는 그대로 두고
+// 경험치는 막대가 꽉 찰 때까지만 쌓는다 → 다음 날 첫 서빙에 바로 오른다. 넘친 경험치는 버린다
+export function addExp(player: Player, gained: number, canRankUp: boolean): { player: Player; reachedRanks: number[] } {
   let { rank, exp } = player;
   exp += gained;
   const reachedRanks: number[] = [];
-  while (exp >= expToNextRank(rank)) {
+  if (canRankUp && exp >= expToNextRank(rank)) {
     exp -= expToNextRank(rank);
     rank += 1;
     reachedRanks.push(rank);
   }
+  exp = Math.min(exp, expToNextRank(rank));
   return { player: { ...player, rank, exp, rankUpThreshold: expToNextRank(rank) }, reachedRanks };
 }
 
@@ -47,10 +50,10 @@ export const TOPPING_COUNT_MIN = 3;
 export const TOPPING_COUNT_MAX = 5;
 
 // ── 장비 업그레이드 ──
-export type UpgradeId = 'ovenSpeed' | 'ovenSlots' | 'pipingBag' | 'penSet';
+export type UpgradeId = 'ovenSpeed' | 'ovenSlots' | 'pipingBag' | 'penSet' | 'flyer';
 
 type UpgradeLevel = { price: number; label: string }; // label: 이 단계를 사면 어떻게 되는지
-export type UpgradeInfo = { id: UpgradeId; emoji: string; name: string; base: string; levels: UpgradeLevel[] };
+export type UpgradeInfo = { id: UpgradeId; emoji: string; name: string; base: string; levels: UpgradeLevel[]; note?: string };
 
 // levels[i]는 i+1단계를 살 때의 가격과 효과
 export const UPGRADES: UpgradeInfo[] = [
@@ -92,7 +95,24 @@ export const UPGRADES: UpgradeInfo[] = [
     base: '펜 색 5가지',
     levels: [{ price: 80, label: '펜 색 10가지' }],
   },
+  {
+    id: 'flyer',
+    emoji: '📰',
+    name: '홍보 전단지',
+    base: `하루 손님 ${BASE_CUSTOMERS_PER_DAY}명`,
+    levels: [
+      { price: 80, label: '하루 손님 8명' },
+      { price: 180, label: '하루 손님 10명' },
+      { price: 320, label: '하루 손님 12명' },
+    ],
+    note: '다음 날부터 적용',
+  },
 ];
+
+// 홍보 전단지: 하루에 오는 손님 수 (손님이 많을수록 돈·경험치를 더 벌지만 하루가 길어진다)
+const CUSTOMERS_PER_DAY_BY_FLYER = [BASE_CUSTOMERS_PER_DAY, 8, 10, 12];
+export const getCustomersPerDay = (player: Player) =>
+  CUSTOMERS_PER_DAY_BY_FLYER[Math.min(upgradeLevel(player, 'flyer'), CUSTOMERS_PER_DAY_BY_FLYER.length - 1)];
 
 const OVEN_DURATIONS_MS = [OVEN_DURATION_MS, 42_000, 35_000, 28_000];
 

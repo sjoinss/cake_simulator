@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createDayProgress,
   createInitialGameState,
-  CUSTOMERS_PER_DAY,
   type CakeData,
   type CakeJob,
   type CraftingStage,
@@ -18,6 +17,7 @@ import { getBakingElapsedRatio, OVEN_IDEAL_START_RATIO, scoreBaking } from "@/li
 import { showToast } from "@/lib/toast";
 import {
   addExp,
+  getCustomersPerDay,
   getOvenDuration,
   DECOR_ITEMS,
   getOvenSlotCount,
@@ -117,15 +117,15 @@ export function useGameState() {
   }, []);
 
   // 빈 테이블에 새 손님을 배정한다. 배정 순간 종소리 + 슬라이드업 등장 애니메이션이 트리거된다.
-  // 오늘 손님(CUSTOMERS_PER_DAY명)을 다 받았으면 더 오지 않는다.
+  // 오늘 손님(today.customerLimit명)을 다 받았으면 더 오지 않는다.
   const assignCustomer = useCallback(
     (tableIndex: number) => {
       const current = stateRef.current;
-      if (current.tables[tableIndex] || current.today.customers >= CUSTOMERS_PER_DAY) return;
+      if (current.tables[tableIndex] || current.today.customers >= current.today.customerLimit) return;
       sounds.bell();
       const newCustomer = createCustomer(tableIndex, getMaterialRegistry(), current.player.unlockedItems, current.player.rank);
       setState((prev) => {
-        if (prev.tables[tableIndex] || prev.today.customers >= CUSTOMERS_PER_DAY) return prev;
+        if (prev.tables[tableIndex] || prev.today.customers >= prev.today.customerLimit) return prev;
         const tables = [...prev.tables];
         tables[tableIndex] = newCustomer;
         return { ...prev, tables, today: { ...prev.today, customers: prev.today.customers + 1 } };
@@ -152,7 +152,7 @@ export function useGameState() {
         arrivalTimer.current = setTimeout(() => {
           arrivalTimer.current = null;
           const current = stateRef.current;
-          if (current.today.customers >= CUSTOMERS_PER_DAY) return;
+          if (current.today.customers >= current.today.customerLimit) return;
           // 랭크로 열린 테이블 중 빈 곳 (13-3: 처음엔 가운데 하나, 랭크가 오르며 늘어난다)
           const emptyTables = current.tables.flatMap((table, index) =>
             table || !isTableOpen(current.player.rank, index) ? [] : [index],
@@ -352,26 +352,27 @@ export function useGameState() {
       const servedAt = Date.now();
       const result = scoreServedCake(job.cake, customer.order, customer.orderedAt ?? servedAt, servedAt);
       // 서빙 점수만큼 경험치 (랭크업은 결과 카드를 닫은 뒤 카드로 알린다)
-      // 망친 케이크는 경험치가 없다
+      // 망친 케이크는 경험치가 없다. 랭크는 하루에 한 번만 오른다
       const gainedExp = result.failReason ? 0 : result.total;
-      const { reachedRanks } = addExp(state.player, gainedExp);
+      const { reachedRanks } = addExp(state.player, gainedExp, !state.today.rankedUp);
 
       setState((prev) => {
         const tables = [...prev.tables];
         const target = tables[tableIndex];
         if (target?.id === customer.id) tables[tableIndex] = { ...target, status: "served" };
-        const leveled = addExp(prev.player, gainedExp).player;
+        const leveled = addExp(prev.player, gainedExp, !prev.today.rankedUp);
         return {
           ...prev,
           tables,
           cakes: prev.cakes.filter((cake) => cake.jobId !== jobId),
           player: {
-            ...leveled,
-            money: leveled.money + result.money + result.tip,
-            tipTotal: leveled.tipTotal + result.tip,
+            ...leveled.player,
+            money: leveled.player.money + result.money + result.tip,
+            tipTotal: leveled.player.tipTotal + result.tip,
           },
           today: {
             ...prev.today,
+            rankedUp: prev.today.rankedUp || leveled.reachedRanks.length > 0,
             served: prev.today.served + 1,
             money: prev.today.money + result.money + result.tip,
             scoreTotal: prev.today.scoreTotal + result.total,
@@ -428,7 +429,7 @@ export function useGameState() {
         }, LEAVE_ANIMATION_MS);
       }, EATING_DURATION_MS);
     },
-    [state.cakes, state.tables, state.player, schedule, scheduleArrival],
+    [state.cakes, state.tables, state.player, state.today.rankedUp, schedule, scheduleArrival],
   );
 
   const dismissServeResult = useCallback(() => setServeResult(null), []);
@@ -492,7 +493,7 @@ export function useGameState() {
   }, []);
 
   // 오늘 손님을 다 서빙했고 마지막 손님까지 나가서 테이블이 모두 비었으면 하루가 끝난 것 (결산 카드)
-  const isDayOver = state.today.served >= CUSTOMERS_PER_DAY && state.tables.every((table) => table === null);
+  const isDayOver = state.today.served >= state.today.customerLimit && state.tables.every((table) => table === null);
 
   // 다음 날 시작: 날짜 +1, 오늘 기록·주문 번호 초기화. 가게 문을 닫으면서 주방에 남은 케이크는 정리하고,
   // 시트 스테이션에 새 틀을 놓은 뒤 손님을 다시 받는다.
@@ -501,7 +502,7 @@ export function useGameState() {
       withBaseCake({
         ...prev,
         player: { ...prev.player, day: prev.player.day + 1 },
-        today: createDayProgress(),
+        today: createDayProgress(getCustomersPerDay(prev.player)),
         nextOrderNumber: 1,
         cakes: [],
         ovenSlots: prev.ovenSlots.map(() => null),
