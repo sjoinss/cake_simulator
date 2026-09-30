@@ -125,11 +125,12 @@ export function Cake3D({
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: toppingRoom + faceHeight + sideHeight + size * 0.04 }}>
-      {/* 바닥 그림자 */}
+      {/* 바닥 그림자: 케이크 밑바닥 곡선에 딱 붙인다. 예전엔 바닥보다 아래로 내려와 있어서 케이크와 접시 사이에
+          틈이 있는 것처럼(공중에 뜬 것처럼) 보였다 */}
       <div
         aria-hidden
-        className="absolute rounded-[50%] bg-black/20 blur-[3px]"
-        style={{ left: "4%", width: "92%", height: faceHeight * 0.7, top: toppingRoom + sideHeight + faceHeight * 0.45 }}
+        className="absolute rounded-[50%] bg-black/25 blur-[2px]"
+        style={{ left: "1%", width: "98%", height: faceHeight * 0.5, top: toppingRoom + sideHeight + faceHeight * 0.52 }}
       />
 
       {/* 옆면: 아래쪽이 타원 곡선으로 둥글게 말린 원기둥 벽 */}

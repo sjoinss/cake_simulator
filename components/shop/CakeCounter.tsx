@@ -81,7 +81,7 @@ export function CakeCounter({
       {/* 케이크 받침대: 발이 천 한가운데 → 나팔 모양 기둥 → 넓은 접시 (아래에서 위로 쌓는다) */}
       <div className="absolute bottom-[16px] left-1/2 flex -translate-x-1/2 flex-col items-center">
         {cake && (
-          <div className={`relative z-10 -mb-5 flex flex-col items-center short:-mb-3.5 ${isDragging ? "opacity-0" : ""}`}>
+          <div className={`relative z-10 -mb-[4.5rem] flex flex-col items-center short:-mb-12 ${isDragging ? "opacity-0" : ""}`}>
             {/* 받침대에 못 올라간 완성 케이크 수 (케이크 위쪽) */}
             {queuedCount > 0 && (
               <span className="mb-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-[var(--theme-text)] shadow-sm">
@@ -106,12 +106,12 @@ export function CakeCounter({
         {/* 접시 */}
         <div
           aria-hidden
-          className="h-7 w-40 rounded-[50%] bg-[linear-gradient(180deg,#ffffff,#eee6e1)] shadow-[0_3px_0_#dcd0c8,0_5px_8px_rgba(90,50,30,0.2)] short:h-5 short:w-28"
+          className="h-16 w-40 rounded-[50%] bg-[radial-gradient(ellipse_at_50%_40%,#ffffff_55%,#eee6e1)] shadow-[0_4px_0_#dcd0c8,0_6px_8px_rgba(90,50,30,0.2)] short:h-11 short:w-28"
         />
         {/* 기둥 */}
         <div
           aria-hidden
-          className="h-5 w-14 bg-[linear-gradient(90deg,#e9e1dc,#ffffff_45%,#e3dad4)] short:h-3.5 short:w-10"
+          className="h-10 w-14 bg-[linear-gradient(90deg,#e9e1dc,#ffffff_45%,#e3dad4)] short:h-7 short:w-10"
           style={{ clipPath: "polygon(38% 0%, 62% 0%, 88% 100%, 12% 100%)" }}
         />
         {/* 발 */}
