@@ -52,7 +52,7 @@ export function PlayerSide({ counter }: PlayerSideProps) {
       </div>
 
       {/* 주인 캐릭터: 왼쪽으로 치우쳐 서 있고, 앞(계산대 위)에 금전등록기가 놓인다. 오른쪽은 케이크 받침대 자리 */}
-      <div className="relative flex min-h-0 flex-1 items-end pl-[calc(24%-4.5rem+var(--safe-l))] short:pl-[calc(24%-3rem+var(--safe-l))]">
+      <div className="relative flex min-h-0 flex-1 items-end pl-[calc(28%-7rem+var(--safe-l))] short:pl-[calc(28%-4.5rem+var(--safe-l))]">
         <ChefCharacter />
       </div>
 
@@ -72,7 +72,7 @@ export function PlayerSide({ counter }: PlayerSideProps) {
         />
 
         {/* 금전등록기: 주인 캐릭터 바로 앞 (계산대 상판 위) */}
-        <div className="absolute bottom-[52%] left-[calc(24%+var(--safe-l))] origin-bottom -translate-x-1/2 short:scale-[0.75]">
+        <div className="absolute bottom-[52%] left-[calc(28%+var(--safe-l))] origin-bottom -translate-x-1/2 short:scale-[0.75]">
           <CashRegister />
         </div>
 
@@ -97,7 +97,7 @@ function ChefCharacter() {
       label="주인 캐릭터 그림"
       onFile={(file) => setImage(OWNER_IMAGE_KEY, file)}
       onClear={() => clearImage(OWNER_IMAGE_KEY)}
-      className="-mb-12 h-60 max-h-[calc(100%+3rem)] w-36 short:-mb-8 short:h-[9.5rem] short:w-24"
+      className="-mb-24 h-96 max-h-[calc(100%+6rem)] w-56 short:-mb-14 short:h-56 short:max-h-[calc(100%+3.5rem)] short:w-36"
       imageClassName="object-bottom"
     >
       <span className="flex h-full w-full items-center justify-center rounded-t-3xl border-2 border-dashed border-[var(--theme-text)]/30 bg-white/35 pb-10 text-center text-[11px] font-bold text-[var(--theme-text)]/45 short:pb-6 short:text-[9px]">
