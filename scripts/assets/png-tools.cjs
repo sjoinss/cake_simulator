@@ -1,5 +1,4 @@
 // 이미지 도구가 없어서 PNG를 직접 읽고 쓴다 (8비트 RGBA/RGB, 인터레이스 없음)
-const fs = require("fs");
 const zlib = require("zlib");
 
 function decodePng(buffer) {
